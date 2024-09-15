@@ -166,7 +166,7 @@ License: Academic Free License "AFL" v. 3.0
 
 Original background: 
 https://www.artapixel.com/escp-art-midnight-sun-city-night-retrowave-cyberpunk.html
-Created by e s c p Art 
+Created by < e s c p > Art 
 License: This Image is licensed under the Creative Commons Zero v1.0 Universal. 
 Free images by https://www.artapixel.com 
 
