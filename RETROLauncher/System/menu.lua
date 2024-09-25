@@ -1317,7 +1317,7 @@ function Generar_Listas()
 			fix_ps2_pos1 = 270
 			fix_ps2_cen = 46
 		end
-		if OPCIONES.GUI_LIMPIA_ON == 0 then
+		if OPCIONES.GUI_LIMPIA_ON == 0 and LISTAS.SCREENSHOT_FULL == false then
 			Graphics.drawRect(CONTROL.LISTA_ANCHO+fix_ps2_pos2-3,CONTROL.LISTA_ALTO+fix_ps2_pos1-4,315-fix_ps2_lag,26,COLOR.NEGRO)
 			Graphics.drawScaleImage(PAD_IMG.CIRCLE,CONTROL.LISTA_ANCHO+fix_ps2_cen+fix_ps2_pos2,CONTROL.LISTA_ALTO+fix_ps2_pos1,20,20)
 			Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+25+fix_ps2_cen+fix_ps2_pos2,CONTROL.LISTA_ALTO+fix_ps2_pos1,0,0,5,"GAME SETTINGS",COLOR.BLANCO)
