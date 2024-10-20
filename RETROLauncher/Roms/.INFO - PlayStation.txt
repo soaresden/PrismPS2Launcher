@@ -1,0 +1,18 @@
+Directorio para las ROMS para PlayStation.
+RETROLauncher buscara en la raíz del directorio de POPSTARTER "mass:/POPS/".
+
+RETROLauncher Solo ejecuta POPSTARTER desde USB, no es compatible con otros medios como SMB o HDD.
+
+Las ROMS deben tener extensión .vcd y requieren que estén dentro del directorio POPS, en la raíz del USB.
+
+La carpeta POPS debe contener los binarios de POPS (POPS.ELF, POPS.PAK, POPS_IOX.PAK y IOPRP252.IMG).
+
+Para más información respecto al uso de POPSTARTER visite la documentación de Shaolin Assassin: 
+https://bitbucket.org/ShaolinAssassin/popstarter-documentation-stuff/wiki/quickstart-usb
+
+POPSTARTER de krHACKen: https://www.psx-place.com/threads/popstarter.19139/
+
+Ejemplo:
+"mass:/POPS/Ejemplo.vcd" - Lo encontrara y lo enlistara.
+
+Extensiones soportadas: .vcd

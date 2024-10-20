@@ -1,0 +1,12 @@
+Aquí van las Fuentes de texto para RETROLauncher.
+RETROLauncher buscara en la raíz de este directorio.
+
+Requisitos de las Fuentes de Texto:
+  * Debe ser una fuente con extensión ".ttf" u ".otf"
+  * Puede tener cualquier nombre siempre y cuando la extensión sea .ttf u .otf (Se recomienda nombres cortos).
+  * El nombre de las fuentes no se verá reflejado en las configuraciones solo se le asignara un número.
+  * Para cambiar las fuentes se debe ingresar a la configuración de RETROLauncher, cambiar la Fuentes y guardar la configuración.
+  * Las fuentes de texto pueden no ajustarse bien a RETROLauncher, si desea ajustar la fuente se debe editar la fuente con algún programa específico, también se puede editar el código (no recomendado).
+  * Si por error configuro una fuente demasiado pequeña o ilegible bastara con borrar las fuentes de este directorio y se cargara automáticamente la fuente por defecto.
+
+Extensiones soportadas: .ttf .otf

@@ -1,0 +1,12 @@
+Aquí van las ROMS para Sega Megadrive.
+RETROLauncher buscara en la raiz de este directorio.
+Las ROMS comprimidas ".zip" deben ser extraídas ya que no soporta las mismas.
+
+Ejemplo: 
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.bin" - Lo encontrara y lo enlistara.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.gen" - Lo encontrara y lo enlistara.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.smd" - Lo encontrara y lo enlistara.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.md" - Lo encontrara y lo enlistara.
+
+Extensiones soportadas: .bin .gen .smd .md
+

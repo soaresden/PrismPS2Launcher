@@ -1,0 +1,66 @@
+Aqui van las ROMS para PlayStation 2.
+RETROLauncher buscara en la raíz de este directorio.
+RETROLauncher también buscara en la carpeta DVD y CD en la raíz del USB.
+
+Para la ejecución de ISO de ps2 se utiliza "Neutrino" creado por Maximus32.
+Más información acerca de Neutrino en: https://github.com/rickgaiser/neutrino
+
+Ejemplo: 
+"mass:/RETROLauncher/Roms/ISOs Play Station 2/Ejemplo.iso" - Lo encontrara y lo enlistara.
+"mass:/DVD/Ejemplo.iso" - Lo encontrara y lo enlistara.
+"mass:/CD/Ejemplo.iso" - Lo encontrara y lo enlistara.
+
+Extensiones soportadas: .iso
+
+-----------------------------------------------------------------------------------------------------------
+Se pueden agregar archivos extras con comandos específicos como memorias virtuales o modos de compatibilidad.
+-----------------------------------------------------------------------------------------------------------
+
+para agregar soporte de memory card virtual a un juego se tiene que crear una archivo de texto que contenga el siguiente comando:
+
+-mc0=mass:/directorio de memoria virtual/Ejemplo.bin
+
+Ejemplo:
+Si mi memoria virtual está en la carpeta "VMC" y se llama "generic_0.bin" entonces el comando quedaría así…
+
+-mc0=mass:/VMC/generic_0.bin
+
+una vez configurado se le cambia la extensión de “.txt” a ".vmcd" y se lo guarda junto al juego con el mismo nombre del juego, en la carpeta "DVD" de la raíz USB o en este directorio "mass:/RETROLauncher/Roms/ISOs Play Station 2/".
+
+Ejemplo:
+ISO/juego: "mass:/RETROLauncher/Roms/ISOs Play Station 2/Ejemplo.iso"
+Archivo de memoria: "mass:/RETROLauncher/Roms/ISOs Play Station 2/Ejemplo.vmcd" - Lo encontrara y cargara la VMC
+(si falla revisar si el directorio es correcto, si el comando es correcto, si la VMC esta fragmentada en el dispositivo y si el juego es compatible con VMC)
+
+-----------------------------------------------------------------------------------------------------------
+
+para agregar soporte de modos de compatibilidad a un juego se tiene que crear un archivo de texto que contenga el siguiente comando:
+
+-gc= "numero del modo o modos que se quieren activar"
+
+modos:
+- 0: Disable builtin compat flags
+- 1: IOP: Accurate reads (sceCdRead)
+- 2: IOP: Sync reads (sceCdRead)
+- 3: EE : Unhook syscalls
+- 5: IOP: Emulate DVD-DL
+
+Ejemplo:
+-gc=5
+
+se puede agregar varios encadenados.
+
+Ejemplo:
+-gc=235
+
+una vez configurado se le cambia la extensión de “.txt” a ".mode" y se lo guarda junto al juego con el mismo nombre del juego, en la carpeta "DVD" de la raiz USB o en este  
+directorio "mass:/RETROLauncher/Roms/ISOs Play Station 2/".
+
+Ejemplo:
+ISO/juego: "mass:/RETROLauncher/Roms/ISOs Play Station 2/Ejemplo.iso"
+Archivo de modos: "mass:/RETROLauncher/Roms/ISOs Play Station 2/Ejemplo.mode" - Lo encontrara y cargara los modos
+(si falla revisar si el directorio es correcto, si el comando es correcto y si el juego es compatible con los modos) 
+
+-----------------------------------------------------------------------------------------------------------
+
+Tanto ".vmcd" como ".mode" pueden coexistir.

@@ -1,0 +1,8 @@
+Aquí van las ROMS para Sega Master System.
+RETROLauncher buscara en la raíz de este directorio.
+Las ROMS comprimidas ".zip" deben ser extraídas ya que no soporta las mismas.
+
+Ejemplo: 
+"mass:/RETROLauncher/Roms/Roms Sega Master System/Ejemplo.sms" - Lo encontrara y lo enlistara.
+
+Extensiones soportadas: .sms
