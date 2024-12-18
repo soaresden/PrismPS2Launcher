@@ -2427,11 +2427,11 @@ function animaciones() -- Muestra los distintos tipos de animaciones al cambiar 
 	end
 	
 	-- Cambia el límite de las extensiones de archivos
-	if LISTAS.IDENTIDAD == 3 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 10 then
-		CONTROL.EXTENSION = 4
-	else
-		CONTROL.EXTENSION = 5
-	end
+	--if LISTAS.IDENTIDAD == 3 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 10 then
+	--	CONTROL.EXTENSION = 4
+	--else
+	--	CONTROL.EXTENSION = 5
+	--end
 end
 
 function color_emu(identidad) -- Determina los colores predeterminados de cada emulador
@@ -2827,7 +2827,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Sega Megadrive")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".bin" or string.lower(string.sub(buscar[contador].name,-4)) == ".gen" or string.lower(string.sub(buscar[contador].name,-4)) == ".smd" or string.lower(string.sub(buscar[contador].name,-3)) == ".md" )then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".bin" or string.lower(string.sub(buscar[contador].name,-4)) == ".gen" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip" or string.lower(string.sub(buscar[contador].name,-4)) == ".smd" or string.lower(string.sub(buscar[contador].name,-3)) == ".md" )then
 					if string.lower(string.sub(buscar[contador].name,-3)) == ".md" then
 						table.insert(encontrados,buscar[contador].name .." ")
 					else
@@ -2851,7 +2851,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Sega Master System")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and string.lower(string.sub(buscar[contador].name,-4)) == ".sms" then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".sms" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip") then
 					table.insert(encontrados,buscar[contador].name)
 				end
 			end
@@ -2871,8 +2871,12 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Sega Game Gear")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and string.lower(string.sub(buscar[contador].name,-3)) == ".gg" then
-					table.insert(encontrados,buscar[contador].name)
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-3)) == ".gg" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip") then
+					if string.lower(string.sub(buscar[contador].name,-3)) == ".gg" then
+						table.insert(encontrados,buscar[contador].name .." ")
+					else
+						table.insert(encontrados,buscar[contador].name)
+					end
 				end
 			end
 			if encontrados ~= nil and #encontrados >= 1 then
@@ -2891,7 +2895,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Nintendo Famicom")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".nes" or string.lower(string.sub(buscar[contador].name,-4)) == ".fds" or string.lower(string.sub(buscar[contador].name,-4)) == ".unf") then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".nes" or string.lower(string.sub(buscar[contador].name,-4)) == ".fds" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip" or string.lower(string.sub(buscar[contador].name,-4)) == ".unf") then
 					table.insert(encontrados,buscar[contador].name)
 				end
 			end
@@ -2911,8 +2915,12 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Nintendo Game Boy")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and string.lower(string.sub(buscar[contador].name,-3)) == ".gb" then
-					table.insert(encontrados,buscar[contador].name)
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-3)) == ".gb" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip") then
+					if string.lower(string.sub(buscar[contador].name,-3)) == ".gb" then
+						table.insert(encontrados,buscar[contador].name .." ")
+					else
+						table.insert(encontrados,buscar[contador].name)
+					end
 				end
 			end
 			if encontrados ~= nil and #encontrados >= 1 then
@@ -2931,7 +2939,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Nintendo Game Boy Color")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and string.lower(string.sub(buscar[contador].name,-4)) == ".gbc" then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".gbc" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip") then
 					table.insert(encontrados,buscar[contador].name)
 				end
 			end
@@ -2991,7 +2999,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Atari 2600")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".a26" or string.lower(string.sub(buscar[contador].name,-4)) == ".bin") then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".a26" or string.lower(string.sub(buscar[contador].name,-4)) == ".bin" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip") then
 					table.insert(encontrados,buscar[contador].name)
 				end
 			end
@@ -3011,8 +3019,12 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Sega SG-1000")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and string.lower(string.sub(buscar[contador].name,-3)) == ".sg" then
-					table.insert(encontrados,buscar[contador].name)
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-3)) == ".sg" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip") then
+					if string.lower(string.sub(buscar[contador].name,-3)) == ".sg" then
+						table.insert(encontrados,buscar[contador].name .." ")
+					else
+						table.insert(encontrados,buscar[contador].name)
+					end
 				end
 			end
 			if encontrados ~= nil and #encontrados >= 1 then
@@ -3031,7 +3043,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Neo Geo Pocket")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".ngc" or string.lower(string.sub(buscar[contador].name,-4)) == ".ngp" or string.lower(string.sub(buscar[contador].name,-4)) == ".npc") then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".ngc" or string.lower(string.sub(buscar[contador].name,-4)) == ".ngp" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip" or string.lower(string.sub(buscar[contador].name,-4)) == ".npc") then
 					table.insert(encontrados,buscar[contador].name)
 				end
 			end
@@ -3051,7 +3063,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/Roms Nintendo Super Famicom")
 		if buscar ~= nil then
 			for contador = 1,#buscar do
-				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".smc" or string.lower(string.sub(buscar[contador].name,-4)) == ".sfc") then
+				if buscar[contador].directory == false and (string.lower(string.sub(buscar[contador].name,-4)) == ".smc" or string.lower(string.sub(buscar[contador].name,-4)) == ".zip" or string.lower(string.sub(buscar[contador].name,-4)) == ".sfc") then
 					table.insert(encontrados,buscar[contador].name)
 				end
 			end
