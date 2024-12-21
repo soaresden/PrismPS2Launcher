@@ -1,9 +1,9 @@
 Aquí van las ROMS para Atari 2600.
 RETROLauncher buscara en la raíz de este directorio.
-Las ROMS comprimidas ".zip" deben ser extraídas ya que no soporta las mismas.
 
 Ejemplo: 
 "mass:/RETROLauncher/Roms/Roms Atari 2600/Ejemplo.a26" - Lo encontrara y lo enlistara.
 "mass:/RETROLauncher/Roms/Roms Atari 2600/Ejemplo.bin" - Lo encontrara y lo enlistara.
+"mass:/RETROLauncher/Roms/Roms Atari 2600/Ejemplo.zip" - Lo encontrara y lo enlistara.
 
-Extensiones soportadas: .a26 .bin
+Extensiones soportadas: .a26 .bin .zip

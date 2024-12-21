@@ -1,8 +1,8 @@
 Aquí van las ROMS para Nintendo Game Boy Color.
 RETROLauncher buscara en la raíz de este directorio.
-Las ROMS comprimidas ".zip" deben ser extraídas ya que no soporta las mismas.
 
 Ejemplo:
 "mass:/RETROLauncher/Roms/Roms Nintendo Game Boy Color/Ejemplo.gbc" - Lo encontrara y lo enlistara.
+"mass:/RETROLauncher/Roms/Roms Nintendo Game Boy Color/Ejemplo.zip" - Lo encontrara y lo enlistara.
 
-Extensiones soportadas: .gbc
+Extensiones soportadas: .gbc .zip

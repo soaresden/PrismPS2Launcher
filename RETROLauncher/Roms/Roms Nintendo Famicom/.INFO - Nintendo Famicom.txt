@@ -1,10 +1,10 @@
 Aquí van las ROMS para Nintendo Famicom.
 RETROLauncher buscara en la raíz de este directorio.
-Las ROMS comprimidas ".zip" deben ser extraídas ya que no soporta las mismas.
 
 Ejemplo: 
 "mass:/RETROLauncher/Roms/Roms Nintendo Famicom/Ejemplo.nes" - Lo encontrara y lo enlistara.
 "mass:/RETROLauncher/Roms/Roms Nintendo Famicom/Ejemplo.fds" - Lo encontrara y lo enlistara.
 "mass:/RETROLauncher/Roms/Roms Nintendo Famicom/Ejemplo.unf" - Lo encontrara y lo enlistara.
+"mass:/RETROLauncher/Roms/Roms Nintendo Famicom/Ejemplo.zip" - Lo encontrara y lo enlistara.
 
-Extensiones soportadas: .nes .fds .unf
+Extensiones soportadas: .nes .fds .unf .zip

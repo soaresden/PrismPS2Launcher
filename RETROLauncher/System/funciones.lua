@@ -2712,13 +2712,17 @@ function existe(identidad,nombre_juego,alternativo) -- Verifica los ROMS y archi
 			return false
 		end
 	elseif identidad == 5 then -- Verifica si existen emulador/juego Nintendo Game Boy
-		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/gambatte_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/gambatte_libretro_ps2.elf") and alternativo == false then	
+			return true
+		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/tgbdual_libretro_ps2.elf") and alternativo == true then	
 			return true
 		else
 			return false
 		end
 	elseif identidad == 6 then -- Verifica si existen emulador/juego Nintendo Game Boy Color
-		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/gambatte_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/gambatte_libretro_ps2.elf") and alternativo == false then	
+			return true
+		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/tgbdual_libretro_ps2.elf") and alternativo == true then	
 			return true
 		else
 			return false
@@ -3513,10 +3517,18 @@ function ejecutar_juego(identidad,nombre_juego,alternativo) -- Ejecuta la ROM co
 		end
 	elseif identidad == 5 then -- Ejecutar para Nintendo Game Boy
 		guardar()
-		System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/gambatte_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego)
+		if alternativo == true then
+			System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/tgbdual_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego)
+		else
+			System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/gambatte_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego)
+		end
 	elseif identidad == 6 then -- Ejecutar para Nintendo Game Boy Color
 		guardar()
-		System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/gambatte_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego)
+		if alternativo == true then
+			System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/tgbdual_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego)
+		else
+			System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/gambatte_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego)
+		end
 	elseif identidad == 7 then -- Ejecutar para Nintendo Game Boy Advance
 		guardar()
 		System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego)
@@ -3784,6 +3796,9 @@ function reiniciar_conf(limpiar) -- Reinicia todas las configuraciones
 	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt") then
 		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt")
 	end
+	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt") then
+		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt")
+	end
 	----------------------------------------------
 	
 	-- Restaura Nintendo Game Boy Advance --------
@@ -3811,6 +3826,9 @@ function reiniciar_conf(limpiar) -- Reinicia todas las configuraciones
 	pantalla_reiniciar_conf(FONDO_LOAD,39,false)
 	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt") then
 		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt")
+	end
+	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt") then
+		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt")
 	end
 	----------------------------------------------
 	
