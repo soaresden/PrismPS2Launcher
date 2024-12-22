@@ -188,8 +188,8 @@ end
 
 MENU_SONIDOS = {
 	ERROR = verificar_sonidos(ERROR,"System/Medios/Sound/Menu/error.adp");
-	CANCELAR = verificar_sonidos(CANCELAR,"System/Medios/Sound/Menu/back.adp");
 	MOVER = verificar_sonidos(MOVER,"System/Medios/Sound/Menu/move.adp");
+	CANCELAR = verificar_sonidos(CANCELAR,"System/Medios/Sound/Menu/back.adp");
 	MUSICA = verificar_sonidos(MUSICA,"System/Medios/Sound/Background/music.adp");
 	EJECUTAR = verificar_sonidos(EJECUTAR,"System/Medios/Sound/Menu/run.adp");
 	NETX = verificar_sonidos(NETX,"System/Medios/Sound/Menu/next.adp");
@@ -2812,9 +2812,13 @@ function obtener_nombre_SAS(archivo_cfg, nombre_APP) -- Busca el nombre de la AP
 		local size = System.sizeFile(carga_cfg)
 		local temp_tex = System.readFile(carga_cfg,size)
 		for linea in string.gmatch(temp_tex,"title=.+") do
-			local salto = string.find(linea, "\r\n")
+			local salto = string.find(linea, "\n")
 			if salto ~= nil then
-				nombre = (string.sub(linea,7,salto-1).. "    ")
+				if string.sub(linea,salto-1,salto) == "\r\n" then
+					nombre = (string.sub(linea,7,salto-2).. "    ")
+				else
+					nombre = (string.sub(linea,7,salto-1).. "    ")
+				end
 			else
 				nombre = (string.sub(linea,7).. "    ")
 			end
