@@ -527,6 +527,9 @@ function Generar_Listas()
 			if CONTROL.ESPERA_CARGA_SCR == false then
 				LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX,string.sub(LISTAS.ROMS[LISTAS.INDICE],1,- CONTROL.EXTENSION),24)
 			end
+			if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE],1,12),"%a+_%d+.%d+.") and LISTAS.SCROLL_TEX <= 13 then
+				LISTAS.SCROLL_TEX = 13
+			end
 			
 			-- Mostrar listas de juegos / estilo 1 / estilo 4 / estilo 6
 			local mostrar_lista = 0
@@ -536,10 +539,18 @@ function Generar_Listas()
 					if contador == 0 then
 						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE],LISTAS.SCROLL_TEX,-CONTROL.EXTENSION),CAMBIOS_EMUS.COLOR_EMU)
 					elseif (LISTAS.INDICE+contador) <= #LISTAS.ROMS then
-						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,12),"%a+_%d+.%d+.") then
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						else
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						end
 					elseif mostrar_lista <= #LISTAS.ROMS-1 and #LISTAS.ROMS >= 12 then
 						mostrar_lista = mostrar_lista+1
-						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[mostrar_lista],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[mostrar_lista],1,12),"%a+_%d+.%d+.") then
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[mostrar_lista],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						else
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,310-3,2,string.sub(LISTAS.ROMS[mostrar_lista],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						end
 					end
 				end
 			end
@@ -729,6 +740,9 @@ function Generar_Listas()
 			if CONTROL.ESPERA_CARGA_SCR == false then
 				LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX,string.sub(LISTAS.ROMS[LISTAS.INDICE],1,- CONTROL.EXTENSION),24)
 			end
+			if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE],1,12),"%a+_%d+.%d+.") and LISTAS.SCROLL_TEX <= 13 then
+				LISTAS.SCROLL_TEX = 13
+			end
 			
 			-- Mostrar listas de juegos / estilo 2
 			if LISTAS.SCREENSHOT_FULL == false then
@@ -737,10 +751,18 @@ function Generar_Listas()
 				Font.ftPrint(CONTROL.fontARCA,169,CONTROL.IMG_ALTO+220,0,307,2,string.sub(LISTAS.ROMS[LISTAS.INDICE],LISTAS.SCROLL_TEX,-CONTROL.EXTENSION),CAMBIOS_EMUS.COLOR_EMU)
 				-- Mostrar arte izquierda / estilo 2
 				Graphics.drawRect(CONTROL.IMG_ANCHO-180,CONTROL.IMG_ALTO+158,160,25,COLOR.NEGRO_T)
-				Font.ftPrint(CONTROL.fontARCA,CONTROL.IMG_ANCHO-175,CONTROL.IMG_ALTO+160,0,150,2,string.sub(LISTAS.ROMS[LISTAS.INDICE2],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+				if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE2],1,12),"%a+_%d+.%d+.") then
+					Font.ftPrint(CONTROL.fontARCA,CONTROL.IMG_ANCHO-175,CONTROL.IMG_ALTO+160,0,150,2,string.sub(LISTAS.ROMS[LISTAS.INDICE2],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+				else
+					Font.ftPrint(CONTROL.fontARCA,CONTROL.IMG_ANCHO-175,CONTROL.IMG_ALTO+160,0,150,2,string.sub(LISTAS.ROMS[LISTAS.INDICE2],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+				end
 				-- Mostrar arte derecha / estilo 2
 				Graphics.drawRect(CONTROL.IMG_ANCHO+270,CONTROL.IMG_ALTO+158,160,25,COLOR.NEGRO_T)
-				Font.ftPrint(CONTROL.fontARCA,CONTROL.IMG_ANCHO+275,CONTROL.IMG_ALTO+160,0,150,2,string.sub(LISTAS.ROMS[LISTAS.INDICE3],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+				if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE3],1,12),"%a+_%d+.%d+.") then
+					Font.ftPrint(CONTROL.fontARCA,CONTROL.IMG_ANCHO+275,CONTROL.IMG_ALTO+160,0,150,2,string.sub(LISTAS.ROMS[LISTAS.INDICE3],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+				else
+					Font.ftPrint(CONTROL.fontARCA,CONTROL.IMG_ANCHO+275,CONTROL.IMG_ALTO+160,0,150,2,string.sub(LISTAS.ROMS[LISTAS.INDICE3],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+				end
 			end
 			
 			-- Cargar arte / estilo 2
@@ -902,6 +924,9 @@ function Generar_Listas()
 					LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX,string.sub(LISTAS.ROMS[LISTAS.INDICE],1,-CONTROL.EXTENSION),24)
 				end
 			end
+			if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE],1,12),"%a+_%d+.%d+.") and LISTAS.SCROLL_TEX <= 13 then
+				LISTAS.SCROLL_TEX = 13
+			end
 			
 			-- Mostrar listas de juegos / estilo 3
 			local mostrar_lista = 0
@@ -911,10 +936,18 @@ function Generar_Listas()
 					if contador == 0 then
 						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE],LISTAS.SCROLL_TEX,-CONTROL.EXTENSION),CAMBIOS_EMUS.COLOR_EMU)
 					elseif (LISTAS.INDICE+contador) <= #LISTAS.ROMS then
-						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,12),"%a+_%d+.%d+.") then
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						else
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						end
 					elseif mostrar_lista <= #LISTAS.ROMS-1 and #LISTAS.ROMS >= 6 then
 						mostrar_lista = mostrar_lista+1
-						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[mostrar_lista],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[mostrar_lista],1,12),"%a+_%d+.%d+.") then
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[mostrar_lista],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						else
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,largo-3,2,string.sub(LISTAS.ROMS[mostrar_lista],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						end
 					end
 					if contador == 3 then
 						Graphics.drawRect(CONTROL.LISTA_ANCHO-3,espacio_linea-3,largo+2,25,Color.new(0,0,0,30))
@@ -1107,6 +1140,9 @@ function Generar_Listas()
 			if CONTROL.ESPERA_CARGA_SCR == false then
 				LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX,string.sub(LISTAS.ROMS[LISTAS.INDICE],1,-CONTROL.EXTENSION),23)
 			end
+			if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE],1,12),"%a+_%d+.%d+.") and LISTAS.SCROLL_TEX <= 13 then
+				LISTAS.SCROLL_TEX = 13
+			end
 			
 			-- Mostrar listas de juegos / estilo 5
 			local mostrar_lista = 0
@@ -1116,10 +1152,18 @@ function Generar_Listas()
 					if contador == 0 then
 						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE],LISTAS.SCROLL_TEX,-CONTROL.EXTENSION),CAMBIOS_EMUS.COLOR_EMU)
 					elseif (LISTAS.INDICE+contador) <= #LISTAS.ROMS then
-						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,12),"%a+_%d+.%d+.") then
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						else
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[LISTAS.INDICE+contador],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						end
 					elseif mostrar_lista <= #LISTAS.ROMS-1 and #LISTAS.ROMS >= 5 then
 						mostrar_lista = mostrar_lista+1
-						Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[mostrar_lista],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						if (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 8) and string.match(string.sub(LISTAS.ROMS[mostrar_lista],1,12),"%a+_%d+.%d+.") then
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[mostrar_lista],13,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						else
+							Font.ftPrint(CONTROL.fontARCA,CONTROL.LISTA_ANCHO+3,espacio_linea,0,300-3,2,string.sub(LISTAS.ROMS[mostrar_lista],1,-CONTROL.EXTENSION),COLOR.BLANCO_LISTA)
+						end
 					end
 					if contador == 2 then
 						Graphics.drawRect(CONTROL.LISTA_ANCHO-3,espacio_linea-3,302,25,Color.new(0,0,0,30))

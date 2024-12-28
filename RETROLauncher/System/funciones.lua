@@ -372,10 +372,22 @@ function cargar_art() -- Cargar imágenes en memoria
 		end
 	elseif LISTAS.IDENTIDAD == 8 and LISTAS.MOSTRAR == 1 then -- Generar nombre de Play Station
 		LISTAS.COVER_DIR = (actual .."/Multimedia/Covers/Covers PlayStation/".. nombre ..".png")
+		if doesFileExist(LISTAS.COVER_DIR) == false then
+			LISTAS.COVER_DIR = ("mass:/ART/".. string.sub(nombre,1,11) .."_COV.png")
+		end
 		LISTAS.SCREENSHOT_DIR = (actual .."/Multimedia/Screenshots/Screenshots PlayStation/".. nombre ..".png")
+		if doesFileExist(LISTAS.SCREENSHOT_DIR) == false then
+			LISTAS.SCREENSHOT_DIR = ("mass:/ART/".. string.sub(nombre,1,11) .."_SCR.png")
+		end
 		if CONTROL.ESTILO == 2 then
 			LISTAS.COVER_DIR2 = (actual .."/Multimedia/Covers/Covers PlayStation/".. nombre2 ..".png")
+			if doesFileExist(LISTAS.COVER_DIR2) == false then
+				LISTAS.COVER_DIR2 = ("mass:/ART/".. string.sub(nombre2,1,11) .."_COV.png")
+			end
 			LISTAS.COVER_DIR3 = (actual .."/Multimedia/Covers/Covers PlayStation/".. nombre3 ..".png")
+			if doesFileExist(LISTAS.COVER_DIR3) == false then
+				LISTAS.COVER_DIR3 = ("mass:/ART/".. string.sub(nombre3,1,11) "_COV.png")
+			end
 		end
 	elseif LISTAS.IDENTIDAD == 9 and LISTAS.MOSTRAR == 1 then -- Generar nombre de Atari 2600
 		LISTAS.COVER_DIR = (actual .."/Multimedia/Covers/Covers Atari 2600/".. nombre ..".png")
@@ -414,17 +426,41 @@ function cargar_art() -- Cargar imágenes en memoria
 			end
 		end
 		LISTAS.COVER_DIR = (actual .."/Multimedia/Covers/Covers APPS/".. nombre ..".png")
+		if doesFileExist(LISTAS.COVER_DIR) == false then
+			LISTAS.COVER_DIR = ("mass:/ART/".. nombre ..".elf_COV.png")
+		end
 		LISTAS.SCREENSHOT_DIR = (actual .."/Multimedia/Screenshots/Screenshots APPS/".. nombre ..".png")
+		if doesFileExist(LISTAS.SCREENSHOT_DIR) == false then
+			LISTAS.SCREENSHOT_DIR = ("mass:/ART/".. nombre ..".elf_SCR.png")
+		end
 		if CONTROL.ESTILO == 2 then
 			LISTAS.COVER_DIR2 = (actual .."/Multimedia/Covers/Covers APPS/".. nombre2 ..".png")
+			if doesFileExist(LISTAS.COVER_DIR2) == false then
+				LISTAS.COVER_DIR2 = ("mass:/ART/".. nombre2 ..".elf_COV.png")
+			end
 			LISTAS.COVER_DIR3 = (actual .."/Multimedia/Covers/Covers APPS/".. nombre3 ..".png")
+			if doesFileExist(LISTAS.COVER_DIR3) == false then
+				LISTAS.COVER_DIR3 = ("mass:/ART/".. nombre3 ..".elf_COV.png")
+			end
 		end
 	elseif LISTAS.IDENTIDAD == 14 and LISTAS.MOSTRAR == 1 then -- Generar nombre de Play Station 2
 		LISTAS.COVER_DIR = (actual .."/Multimedia/Covers/Covers PlayStation 2/".. nombre ..".png")
+		if doesFileExist(LISTAS.COVER_DIR) == false then
+			LISTAS.COVER_DIR = ("mass:/ART/".. string.sub(nombre,1,11) .."_COV.png")
+		end
 		LISTAS.SCREENSHOT_DIR = (actual .."/Multimedia/Screenshots/Screenshots PlayStation 2/".. nombre ..".png")
+		if doesFileExist(LISTAS.SCREENSHOT_DIR) == false then
+			LISTAS.SCREENSHOT_DIR = ("mass:/ART/".. string.sub(nombre,1,11) .."_SCR.png")
+		end
 		if CONTROL.ESTILO == 2 then
 			LISTAS.COVER_DIR2 = (actual .."/Multimedia/Covers/Covers PlayStation 2/".. nombre2 ..".png")
+			if doesFileExist(LISTAS.COVER_DIR2) == false then
+				LISTAS.COVER_DIR2 = ("mass:/ART/".. string.sub(nombre2,1,11) .."_COV.png")
+			end
 			LISTAS.COVER_DIR3 = (actual .."/Multimedia/Covers/Covers PlayStation 2/".. nombre3 ..".png")
+			if doesFileExist(LISTAS.COVER_DIR3) == false then
+				LISTAS.COVER_DIR3 = ("mass:/ART/".. string.sub(nombre3,1,11) .."_COV.png")
+			end
 		end
 	end
 	if LISTAS.MOSTRAR == LISTAS.ART_LIMITE then
