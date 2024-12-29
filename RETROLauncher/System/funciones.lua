@@ -187,10 +187,10 @@ function verificar_sonidos(sonido,dir) -- Verifica los sonidos
 end
 
 MENU_SONIDOS = {
+	MUSICA = verificar_sonidos(MUSICA,"System/Medios/Sound/Background/music.adp");
 	ERROR = verificar_sonidos(ERROR,"System/Medios/Sound/Menu/error.adp");
 	MOVER = verificar_sonidos(MOVER,"System/Medios/Sound/Menu/move.adp");
 	CANCELAR = verificar_sonidos(CANCELAR,"System/Medios/Sound/Menu/back.adp");
-	MUSICA = verificar_sonidos(MUSICA,"System/Medios/Sound/Background/music.adp");
 	EJECUTAR = verificar_sonidos(EJECUTAR,"System/Medios/Sound/Menu/run.adp");
 	NETX = verificar_sonidos(NETX,"System/Medios/Sound/Menu/next.adp");
 }; -- Pre cargar sonidos del menu
