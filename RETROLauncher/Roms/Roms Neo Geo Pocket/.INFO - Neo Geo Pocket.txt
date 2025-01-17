@@ -1,10 +1,10 @@
-Aquí van las ROMS para Neo Geo Pocket.
-RETROLauncher buscara en la raíz de este directorio.
+Here are the ROMS for Neo Geo Pocket.
+RETROLauncher will search in the root of this directory.
 
-Ejemplo: 
-"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Ejemplo.ngc" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Ejemplo.npc" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Ejemplo.ngp" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Ejemplo.zip" - Lo encontrara y lo enlistara.
+Example:
+"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Example.ngc" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Example.npc" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Example.ngp" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Neo Geo Pocket/Example.zip" - It will find it and list it.
 
-Extensiones soportadas: .ngc .npc .ngp .zip
+Supported extensions: .ngc .npc .ngp .zip

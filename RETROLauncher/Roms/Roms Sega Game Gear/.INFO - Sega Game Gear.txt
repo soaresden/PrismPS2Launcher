@@ -1,8 +1,8 @@
-Aquí van las ROMS para Sega Game Gear.
-RETROLauncher buscara en la raíz de este directorio.
+Here are the ROMS for Sega Game Gear.
+RETROLauncher will look in the root of this directory.
 
-Ejemplo: 
-"mass:/RETROLauncher/Roms/Roms Sega Game Gear/Ejemplo.gg" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Sega Game Gear/Ejemplo.zip" - Lo encontrara y lo enlistara.
+Example:
+"mass:/RETROLauncher/Roms/Roms Sega Game Gear/Example.gg" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Sega Game Gear/Example.zip" - It will find it and list it.
 
-Extensiones soportadas: .gg .zip
+Supported extensions: .gg .zip

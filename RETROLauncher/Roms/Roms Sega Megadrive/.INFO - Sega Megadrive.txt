@@ -1,12 +1,12 @@
-Aquí van las ROMS para Sega Megadrive.
-RETROLauncher buscara en la raiz de este directorio.
+Here are the ROMS for Sega Megadrive.
+RETROLauncher will search in the root of this directory.
 
-Ejemplo: 
-"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.bin" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.gen" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.smd" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.md" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Ejemplo.zip" - Lo encontrara y lo enlistara.
+Example:
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Example.bin" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Example.gen" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Example.smd" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Example.md" - It will find it and list it.
+"mass:/RETROLauncher/Roms/Roms Sega Megadrive/Example.zip" - It will find it and list it.
 
-Extensiones soportadas: .bin .gen .smd .md .zip
+Supported extensions: .bin .gen .smd .md .zip
 

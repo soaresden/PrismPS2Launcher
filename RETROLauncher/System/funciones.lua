@@ -25,7 +25,7 @@ LOGOS = {
 }; -- Pre cargar Logos
 
 PRE_CARGADAS = {} -- Guarda todas las listas de cada emulador
-
+LAST_MOVE = {1,1,1,1,1,1,1,1,1,1,1,1,1,1} -- Guardar los últimos movimientos de las listas
 JOYSTICK_LIMITE = 0 -- Define el límite de captura en los controles
 
 PAD_IMG = {
@@ -38,7 +38,7 @@ PAD_IMG = {
 	SQUARE = Graphics.loadImage("System/Medios/Pads/square.png");
 	TRIANGLE = Graphics.loadImage("System/Medios/Pads/triangle.png");
 	START = Graphics.loadImage("System/Medios/Pads/start.png");
-}; -- Pre cargar imágenes de los Pads 
+}; -- Pre cargar imágenes de los Pads
 
 COLOR = {
 	BLANCO = Color.new(128,128,128);
@@ -69,10 +69,11 @@ OPCIONES = {
 	SOUND_ON = 0; 
 	SCREENSHOT_BACK_ON = 0;
 	SOUND_VOLUME = 65;
-	SCANLINES_ON = 0;
+	VIDEO_MODE = 0;
 	VIBRATION_ON = 0;
 	DIR_EXTRAS_ON = 1;
 	PREGUNTAR_PS2 = false;
+	LIBERAR_LISTAS = 0;
 }; -- Define los colores usados en el menú de opciones y las configuraciones
 
 SISTEMAS = {
@@ -95,6 +96,8 @@ SISTEMAS = {
 CONTROL = {
 	ANCHO = 640;
 	ALTO = 480;
+	ALTO_F = 448;
+	Y_FIX_PAL = 0;
 	LADO_ANI = false;
 	SELECTOR = 1;
 	ESTILO = 1;
@@ -120,7 +123,6 @@ LISTAS = {
 	LOADING = Graphics.loadImage("System/Medios/Default/LOADING.png");
 	COVER_DEFAULT = Graphics.loadImage("System/Medios/Default/COVER_DEFAULT.png");
 	SCREENSHOT_DEFAULT = Graphics.loadImage("System/Medios/Default/SCREENSHOT_DEFAULT.png");
-	SCANLINES = Graphics.loadImage("System/Medios/Default/SCANLINES.png");
 	LOGO = LOGOS.DEFAULT;
 	IDENTIDAD = 1;
 	INDICE = 1;
@@ -154,53 +156,16 @@ CAMBIOS_EMUS = {
 	COLOR_MAX = 0;
 	COLOR_MIN = 0;
 	RGB_COLOR = 1;
-	CAM_COLOR_ACTUAL = false ;
+	CAM_COLOR_ACTUAL = false;
 	R = 0;
 	G = 80;
 	B = 120;
+	Tras = 80;
 }; -- Define los colores usados para cada emulador
-
---- Líneas para audio
------------------------------------------------------------------------------------------
--- Define formato de audio
-Sound.setFormat(16,48000,4)
-
-function set_volume() -- Define el volumen
-	Sound.setADPCMVolume(1,OPCIONES.SOUND_VOLUME)
-	if OPCIONES.SOUND_VOLUME >= 9 then
-		Sound.setADPCMVolume(2,OPCIONES.SOUND_VOLUME-8)
-	else
-		Sound.setADPCMVolume(2,0)
-	end
-	Sound.setADPCMVolume(3,OPCIONES.SOUND_VOLUME)
-	Sound.setADPCMVolume(4,OPCIONES.SOUND_VOLUME)
-end
-
-function verificar_sonidos(sonido,dir) -- Verifica los sonidos
-	local actual = System.currentDirectory()
-	if doesFileExist(actual .."/".. dir) then
-		sonido = Sound.loadADPCM(dir)
-	else 
-		sonido = nil
-	end
-	return sonido
-end
-
-MENU_SONIDOS = {
-	MUSICA = verificar_sonidos(MUSICA,"System/Medios/Sound/Background/music.adp");
-	ERROR = verificar_sonidos(ERROR,"System/Medios/Sound/Menu/error.adp");
-	MOVER = verificar_sonidos(MOVER,"System/Medios/Sound/Menu/move.adp");
-	CANCELAR = verificar_sonidos(CANCELAR,"System/Medios/Sound/Menu/back.adp");
-	EJECUTAR = verificar_sonidos(EJECUTAR,"System/Medios/Sound/Menu/run.adp");
-	NETX = verificar_sonidos(NETX,"System/Medios/Sound/Menu/next.adp");
-}; -- Pre cargar sonidos del menu
 
 --- Líneas para funciones
 -----------------------------------------------------------------------------------------
 function refrescar() -- Refrescar pantalla
-	if OPCIONES.SCANLINES_ON == 1 and LISTAS.SCANLINES ~= nil then
-		Graphics.drawScaleImage(LISTAS.SCANLINES,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
-	end
 	Screen.flip()
 	if OPCIONES.LIMITADOR_RAM_ON == 1 then
 		collectgarbage("collect")
@@ -217,11 +182,13 @@ end
 function capturar(limite) -- Controla los tiempos de captura y pausa para los controles
 	if CONTROL.JOYSTICK_ON == false or limite >= CONTROL.FPS//3 then
 		PAD = Pads.get()
+		Left_X, Left_Y = Pads.getLeftStick()
 		JOYSTICK_LIMITE = 0
-		CONTROL.JOYSTICK_ON = false				
+		CONTROL.JOYSTICK_ON = false
 	end
 	if CONTROL.JOYSTICK_ON == true then
-		PAD = 0 
+		PAD = 0
+		Left_X, Left_X = 1,1
 		JOYSTICK_LIMITE = JOYSTICK_LIMITE+1
 		Pads.rumble(0,0)
 	end
@@ -279,6 +246,33 @@ function indices_extras() -- Cambia los índices de las imágenes extras
 		LISTAS.INDICE3 = LISTAS.INDICE+1
 	else
 		LISTAS.INDICE3 = 1
+	end
+end
+
+function letter_breaks(inicial,pos,lado) -- Saltar letras en las listas
+	local inicial_act = string.lower(string.sub(inicial,1,1))
+	if lado == true then
+		for n=pos,#LISTAS.ROMS do
+			if string.lower(string.sub(LISTAS.ROMS[n],1,1)) ~= inicial_act or n == #LISTAS.ROMS then 
+				pos = n
+				if n == #LISTAS.ROMS then
+					pos = 1
+				end
+				return pos
+			end
+		end
+	elseif lado == false then
+		for n=pos,1,-1 do
+			if string.lower(string.sub(LISTAS.ROMS[n],1,1)) ~= inicial_act or n == 1 then
+				pos = n
+				if n == 1 then
+					pos = #LISTAS.ROMS
+				end
+				return pos
+			end
+		end
+	else
+		return pos
 	end
 end
 
@@ -386,7 +380,7 @@ function cargar_art() -- Cargar imágenes en memoria
 			end
 			LISTAS.COVER_DIR3 = (actual .."/Multimedia/Covers/Covers PlayStation/".. nombre3 ..".png")
 			if doesFileExist(LISTAS.COVER_DIR3) == false then
-				LISTAS.COVER_DIR3 = ("mass:/ART/".. string.sub(nombre3,1,11) "_COV.png")
+				LISTAS.COVER_DIR3 = ("mass:/ART/".. string.sub(nombre3,1,11) .."_COV.png")
 			end
 		end
 	elseif LISTAS.IDENTIDAD == 9 and LISTAS.MOSTRAR == 1 then -- Generar nombre de Atari 2600
@@ -429,18 +423,30 @@ function cargar_art() -- Cargar imágenes en memoria
 		if doesFileExist(LISTAS.COVER_DIR) == false then
 			LISTAS.COVER_DIR = ("mass:/ART/".. nombre ..".elf_COV.png")
 		end
+		if doesFileExist(LISTAS.COVER_DIR) == false then
+			LISTAS.COVER_DIR = ("mass:/ART/".. salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE],true) .."_COV.png")
+		end
 		LISTAS.SCREENSHOT_DIR = (actual .."/Multimedia/Screenshots/Screenshots APPS/".. nombre ..".png")
 		if doesFileExist(LISTAS.SCREENSHOT_DIR) == false then
 			LISTAS.SCREENSHOT_DIR = ("mass:/ART/".. nombre ..".elf_SCR.png")
+		end
+		if doesFileExist(LISTAS.SCREENSHOT_DIR) == false then
+			LISTAS.SCREENSHOT_DIR = ("mass:/ART/".. salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE],true) .."_SCR.png")
 		end
 		if CONTROL.ESTILO == 2 then
 			LISTAS.COVER_DIR2 = (actual .."/Multimedia/Covers/Covers APPS/".. nombre2 ..".png")
 			if doesFileExist(LISTAS.COVER_DIR2) == false then
 				LISTAS.COVER_DIR2 = ("mass:/ART/".. nombre2 ..".elf_COV.png")
 			end
+			if doesFileExist(LISTAS.COVER_DIR2) == false then
+				LISTAS.COVER_DIR2 = ("mass:/ART/".. salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE2],true) .."_COV.png")
+			end
 			LISTAS.COVER_DIR3 = (actual .."/Multimedia/Covers/Covers APPS/".. nombre3 ..".png")
 			if doesFileExist(LISTAS.COVER_DIR3) == false then
 				LISTAS.COVER_DIR3 = ("mass:/ART/".. nombre3 ..".elf_COV.png")
+			end
+			if doesFileExist(LISTAS.COVER_DIR3) == false then
+				LISTAS.COVER_DIR3 = ("mass:/ART/".. salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE3],true) .."_COV.png")
 			end
 		end
 	elseif LISTAS.IDENTIDAD == 14 and LISTAS.MOSTRAR == 1 then -- Generar nombre de Play Station 2
@@ -499,7 +505,7 @@ end
 
 function guardar() -- Guardar último ROM y emulador usado
 	local actual = System.currentDirectory()
-	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .."")
+	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .." ".. LAST_MOVE[1] .." ".. LAST_MOVE[2] .." ".. LAST_MOVE[3] .." ".. LAST_MOVE[4] .." ".. LAST_MOVE[5] .." ".. LAST_MOVE[6] .." ".. LAST_MOVE[7] .." ".. LAST_MOVE[8] .." ".. LAST_MOVE[9] .." ".. LAST_MOVE[10] .." ".. LAST_MOVE[11] .." ".. LAST_MOVE[12] .." ".. LAST_MOVE[13] .." ".. LAST_MOVE[14] .."")
 	if doesFileExist(actual .."/System/Config/Config.cfg") then
 		local carga_de_config = System.openFile("System/Config/Config.cfg",FWRITE)
 		System.writeFile(carga_de_config,config .."                              ",string.len(config)+30)
@@ -550,7 +556,7 @@ end
 
 function guardar_opciones() -- Guardar opciones
 	local actual = System.currentDirectory()
-	local config = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.SCANLINES_ON .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .."")
+	local config = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.VIDEO_MODE .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .." ".. CAMBIOS_EMUS.Tras .." ".. OPCIONES.LIBERAR_LISTAS .."")
 	if doesFileExist(actual .."/System/Config/System.cfg") then
 		local carga_de_opciones = System.openFile("System/Config/System.cfg",FWRITE)
 		System.writeFile(carga_de_opciones,config .."                              ",string.len(config)+30)
@@ -567,7 +573,7 @@ end
 
 function cargar_config() -- Cargar último ROM y emulador usado / Cargar opciones guardadas
 	local actual = System.currentDirectory()
-	local config2 = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.SCANLINES_ON .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .."")
+	local config2 = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.VIDEO_MODE .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .." ".. CAMBIOS_EMUS.Tras .." ".. OPCIONES.LIBERAR_LISTAS .."")
 	if doesFileExist(actual .."/System/Config/System.cfg") then
 		local carga_de_config2 = System.openFile(actual .."/System/Config/System.cfg",FREAD)
 		System.seekFile(carga_de_config2,0,SET)
@@ -576,7 +582,7 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 		for linea in string.gmatch(temp2,"%d+") do 
 			table.insert(lista_config2,tonumber(linea))
 		end
-		if lista_config2 ~= nil and #lista_config2 == 33 then
+		if lista_config2 ~= nil and #lista_config2 == 35 then
 			if lista_config2[1] <= 1 and lista_config2[1] >= 0 then
 				OPCIONES.RGB_ON = lista_config2[1]
 			end
@@ -602,21 +608,25 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 					CONTROL.IMG_ALTO = 92
 					CONTROL.LISTA_ANCHO = 30
 					CONTROL.LISTA_ALTO = 90
+					CONTROL.LOGO_ALTO = 5
 				elseif CONTROL.ESTILO == 2 then
 					CONTROL.IMG_ANCHO = 195
 					CONTROL.IMG_ALTO = 110
 					CONTROL.LISTA_ANCHO = 30
 					CONTROL.LISTA_ALTO = 90
+					CONTROL.LOGO_ALTO = 5
 				elseif CONTROL.ESTILO == 3 then
 					CONTROL.IMG_ANCHO = 340
 					CONTROL.IMG_ALTO = 92
 					CONTROL.LISTA_ANCHO = 48
 					CONTROL.LISTA_ALTO = 300
+					CONTROL.LOGO_ALTO = 5
 				elseif CONTROL.ESTILO == 4 then
 					CONTROL.IMG_ANCHO = 333
 					CONTROL.IMG_ALTO = 92
 					CONTROL.LISTA_ANCHO = 10
 					CONTROL.LISTA_ALTO = 90
+					CONTROL.LOGO_ALTO = 5
 				elseif CONTROL.ESTILO == 5 then
 					CONTROL.IMG_ANCHO = 12
 					CONTROL.IMG_ALTO = 20
@@ -627,6 +637,7 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 					CONTROL.IMG_ALTO = 10
 					CONTROL.LISTA_ANCHO = 22
 					CONTROL.LISTA_ALTO = 90
+					CONTROL.LOGO_ALTO = 5
 				end
 			end
 			if lista_config2[8] <= 1 and lista_config2[8] >= 0 then
@@ -734,7 +745,7 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 				OPCIONES.LIMITADOR_RAM_ON = lista_config2[24]
 			end
 			if lista_config2[25] <= 3 and lista_config2[25] >= 0 then
-				if lista_config2[25]  >= 1  and cargar_directorio_elf() == true then
+				if lista_config2[25] >= 1 and cargar_directorio_elf() == true then
 					OPCIONES.SALIDA_RETROLANCHER_ON = lista_config2[25]
 				else
 					OPCIONES.SALIDA_RETROLANCHER_ON = 0
@@ -757,7 +768,30 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 				OPCIONES.SCREENSHOT_BACK_ON = lista_config2[29]
 			end
 			if lista_config2[30] <= 1 and lista_config2[30] >= 0 then
-				OPCIONES.SCANLINES_ON = lista_config2[30]
+				OPCIONES.VIDEO_MODE = lista_config2[30]
+				if OPCIONES.VIDEO_MODE == 0 and doesFileExist("System/Respaldo/PAL") then
+					Screen.setMode(NTSC, 640, 448, CT24, INTERLACED, FIELD)
+					System.rename("System/Respaldo/PAL","System/Respaldo/NTSC")
+				elseif OPCIONES.VIDEO_MODE == 1 and doesFileExist("System/Respaldo/NTSC") then
+					Screen.setMode(PAL, 640, 512, CT24, INTERLACED, FIELD)
+					System.rename("System/Respaldo/NTSC","System/Respaldo/PAL")
+					CONTROL.ALTO_F = 512
+					CONTROL.ALTO = 544
+					CONTROL.Y_FIX_PAL = 32
+					CONTROL.LISTA_ALTO = CONTROL.LISTA_ALTO + CONTROL.Y_FIX_PAL
+					CONTROL.IMG_ALTO = CONTROL.IMG_ALTO + CONTROL.Y_FIX_PAL
+					CONTROL.LOGO_ALTO = CONTROL.LOGO_ALTO + CONTROL.Y_FIX_PAL
+				elseif OPCIONES.VIDEO_MODE == 1 then
+					CONTROL.ALTO_F = 512
+					CONTROL.ALTO = 544
+					CONTROL.Y_FIX_PAL = 32
+					CONTROL.LISTA_ALTO = CONTROL.LISTA_ALTO + CONTROL.Y_FIX_PAL
+					CONTROL.IMG_ALTO = CONTROL.IMG_ALTO + CONTROL.Y_FIX_PAL
+					CONTROL.LOGO_ALTO = CONTROL.LOGO_ALTO + CONTROL.Y_FIX_PAL
+				else
+					CONTROL.ALTO_F = 448
+					CONTROL.Y_FIX_PAL = 0
+				end
 			end
 			if lista_config2[31] <= 1 and lista_config2[31] >= 0 then
 				OPCIONES.VIBRATION_ON = lista_config2[31]
@@ -773,6 +807,15 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 				if OPCIONES.DIR_EXTRAS_ON == 0 then
 					PRE_CARGADAS[13] = crear_listas(13,PRE_CARGADAS[13])
 					PRE_CARGADAS[14] = crear_listas(14,PRE_CARGADAS[14])
+				end
+			end
+			if lista_config2[34] <= 128 and lista_config2[34] >= 0 then
+				CAMBIOS_EMUS.Tras = lista_config2[34]
+			end
+			if lista_config2[35] <= 1 and lista_config2[35] >= 0 then
+				OPCIONES.LIBERAR_LISTAS = lista_config2[35]
+				if OPCIONES.LIBERAR_LISTAS == 1 then
+					PRE_CARGADAS = {{},{},{},{},{},{},{},{},{},{},{},{},{},{}}
 				end
 			end
 		else
@@ -806,11 +849,17 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 			OPCIONES.SOUND_VOLUME = 65
 			set_volume()
 			OPCIONES.SCREENSHOT_BACK_ON = 0
-			OPCIONES.SCANLINES_ON = 0
+			if doesFileExist("System/Respaldo/PAL") then
+				OPCIONES.VIDEO_MODE = 1
+			else
+				OPCIONES.VIDEO_MODE = 0
+			end
 			OPCIONES.VIBRATION_ON = 0
 			SISTEMAS.PLAYSTATION2_ON = 0
 			OPCIONES.DIR_EXTRAS_ON = 1
-		end	
+			CAMBIOS_EMUS.Tras = 74
+			OPCIONES.LIBERAR_LISTAS = 0
+		end
 		System.closeFile(carga_de_config2)
 	else
 		OPCIONES.RGB_ON = 1
@@ -843,22 +892,28 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 		OPCIONES.SOUND_VOLUME = 65
 		set_volume()
 		OPCIONES.SCREENSHOT_BACK_ON = 0
-		OPCIONES.SCANLINES_ON = 0
+		if doesFileExist("System/Respaldo/PAL") then
+			OPCIONES.VIDEO_MODE = 1
+		else
+			OPCIONES.VIDEO_MODE = 0
+		end
 		OPCIONES.VIBRATION_ON = 0
 		SISTEMAS.PLAYSTATION2_ON = 0
 		OPCIONES.DIR_EXTRAS_ON = 1
+		CAMBIOS_EMUS.Tras = 74
+		OPCIONES.LIBERAR_LISTAS = 0
 		guardar_opciones()
 	end
-	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .."")
+	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .." ".. LAST_MOVE[1] .." ".. LAST_MOVE[2] .." ".. LAST_MOVE[3] .." ".. LAST_MOVE[4] .." ".. LAST_MOVE[5] .." ".. LAST_MOVE[6] .." ".. LAST_MOVE[7] .." ".. LAST_MOVE[8] .." ".. LAST_MOVE[9] .." ".. LAST_MOVE[10] .." ".. LAST_MOVE[11] .." ".. LAST_MOVE[12] .." ".. LAST_MOVE[13] .." ".. LAST_MOVE[14] .."")
 	if doesFileExist(actual .."/System/Config/Config.cfg") then
 		local carga_de_config = System.openFile(actual .."/System/Config/Config.cfg",FREAD)
 		System.seekFile(carga_de_config,0,SET)
-		local temp = System.readFile(carga_de_config,30)
+		local temp = System.readFile(carga_de_config,string.len(config)+30)
 		local lista_config = {}
 		for linea in string.gmatch(temp,"%d+") do 
 			table.insert(lista_config,tonumber(linea))
 		end
-		if lista_config ~= nil and #lista_config == 2 then
+		if lista_config ~= nil and #lista_config == 16 then
 			LISTAS.IDENTIDAD = lista_config[1]
 			LISTAS.ROMS = nil
 			LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
@@ -872,6 +927,7 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 				LISTAS.INDICE = 1
 				indices_extras()
 			end
+			LAST_MOVE = {lista_config[3],lista_config[4],lista_config[5],lista_config[6],lista_config[7],lista_config[8],lista_config[9],lista_config[10],lista_config[11],lista_config[12],lista_config[13],lista_config[14],lista_config[15],lista_config[16]}
 		else
 			LISTAS.IDENTIDAD = 1
 			LISTAS.ROMS = nil
@@ -881,7 +937,8 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 			end
 			LISTAS.INDICE = 1
 			indices_extras()
-		end	
+			LAST_MOVE = {1,1,1,1,1,1,1,1,1,1,1,1,1,1} 
+		end
 		System.closeFile(carga_de_config)
 	else
 		LISTAS.IDENTIDAD = 1
@@ -892,6 +949,7 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 		end
 		LISTAS.INDICE = 1
 		indices_extras()
+		LAST_MOVE = {1,1,1,1,1,1,1,1,1,1,1,1,1,1} 
 		guardar()
 	end
 	desactivados(nil)
@@ -907,6 +965,9 @@ end
 function desactivados(lado) -- Verificar que emulador está desactivado y cuál no
 	local buscar = true
 	local sistemas_on = {SISTEMAS.MEGADRIVE_ON,SISTEMAS.MASTERSYSTEM_ON,SISTEMAS.GAMEGEAR_ON,SISTEMAS.FAMICOM_ON,SISTEMAS.GAMEBOY_ON,SISTEMAS.GAMEBOYCOLOR_ON,SISTEMAS.GAMEBOYADVANCE_ON,SISTEMAS.PLAYSTATION_ON,SISTEMAS.ATARI2600_ON,SISTEMAS.SEGASG1000_ON,SISTEMAS.NEOGEOPOCKET_ON,SISTEMAS.SUPERFAMICOM_ON,SISTEMAS.APPS_ON,SISTEMAS.PLAYSTATION2_ON}
+	if OPCIONES.LIBERAR_LISTAS == 1 then
+		PRE_CARGADAS[LISTAS.IDENTIDAD] = {}
+	end
 	while buscar do
 		if lado == true then
 			if LISTAS.IDENTIDAD >=2 then
@@ -929,6 +990,9 @@ function desactivados(lado) -- Verificar que emulador está desactivado y cuál 
 		end
 	end
 	LISTAS.ROMS = nil
+	if OPCIONES.LIBERAR_LISTAS == 1 then
+		recargar_una(LISTAS.IDENTIDAD)
+	end
 	LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
 	if #LISTAS.ROMS >= 1 and LISTAS.IDENTIDAD ~= 13 then
 		table.sort(LISTAS.ROMS,orden_alfabetico)
@@ -1013,6 +1077,9 @@ end
 function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 	local actual = System.currentDirectory()
 	local pregunta = true
+	if string.sub(nombre_iso,-4) == ".elf" then
+		pregunta = false
+	end
 	Pads.rumble(0,0)
 	OPCIONES.PREGUNTAR_PS2 = true
 	local VMCD, MODE = ejecutar_iso(nombre_iso)
@@ -1077,7 +1144,10 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 					menus_valores[selector] = 0
 				end
 			elseif selector ~= 2 and selector == #menus_valores then
-				if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".vmcd")  then
+				if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".vmcd") then
+					System.removeFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".vmcd")
+				end
+				if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".vmcd") then
 					System.removeFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".vmcd")
 				end
 				if doesFileExist("mass:/DVD/".. string.sub(nombre_iso,1,-5) ..".vmcd") then
@@ -1086,7 +1156,10 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 				if doesFileExist("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".vmcd") then
 					System.removeFile("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".vmcd")
 				end
-				if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".mode")  then
+				if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mode") then
+					System.removeFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mode")
+				end
+				if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".mode") then
 					System.removeFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".mode")
 				end
 				if doesFileExist("mass:/DVD/".. string.sub(nombre_iso,1,-5) ..".mode") then
@@ -1098,19 +1171,9 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 				if menus_valores[1] == 1 then
 					local carga_de_VMC = "nada"
 					local dir = ("-mc0=".. VMC_encontradas[selector_VMC])
-					if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre_iso) then
-						carga_de_VMC = System.openFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".vmcd",FCREATE)
-						System.writeFile(carga_de_VMC,dir,string.len(dir))
-						System.closeFile(carga_de_VMC)
-					elseif doesFileExist("mass:/DVD/".. nombre_iso) then
-						carga_de_VMC = System.openFile("mass:/DVD/".. string.sub(nombre_iso,1,-5) ..".vmcd",FCREATE)
-						System.writeFile(carga_de_VMC,dir,string.len(dir))
-						System.closeFile(carga_de_VMC)
-					elseif doesFileExist("mass:/CD/".. nombre_iso) then
-						carga_de_VMC = System.openFile("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".vmcd",FCREATE)
-						System.writeFile(carga_de_VMC,dir,string.len(dir))
-						System.closeFile(carga_de_VMC)
-					end
+					carga_de_VMC = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".vmcd",FCREATE)
+					System.writeFile(carga_de_VMC,dir,string.len(dir))
+					System.closeFile(carga_de_VMC)
 				end
 				local modos_on = "-gc="
 				local crear_modos = false
@@ -1136,25 +1199,15 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 					crear_modos = true
 				end
 				if crear_modos == true then
-					if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre_iso) then
-						carga_de_modos = System.openFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".mode",FCREATE)
-						System.writeFile(carga_de_modos,modos_on,string.len(modos_on))
-						System.closeFile(carga_de_modos)
-					elseif doesFileExist("mass:/DVD/".. nombre_iso) then
-						carga_de_modos = System.openFile("mass:/DVD/".. string.sub(nombre_iso,1,-5) ..".mode",FCREATE)
-						System.writeFile(carga_de_modos,modos_on,string.len(modos_on))
-						System.closeFile(carga_de_modos)
-					elseif doesFileExist("mass:/CD/".. nombre_iso) then
-						carga_de_modos = System.openFile("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".mode",FCREATE)
-						System.writeFile(carga_de_modos,modos_on,string.len(modos_on))
-						System.closeFile(carga_de_modos)
-					end
+					carga_de_modos = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mode",FCREATE)
+					System.writeFile(carga_de_modos,modos_on,string.len(modos_on))
+					System.closeFile(carga_de_modos)
 				end
 				pregunta = false
 			end
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1)
-		elseif Pads.check(PAD,PAD_DOWN) and CONTROL.JOYSTICK_ON == false then
+		elseif (Pads.check(PAD,PAD_DOWN) or Left_Y >= 90) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
@@ -1162,10 +1215,10 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 				selector = selector+1
 			else
 				selector = 1
-			end  
+			end
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1)
-		elseif Pads.check(PAD,PAD_UP) and CONTROL.JOYSTICK_ON == false then
+		elseif (Pads.check(PAD,PAD_UP) or Left_Y <= -90) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
@@ -1191,25 +1244,28 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 		-- Mostrar todo en pantalla
 		Screen.clear(COLOR.NEGRO)
 		RGB()
-		if OPCIONES.FONDO_RGB_ON == 1 then
-			Graphics.drawRect(0,0,640,480,CAMBIOS_EMUS.COLOR_EMU_BACK)
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		if OPCIONES.FONDO_RGB_ON == 1 and (OPCIONES.FONDO_RGB_FIJO_ON == 0 or (OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.Tras == 0)) then
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		elseif OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 1 then
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
 		else
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
-		end	
-		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-			Graphics.drawScaleImage(LISTAS.SCREENSHOT,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 		end
-		Graphics.drawScaleImage(LISTAS.LOGO,194,15,252,76)
-		Graphics.drawRect(12,100,615,312,COLOR.NEGRO_T)
-		Font.ftPrint(CONTROL.fontARCA,22,110,0,540,8,"GAME SETTINGS:")
-		Font.ftPrint(CONTROL.fontARCA,22,134,0,600,8,nombre_iso,COLOR.BLANCO)
+		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
+			Graphics.drawScaleImage(LISTAS.SCREENSHOT,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
+		end
+		Graphics.drawScaleImage(LISTAS.LOGO,194,15+CONTROL.Y_FIX_PAL,252,76)
+		Graphics.drawRect(12,100+CONTROL.Y_FIX_PAL,615,312,COLOR.NEGRO_T)
+		Font.ftPrint(CONTROL.fontARCA,22,110+CONTROL.Y_FIX_PAL,0,540,8,"GAME SETTINGS:")
+		Font.ftPrint(CONTROL.fontARCA,22,134+CONTROL.Y_FIX_PAL,0,600,8,nombre_iso,COLOR.BLANCO)
 		if OPCIONES.GUI_LIMPIA_ON == 0 then
 			if OPCIONES.CAMBIO_FUENTE_ON == 1 then	 
-				Graphics.drawRect(490,420,114,20,COLOR.NEGRO_T)
+				Graphics.drawRect(490,420+CONTROL.Y_FIX_PAL,114,20,COLOR.NEGRO_T)
 			end
-			Graphics.drawScaleImage(PAD_IMG.TRIANGLE,488,418,25,25)
-			Font.ftPrint(CONTROL.fontARCA,518,420,0,0,8,"CANCEL",COLOR.BLANCO)
+			Graphics.drawScaleImage(PAD_IMG.TRIANGLE,488,418+CONTROL.Y_FIX_PAL,25,25)
+			Font.ftPrint(CONTROL.fontARCA,518,420+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
 		end
 		for contador = 1,#menus_nombres do
 			local acti = "STATE: ON"
@@ -1226,7 +1282,7 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			elseif menus_valores[1] == 0 then
 				menus_nombres[2] = "NO VIRTUAL MEMORY CARD"
 			end
-			local espacio_linea = 148+((contador)*26)
+			local espacio_linea = 148+((contador)*26)+CONTROL.Y_FIX_PAL
 			if contador == selector and contador ~= #menus_valores then
 				Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,600,25,menus_nombres[selector],CAMBIOS_EMUS.COLOR_EMU)
 				Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,25,acti,CAMBIOS_EMUS.COLOR_EMU)
@@ -1366,7 +1422,7 @@ function marcar_directorio() -- Muestra mini explorador de directorios
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
 			end
-		elseif Pads.check(PAD,PAD_DOWN) and #OPCIONES.SALIDA_DIR_ACTUALES >= 1 and CONTROL.JOYSTICK_ON == false then
+		elseif (Pads.check(PAD,PAD_DOWN) or Left_Y >= 90) and #OPCIONES.SALIDA_DIR_ACTUALES >= 1 and CONTROL.JOYSTICK_ON == false then
 			if selector <= (#OPCIONES.SALIDA_DIR_ACTUALES-1) then
 				selector = selector+1
 			else
@@ -1379,7 +1435,7 @@ function marcar_directorio() -- Muestra mini explorador de directorios
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
-		elseif Pads.check(PAD,PAD_UP) and #OPCIONES.SALIDA_DIR_ACTUALES >= 1 and CONTROL.JOYSTICK_ON == false then
+		elseif (Pads.check(PAD,PAD_UP) or Left_Y <= -90) and #OPCIONES.SALIDA_DIR_ACTUALES >= 1 and CONTROL.JOYSTICK_ON == false then
 			if selector >= 2 then
 				selector = selector-1
 			else
@@ -1410,21 +1466,23 @@ function marcar_directorio() -- Muestra mini explorador de directorios
 		
 		-- Mostrar todo en pantalla
 		Screen.clear(COLOR.NEGRO)
-		Graphics.drawRect(0,0,640,480,CAMBIOS_EMUS.COLOR_EMU_BACK)	
-		if OPCIONES.FONDO_RGB_ON == 1 then
-			Graphics.drawRect(0,0,640,480,CAMBIOS_EMUS.COLOR_EMU_BACK)
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		if OPCIONES.FONDO_RGB_ON == 1 and (OPCIONES.FONDO_RGB_FIJO_ON == 0 or (OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.Tras == 0)) then
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		elseif OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 1 then
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
 		else
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 		end
-		Graphics.drawRect(12,28,615,375,COLOR.NEGRO_T)
+		Graphics.drawRect(12,28+CONTROL.Y_FIX_PAL,615,375,COLOR.NEGRO_T)
 		if #OPCIONES.SALIDA_DIR_ACTUALES >= 1 then
 			if CONTROL.ESPERA_CARGA_SCR == false then
 				LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX,OPCIONES.SALIDA_DIR_ACTUALES[selector],44)
 			end
 			local mostrar_lista = 0
 			for contador = 0,12,1 do
-				local espacio_linea = 62+((contador)*25)
+				local espacio_linea = 62+((contador)*25)+CONTROL.Y_FIX_PAL
 				if contador == 0 then
 					Graphics.drawRect(12+5,espacio_linea-3,610,25,COLOR.NEGRO_T)
 					Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,601,2,string.sub(OPCIONES.SALIDA_DIR_ACTUALES[selector],LISTAS.SCROLL_TEX),CAMBIOS_EMUS.COLOR_EMU)
@@ -1436,47 +1494,58 @@ function marcar_directorio() -- Muestra mini explorador de directorios
 			if CONTROL.ESPERA_CARGA_SCR == false then
 				LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX,"THE FOLDER IS EMPTY OR THE FILES ARE NOT SUPPORTED",44)
 			end
-			Font.ftPrint(CONTROL.fontARCA,22,65,0,601,40,string.sub("THE FOLDER IS EMPTY OR THE FILES ARE NOT SUPPORTED",LISTAS.SCROLL_TEX),CAMBIOS_EMUS.COLOR_EMU)
+			Font.ftPrint(CONTROL.fontARCA,22,65+CONTROL.Y_FIX_PAL,0,601,40,string.sub("THE FOLDER IS EMPTY OR THE FILES ARE NOT SUPPORTED",LISTAS.SCROLL_TEX),CAMBIOS_EMUS.COLOR_EMU)
 		end
 		if OPCIONES.SALIDA_RETROLANCHER ~= nil then
-			Graphics.drawRect(-5,22,650,25,COLOR.NEGRO)
-			Font.ftPrint(CONTROL.fontARCA,22,25,0,601,2,OPCIONES.SALIDA_RETROLANCHER,COLOR.BLANCO)
+			Graphics.drawRect(-5,22+CONTROL.Y_FIX_PAL,650,25,COLOR.NEGRO)
+			Font.ftPrint(CONTROL.fontARCA,22,25+CONTROL.Y_FIX_PAL,0,601,2,OPCIONES.SALIDA_RETROLANCHER,COLOR.BLANCO)
 			if string.lower(string.sub(OPCIONES.SALIDA_RETROLANCHER,-4)) == ".elf" then
 				cachucho = false
 			end
 		else
-			Graphics.drawRect(-5,22,650,25,COLOR.NEGRO)
-			Font.ftPrint(CONTROL.fontARCA,22,25,0,601,2,"NO VALID FILES",COLOR.BLANCO)
+			Graphics.drawRect(-5,22+CONTROL.Y_FIX_PAL,650,25,COLOR.NEGRO)
+			Font.ftPrint(CONTROL.fontARCA,22,25+CONTROL.Y_FIX_PAL,0,601,2,"NO VALID FILES",COLOR.BLANCO)
 		end
-		Graphics.drawRect(-5,392,650,25,COLOR.NEGRO)
-		Graphics.drawScaleImage(PAD_IMG.TRIANGLE,60,392,25,25)
-		Font.ftPrint(CONTROL.fontARCA,95,395,0,0,8,"CANCEL",COLOR.BLANCO)
-		Graphics.drawScaleImage(PAD_IMG.CIRCLE,478,392,25,25)
-		Font.ftPrint(CONTROL.fontARCA,513,395,0,0,8,"BACK",COLOR.BLANCO)
-		Graphics.drawScaleImage(PAD_IMG.CROSS,263,392,25,25)
-		Font.ftPrint(CONTROL.fontARCA,298,395,0,0,8,"SELECT",COLOR.BLANCO)
+		Graphics.drawRect(-5,392+CONTROL.Y_FIX_PAL,650,25,COLOR.NEGRO)
+		Graphics.drawScaleImage(PAD_IMG.TRIANGLE,60,392+CONTROL.Y_FIX_PAL,25,25)
+		Font.ftPrint(CONTROL.fontARCA,95,395+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
+		Graphics.drawScaleImage(PAD_IMG.CIRCLE,478,392+CONTROL.Y_FIX_PAL,25,25)
+		Font.ftPrint(CONTROL.fontARCA,513,395+CONTROL.Y_FIX_PAL,0,0,8,"BACK",COLOR.BLANCO)
+		Graphics.drawScaleImage(PAD_IMG.CROSS,263,392+CONTROL.Y_FIX_PAL,25,25)
+		Font.ftPrint(CONTROL.fontARCA,298,395+CONTROL.Y_FIX_PAL,0,0,8,"SELECT",COLOR.BLANCO)
 		refrescar()
 	end
 end
 
-function menu_config() -- Muestra, cambia y guarda las configuraciones  
+function menu_config() -- Muestra, cambia y guarda las configuraciones
 	local noob = true
 	Pads.rumble(0,0)
 	color_emu(LISTAS.IDENTIDAD)
+	local mus_on = "OFF"
+	if doesFileExist("System/Medios/Sound/Background/music.adp") then
+		mus_on = "ON"
+	end
 	local conf_numero = true
 	local page = "PAGE 1"
 	local clean = false
+	local indi_rest_RL = 0
 	local lista_config = {OPCIONES.RGB_ON,
-	OPCIONES.FONDO_RGB_ON,OPCIONES.FONDO_RGB_FIJO_ON,OPCIONES.R,OPCIONES.G,OPCIONES.B,CONTROL.ESTILO,SISTEMAS.MEGADRIVE_ON,SISTEMAS.MASTERSYSTEM_ON,SISTEMAS.GAMEGEAR_ON,SISTEMAS.FAMICOM_ON,SISTEMAS.GAMEBOY_ON,SISTEMAS.GAMEBOYCOLOR_ON,SISTEMAS.GAMEBOYADVANCE_ON,SISTEMAS.PLAYSTATION_ON,SISTEMAS.ATARI2600_ON,SISTEMAS.SEGASG1000_ON,SISTEMAS.NEOGEOPOCKET_ON,SISTEMAS.SUPERFAMICOM_ON,SISTEMAS.APPS_ON,SISTEMAS.PLAYSTATION2_ON,OPCIONES.CAMBIO_FUENTE_ON,OPCIONES.CAMBIO_FONDO_ON,OPCIONES.GUI_LIMPIA_ON,OPCIONES.LIMITADOR_RAM_ON,OPCIONES.SALIDA_RETROLANCHER_ON,OPCIONES.SALIDA_RETROLANCHER,OPCIONES.APPS_MENU_FULL_PATH,OPCIONES.SOUND_ON,OPCIONES.SOUND_VOLUME,OPCIONES.SCREENSHOT_BACK_ON,OPCIONES.SCANLINES_ON,OPCIONES.VIBRATION_ON,OPCIONES.DIR_EXTRAS_ON,0,0,"SAVE"}
+	OPCIONES.FONDO_RGB_ON,OPCIONES.FONDO_RGB_FIJO_ON,OPCIONES.R,OPCIONES.G,OPCIONES.B,CONTROL.ESTILO,SISTEMAS.MEGADRIVE_ON,SISTEMAS.MASTERSYSTEM_ON,SISTEMAS.GAMEGEAR_ON,SISTEMAS.FAMICOM_ON,SISTEMAS.GAMEBOY_ON,SISTEMAS.GAMEBOYCOLOR_ON,SISTEMAS.GAMEBOYADVANCE_ON,SISTEMAS.PLAYSTATION_ON,SISTEMAS.ATARI2600_ON,SISTEMAS.SEGASG1000_ON,SISTEMAS.NEOGEOPOCKET_ON,SISTEMAS.SUPERFAMICOM_ON,SISTEMAS.APPS_ON,SISTEMAS.PLAYSTATION2_ON,OPCIONES.CAMBIO_FUENTE_ON,OPCIONES.CAMBIO_FONDO_ON,OPCIONES.GUI_LIMPIA_ON,OPCIONES.LIMITADOR_RAM_ON,OPCIONES.SALIDA_RETROLANCHER_ON,OPCIONES.SALIDA_RETROLANCHER,OPCIONES.APPS_MENU_FULL_PATH,OPCIONES.SOUND_ON,OPCIONES.SOUND_VOLUME,OPCIONES.SCREENSHOT_BACK_ON,OPCIONES.VIDEO_MODE,OPCIONES.VIBRATION_ON,OPCIONES.DIR_EXTRAS_ON,0,0,"SAVE"}
 	local lista_texto_config = {"RGB EFFECT",
-	"COLOR IN BACKGROUNDS","FIXED COLOR IN BACKGROUNDS","RED","GREEN","BLUE","LIST STYLE","MEGADRIVE","MASTER SYSTEM","GAME GEAR","FAMICOM","GAME BOY","GAME BOY COLOR","GAME BOY ADVANCE","PLAY STATION","ATARI 2600","SEGA SG-1000","NEO GEO POCKET","SUPER FAMICOM","APPS","PLAY STATION 2","FONT TYPE","CHANGE THE BACKGROUND","CLEAN GUI","FORCE GARBAGE COLLECTION","CUSTOM APP/ELF OUTPUT","DIRECTORY","SEE FULL ROUTE IN THE APPS MENU","SOUND IN THE MENU","SOUND VOLUME","SCREENSHOT AS BACKGROUND","SCANLINES ON THE MENU","VIBRATION IN MENU","EXTRA DIRECTORIES","RESET ALL SETTINGS","CREDITS","- SAVE SETTINGS -"}
+	"COLOR IN BACKGROUNDS","FIXED COLOR IN BACKGROUNDS","RED","GREEN","BLUE","LIST STYLE","MEGADRIVE","MASTER SYSTEM","GAME GEAR","FAMICOM","GAME BOY","GAME BOY COLOR","GAME BOY ADVANCE","PLAY STATION","ATARI 2600","SEGA SG-1000","NEO GEO POCKET","SUPER FAMICOM","APPS","PLAY STATION 2","FONT TYPE","CHANGE THE BACKGROUND","CLEAN GUI","FORCE GARBAGE COLLECTION","CUSTOM APP/ELF OUTPUT","DIRECTORY","SEE FULL ROUTE IN THE APPS MENU","SOUND IN THE MENU","SOUND VOLUME","SCREENSHOT AS BACKGROUND","VIDEO MODE","VIBRATION IN MENU","EXTRA DIRECTORIES","RESET ALL SETTINGS","CREDITS","- SAVE SETTINGS -"}
 	local selector = 1
 	local estilo_lista = lista_config[7]
 	local color1 = OPCIONES.R
 	local color2 = OPCIONES.G
 	local color3 = OPCIONES.B
 	local volume = OPCIONES.SOUND_VOLUME
-	local color_demo = Color.new(color1,color2,color3)
+	local color_demo = Color.new(color1,color2,color3,CAMBIOS_EMUS.Tras)
+	if CAMBIOS_EMUS.Tras == 0 then
+		color_demo = Color.new(color1,color2,color3)
+	else
+		color_demo = Color.new(color1,color2,color3,CAMBIOS_EMUS.Tras)
+	end
+	local tras_demo = CAMBIOS_EMUS.Tras
 	local selec_dir = OPCIONES.SALIDA_RETROLANCHER_ON
 	lista_texto_config[27] = OPCIONES.SALIDA_RETROLANCHER
 	local selec_fuente = 1
@@ -1500,11 +1569,19 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 		for rev = 8,21 do
 			if lista_config[rev] == 1 then
 				rev2 = false
-				break	
+				break
 			end
 		end
 		if rev2 == true then
 			lista_config[8] = 1
+		end
+		if Pads.check(PAD,PAD_CIRCLE) or Pads.check(PAD,PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
+			noob = false
+			CONTROL.JOYSTICK_ON = true 
+			JOYSTICK_LIMITE = control_FPS(1)
+			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
+				Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
+			end
 		end
 		if Pads.check(PAD,PAD_R3) or Pads.check(PAD,PAD_L3) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.EJECUTAR ~= nil then
@@ -1516,10 +1593,10 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				while yoshi do
 					CONTROL.FPS = Screen.getFPS(1)
 					capturar(JOYSTICK_LIMITE)
-					Screen.clear(CAMBIOS_EMUS.COLOR_EMU_BACK)
-					Graphics.drawScaleImage(help,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
+					Screen.clear(CAMBIOS_EMUS.COLOR_EMU)
+					Graphics.drawScaleImage(help,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 					refrescar()
-					if not Pads.check(PAD,PAD_L3) and not Pads.check(PAD,PAD_R3) and not Pads.check(PAD,PAD_CIRCLE) and not Pads.check(PAD,PAD_TRIANGLE) and not Pads.check(PAD,PAD_CROSS) and PAD ~= 0 then
+					if not Pads.check(PAD,PAD_L3) and not Pads.check(PAD,PAD_SELECT) and not Pads.check(PAD,PAD_R3) and not Pads.check(PAD,PAD_CROSS) and PAD ~= 0 then
 						yoshi = false
 						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
 							Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
@@ -1531,12 +1608,170 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				Graphics.freeImage(help)
 			end
 		end
-		if Pads.check(PAD,PAD_CIRCLE) or Pads.check(PAD,PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
-			noob = false
+		if (Pads.check(PAD,PAD_RIGHT) or Pads.check(PAD,PAD_LEFT) or (Left_X <= -90 or Left_X >= 90)) and (selector >= 8 and selector <= 21) and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
+				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
+			end
+			if selector <= 14 and selector >= 8 then
+				selector = selector+7
+			elseif selector <= 21 and selector >= 15 then
+				selector = selector-7
+			end
+			if OPCIONES.VIBRATION_ON == 1 then
+				Pads.rumble(1,250)
+			end
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1)
-			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
-				Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
+		end
+		if Pads.check(PAD,PAD_SELECT) and CONTROL.JOYSTICK_ON == false then
+			if selector == 25 then
+				local lis_free = "OFF"
+				if OPCIONES.LIBERAR_LISTAS == 1 then
+					lis_free = "ON"
+				end
+				local pregunta = true
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					Graphics.drawRect(-5,180-4+CONTROL.Y_FIX_PAL,650,120+12,COLOR.NEGRO)
+					Font.ftPrint(CONTROL.fontARCA,152,180+CONTROL.Y_FIX_PAL,0,0,8,"-RELEASE REST OF LISTS ?-",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.SQUARE,193,208+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,228,208+CONTROL.Y_FIX_PAL,0,0,8,"CHANGE",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.CIRCLE,330,208+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,365,208+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,38,236+CONTROL.Y_FIX_PAL,0,0,8,"When enabled, list movement will be smoother",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,38,256+CONTROL.Y_FIX_PAL,0,0,8,"at the cost of pauses in system changes.",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,252,284+CONTROL.Y_FIX_PAL,0,0,8,"STATUS:".. lis_free,COLOR.BLANCO)
+					if Pads.check(PAD,PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.EJECUTAR ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.EJECUTAR)
+						end
+						if OPCIONES.LIBERAR_LISTAS == 0 then
+							OPCIONES.LIBERAR_LISTAS = 1
+							lis_free = "ON"
+							Font.ftPrint(CONTROL.fontARCA,252,284+CONTROL.Y_FIX_PAL,0,0,8,"████████████████████",COLOR.NEGRO)
+							Font.ftPrint(CONTROL.fontARCA,244,284+CONTROL.Y_FIX_PAL,0,0,8,"PLEASE WAIT",COLOR.BLANCO)
+							refrescar()
+							PRE_CARGADAS = {{},{},{},{},{},{},{},{},{},{},{},{},{},{}}
+							recargar_una(LISTAS.IDENTIDAD)
+						else
+							OPCIONES.LIBERAR_LISTAS = 0
+							lis_free = "OFF"
+							Font.ftPrint(CONTROL.fontARCA,252,284+CONTROL.Y_FIX_PAL,0,0,8,"████████████████████",COLOR.NEGRO)
+							Font.ftPrint(CONTROL.fontARCA,244,284+CONTROL.Y_FIX_PAL,0,0,8,"PLEASE WAIT",COLOR.BLANCO)
+							refrescar()
+							local ante_l = LISTAS.IDENTIDAD
+							PRE_CARGADAS = {}
+							recargar_todas()
+							LISTAS.IDENTIDAD = ante_l
+						end
+						CONTROL.JOYSTICK_ON = true 
+						JOYSTICK_LIMITE = control_FPS(1)
+					elseif Pads.check(PAD,PAD_CIRCLE) then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
+						end
+						pregunta = false
+					end
+					refrescar()
+				end
+				CONTROL.JOYSTICK_ON = true 
+				JOYSTICK_LIMITE = control_FPS(1)
+			elseif selector == 29 then
+				local pregunta = true
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					Graphics.drawRect(-5,180-4+CONTROL.Y_FIX_PAL,650,120+12,COLOR.NEGRO)
+					Font.ftPrint(CONTROL.fontARCA,152,180+CONTROL.Y_FIX_PAL,0,0,8,"-BACKGROUND MUSIC LOOP ?-",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.SQUARE,193,208+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,228,208+CONTROL.Y_FIX_PAL,0,0,8,"CHANGE",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.CIRCLE,330,208+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,365,208+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,40,236+CONTROL.Y_FIX_PAL,0,0,8,"Once the change is made, wait a moment for",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,40,256+CONTROL.Y_FIX_PAL,0,0,8,"the loop to finish playing.",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,252,284+CONTROL.Y_FIX_PAL,0,0,8,"STATUS:".. mus_on,COLOR.BLANCO)
+					if Pads.check(PAD,PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.EJECUTAR ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.EJECUTAR)
+						end
+						Font.ftPrint(CONTROL.fontARCA,252,284+CONTROL.Y_FIX_PAL,0,0,8,"████████████████████",COLOR.NEGRO)
+						Font.ftPrint(CONTROL.fontARCA,244,284+CONTROL.Y_FIX_PAL,0,0,8,"PLEASE WAIT",COLOR.BLANCO)
+						refrescar()
+						if doesFileExist("System/Medios/Sound/Background/music.adp")then
+							mus_on = "OFF"
+							System.rename("System/Medios/Sound/Background/music.adp","System/Medios/Sound/Background/music0.adp")
+							Sound.freeADPCM(MENU_SONIDOS.MUSICA)
+							MENU_SONIDOS.MUSICA = nil
+						elseif doesFileExist("System/Medios/Sound/Background/music0.adp")then
+							mus_on = "ON"
+							System.rename("System/Medios/Sound/Background/music0.adp","System/Medios/Sound/Background/music.adp")
+							MENU_SONIDOS.MUSICA = verificar_sonidos(MUSICA,"System/Medios/Sound/Background/music.adp")
+						end
+						CONTROL.JOYSTICK_ON = true 
+						JOYSTICK_LIMITE = control_FPS(1)
+					elseif Pads.check(PAD,PAD_CIRCLE) then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
+						end
+						pregunta = false
+					end
+					refrescar()
+				end
+				CONTROL.JOYSTICK_ON = true 
+				JOYSTICK_LIMITE = control_FPS(1)
+			elseif (selector >= 8 and selector <= 19) and selector ~= 15 then
+				local pregunta = true
+				Pads.rumble(0,0)
+				local lista_indi_rest_RL = {10,9,8,3,4,6,5,nil,1,11,2,7}
+				local indi_X_fix = {10,34,10,24,28,70,82,nil,-14,-5,10,64}
+				local lista_indi_rest = {"Sega Megadrive","Sega Master System","Sega Game Gear","Nintendo Famicom","Nintendo Game Boy","Nintendo Game Boy Color","Nintendo Game Boy Advance","PSx","Atari 2600","Sega SG-1000","Neo Geo Pocket","Nintendo Super Famicom"}
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					Graphics.drawRect(-5,180-4+CONTROL.Y_FIX_PAL,650,120+12,COLOR.NEGRO)
+					Font.ftPrint(CONTROL.fontARCA,172-indi_X_fix[selector-7],180+CONTROL.Y_FIX_PAL,0,0,8,"-RESET ".. lista_indi_rest[selector-7] .." ?-",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.SQUARE,193,215+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,228,215+CONTROL.Y_FIX_PAL,0,0,8,"RESET",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.CIRCLE,330,215+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,365,215+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.R1,268,271+CONTROL.Y_FIX_PAL,35,35)
+					if clean == false then
+						Font.ftPrint(CONTROL.fontARCA,325,280+CONTROL.Y_FIX_PAL,0,0,8,"NO",COLOR.BLANCO)
+					else
+						Font.ftPrint(CONTROL.fontARCA,325,280+CONTROL.Y_FIX_PAL,0,0,8,"YES",COLOR.BLANCO)
+					end
+					Font.ftPrint(CONTROL.fontARCA,180,250+CONTROL.Y_FIX_PAL,0,0,8,"DELETING SAVES STATES",COLOR.BLANCO)
+					if Pads.check(PAD,PAD_R1) and CONTROL.JOYSTICK_ON == false then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.NETX ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.NETX)
+						end
+						if clean == false then
+							clean = true
+						else
+							clean = false
+						end
+						CONTROL.JOYSTICK_ON = true 
+						JOYSTICK_LIMITE = control_FPS(1)
+					elseif Pads.check(PAD,PAD_SQUARE) then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.EJECUTAR ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.EJECUTAR)
+						end
+						noob = false
+						reinicio = true
+						pregunta = false
+						indi_rest_RL = lista_indi_rest_RL[selector-7]
+					elseif Pads.check(PAD,PAD_CIRCLE) then
+						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
+							Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
+						end
+						pregunta = false
+						clean = false
+						indi_rest_RL = 0
+						CONTROL.JOYSTICK_ON = true 
+						JOYSTICK_LIMITE = control_FPS(1)
+					end
+					refrescar()
+				end
+				CONTROL.JOYSTICK_ON = true 
+				JOYSTICK_LIMITE = control_FPS(1)
 			end
 		end
 		if Pads.check(PAD,PAD_L1) or Pads.check(PAD,PAD_R1) or Pads.check(PAD,PAD_L2) or Pads.check(PAD,PAD_R2) and CONTROL.JOYSTICK_ON == false then
@@ -1581,6 +1816,69 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					PRE_CARGADAS[14] = crear_listas(14,PRE_CARGADAS[14])
 					desactivados(nil)
 				end
+				if selector == 32 then
+					local pregunta = true
+					Pads.rumble(0,0)
+					local mode_act = 1
+					local fix_txt = 4
+					if lista_config[32] == 1 then
+						mode_act = 2
+						fix_txt = 0
+					end
+					local mode_vi_tex = {"NTSC","PAL"}
+					while pregunta do
+						capturar(JOYSTICK_LIMITE)
+						Graphics.drawRect(-5,180-4+CONTROL.Y_FIX_PAL,650,120+12,COLOR.NEGRO)
+						Font.ftPrint(CONTROL.fontARCA,136-fix_txt,180+CONTROL.Y_FIX_PAL,0,0,8,"-CHANGE VIDEO MODE TO ".. mode_vi_tex[mode_act] .." ?-",COLOR.BLANCO)
+						Graphics.drawScaleImage(PAD_IMG.SQUARE,193,215+CONTROL.Y_FIX_PAL,20,20)
+						Font.ftPrint(CONTROL.fontARCA,228,215+CONTROL.Y_FIX_PAL,0,0,8,"CHANGE",COLOR.BLANCO)
+						Graphics.drawScaleImage(PAD_IMG.CIRCLE,330,215+CONTROL.Y_FIX_PAL,20,20)
+						Font.ftPrint(CONTROL.fontARCA,365,215+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
+						Font.ftPrint(CONTROL.fontARCA,108,250+CONTROL.Y_FIX_PAL,0,0,8,"WARNING:",COLOR.BLANCO)
+						Font.ftPrint(CONTROL.fontARCA,108,275+CONTROL.Y_FIX_PAL,0,0,8,"ALL RETROARCH OPTIONS WILL RESET",COLOR.BLANCO)
+						if Pads.check(PAD,PAD_SQUARE) then
+							if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.EJECUTAR ~= nil then
+								Sound.playADPCM(1,MENU_SONIDOS.EJECUTAR)
+							end
+							if lista_config[32] == 0 then
+								Screen.setMode(NTSC, 640, 448, CT24, INTERLACED, FIELD)
+								CONTROL.ALTO_F = 448
+								CONTROL.Y_FIX_PAL = 0
+							else
+								Screen.setMode(PAL, 640, 512, CT24, INTERLACED, FIELD)
+								CONTROL.ALTO_F = 512
+								CONTROL.Y_FIX_PAL = 32
+							end
+							OPCIONES.VIDEO_MODE = lista_config[32]
+							noob = false
+							reinicio = true
+							pregunta = false
+							clean = false
+							indi_rest_RL = 20
+						elseif Pads.check(PAD,PAD_CIRCLE) then
+							if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.CANCELAR ~= nil then
+								Sound.playADPCM(1,MENU_SONIDOS.CANCELAR)
+							end
+							if lista_config[selector] == 0 then
+								lista_config[selector] = 1
+							elseif lista_config[selector] == 1 then
+								lista_config[selector] = 0
+							end
+							clean = false
+							pregunta = false
+							indi_rest_RL = 0
+							CONTROL.JOYSTICK_ON = true 
+							JOYSTICK_LIMITE = control_FPS(1)
+						end
+						refrescar()
+					end
+					CONTROL.JOYSTICK_ON = true 
+					JOYSTICK_LIMITE = control_FPS(1)
+				end
+				if (selector == 3 or selector == 2) and lista_config[3] == 0 then
+					color_emu(LISTAS.IDENTIDAD)
+					RGB()
+				end
 			elseif selector == 7 then
 				if estilo_lista <= 5 then
 					estilo_lista = estilo_lista+1
@@ -1592,19 +1890,19 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				Pads.rumble(0,0)
 				while pregunta do
 					capturar(JOYSTICK_LIMITE)
-					Graphics.drawRect(175,162,290,153,Color.new(0,0,0,10))
-					Font.ftPrint(CONTROL.fontARCA,188,180,0,0,8,"RESET ALL SETTINGS ?",COLOR.BLANCO)
-					Graphics.drawScaleImage(PAD_IMG.SQUARE,193,215,20,20)
-					Font.ftPrint(CONTROL.fontARCA,228,215,0,0,8,"RESET",COLOR.BLANCO)
-					Graphics.drawScaleImage(PAD_IMG.CIRCLE,330,215,20,20)
-					Font.ftPrint(CONTROL.fontARCA,365,215,0,0,8,"CANCEL",COLOR.BLANCO)
-					Graphics.drawScaleImage(PAD_IMG.R1,268,271,35,35)
+					Graphics.drawRect(-5,180-4+CONTROL.Y_FIX_PAL,650,120+12,COLOR.NEGRO)
+					Font.ftPrint(CONTROL.fontARCA,160,180+CONTROL.Y_FIX_PAL,0,0,8,"- RESET ALL SETTINGS ? -",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.SQUARE,193,215+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,228,215+CONTROL.Y_FIX_PAL,0,0,8,"RESET",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.CIRCLE,330,215+CONTROL.Y_FIX_PAL,20,20)
+					Font.ftPrint(CONTROL.fontARCA,365,215+CONTROL.Y_FIX_PAL,0,0,8,"CANCEL",COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.R1,268,271+CONTROL.Y_FIX_PAL,35,35)
 					if clean == false then
-						Font.ftPrint(CONTROL.fontARCA,325,280,0,0,8,"NO",COLOR.BLANCO)
+						Font.ftPrint(CONTROL.fontARCA,325,280+CONTROL.Y_FIX_PAL,0,0,8,"NO",COLOR.BLANCO)
 					else
-						Font.ftPrint(CONTROL.fontARCA,325,280,0,0,8,"YES",COLOR.BLANCO)
+						Font.ftPrint(CONTROL.fontARCA,325,280+CONTROL.Y_FIX_PAL,0,0,8,"YES",COLOR.BLANCO)
 					end
-					Font.ftPrint(CONTROL.fontARCA,180,250,0,0,8,"DELETING SAVES STATES",COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA,180,250+CONTROL.Y_FIX_PAL,0,0,8,"DELETING SAVES STATES",COLOR.BLANCO)
 					if Pads.check(PAD,PAD_R1) and CONTROL.JOYSTICK_ON == false then
 						if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.NETX ~= nil then
 							Sound.playADPCM(1,MENU_SONIDOS.NETX)
@@ -1640,7 +1938,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				elseif selec_fuente == #OPCIONES.FUENTES_ENCONTRADAS then
 					selec_fuente = 1
 				end
-				if selec_fuente <= #OPCIONES.FUENTES_ENCONTRADAS and selec_fuente >= 1  then
+				if selec_fuente <= #OPCIONES.FUENTES_ENCONTRADAS and selec_fuente >= 1 then
 					Font.ftUnload(CONTROL.fontARCA)
 					CONTROL.fontARCA = Font.ftLoad(OPCIONES.FUENTES_ENCONTRADAS[selec_fuente])
 					OPCIONES.CAMBIO_FUENTE_ON = selec_fuente
@@ -1756,9 +2054,10 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				OPCIONES.SOUND_ON = lista_config[29]
 				OPCIONES.SOUND_VOLUME = volume
 				OPCIONES.SCREENSHOT_BACK_ON = lista_config[31]
-				OPCIONES.SCANLINES_ON = lista_config[32]
+				OPCIONES.VIDEO_MODE = lista_config[32]
 				OPCIONES.VIBRATION_ON = lista_config[33]
 				OPCIONES.DIR_EXTRAS_ON = lista_config[34]
+				CAMBIOS_EMUS.Tras = tras_demo
 				if CONTROL.ESTILO == 1 then
 					CONTROL.IMG_ANCHO = 358
 					CONTROL.IMG_ALTO = 92
@@ -1799,6 +2098,18 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					CONTROL.LISTA_ALTO = 90
 					CONTROL.LOGO_ALTO = 5
 				end
+				if OPCIONES.VIDEO_MODE == 1 then
+					CONTROL.ALTO_F = 512
+					CONTROL.ALTO = 544
+					CONTROL.Y_FIX_PAL = 32
+					CONTROL.LISTA_ALTO = CONTROL.LISTA_ALTO + CONTROL.Y_FIX_PAL
+					CONTROL.IMG_ALTO = CONTROL.IMG_ALTO + CONTROL.Y_FIX_PAL
+					CONTROL.LOGO_ALTO = CONTROL.LOGO_ALTO + CONTROL.Y_FIX_PAL
+				else
+					CONTROL.ALTO_F = 448
+					CONTROL.ALTO = 480
+					CONTROL.Y_FIX_PAL = 0
+				end
 				desactivados(nil)
 				guardar_opciones()
 				noob = false
@@ -1812,7 +2123,6 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				color_emu(LISTAS.IDENTIDAD)
 			end
 			OPCIONES.SOUND_ON = lista_config[29]
-			OPCIONES.SCANLINES_ON = lista_config[32]
 			OPCIONES.VIBRATION_ON = lista_config[33]
 			if OPCIONES.VIBRATION_ON == 1 then
 				Pads.rumble(1,255)
@@ -1820,7 +2130,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1) 
 		end
-		if Pads.check(PAD,PAD_DOWN) and CONTROL.JOYSTICK_ON == false then
+		if (Pads.check(PAD,PAD_DOWN) or Left_Y >= 90) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
@@ -1832,18 +2142,18 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					end
 				else
 					selector = 1
-				end  
+				end
 			else
 				if selector <= #lista_config-1 then
 					selector = selector+1
 				else
 					selector = 22
-				end  
+				end
 			end
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1)
 		end
-		if Pads.check(PAD,PAD_UP) and CONTROL.JOYSTICK_ON == false then
+		if (Pads.check(PAD,PAD_UP) or Left_Y <= -90) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
@@ -1855,7 +2165,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					end
 				else
 					selector = #lista_config
-				end  
+				end
 			else
 				if selector >= 23 then
 					selector = selector-1
@@ -1866,17 +2176,17 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1)
 		end
-		if selector == 30 and (Pads.check(PAD,PAD_RIGHT) or Pads.check(PAD,PAD_LEFT)) and CONTROL.JOYSTICK_ON == false then
+		if selector == 30 and (Pads.check(PAD,PAD_RIGHT) or Pads.check(PAD,PAD_LEFT) or (Left_X >= 90 or Left_X <= -90)) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
-			if Pads.check(PAD,PAD_RIGHT) then
+			if Pads.check(PAD,PAD_RIGHT) or Left_X >= 90 then
 				if volume <= 99 then
 					volume = volume+1
 				else
 					volume = 1
 				end
-			elseif Pads.check(PAD,PAD_LEFT) then
+			elseif Pads.check(PAD,PAD_LEFT) or Left_X <= -90 then
 				if volume >= 1 then
 					volume = volume-1
 				else
@@ -1891,7 +2201,41 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1) 
 		end
-		if Pads.check(PAD,PAD_RIGHT) and selector >= 4 and selector <= 6 and CONTROL.JOYSTICK_ON == false then
+		if (Pads.check(PAD,PAD_SQUARE) and (Pads.check(PAD,PAD_LEFT) or Left_X <= -90)) and lista_config[3] == 1 and selector >= 4 and selector <= 6 and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
+				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
+			end
+			if tras_demo >= 1 and (Pads.check(PAD,PAD_LEFT) or Left_X <= -90) then
+				tras_demo = tras_demo-1
+			else
+				tras_demo = 128
+			end 
+			if tras_demo == 0 then
+				color_demo = Color.new(color1,color2,color3)
+			else
+				color_demo = Color.new(color1,color2,color3,tras_demo)
+			end
+			CONTROL.JOYSTICK_ON = true 
+			JOYSTICK_LIMITE = control_FPS(1)
+		end
+		if (Pads.check(PAD,PAD_SQUARE) and (Pads.check(PAD,PAD_RIGHT) or Left_X >= 90)) and lista_config[3] == 1 and selector >= 4 and selector <= 6 and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
+				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
+			end
+			if tras_demo <= 127 and (Pads.check(PAD,PAD_RIGHT) or Left_X >= 90) then
+				tras_demo = tras_demo+1
+			else
+				tras_demo = 0
+			end
+			if tras_demo == 0 then
+				color_demo = Color.new(color1,color2,color3)
+			else
+				color_demo = Color.new(color1,color2,color3,tras_demo)
+			end
+			CONTROL.JOYSTICK_ON = true 
+			JOYSTICK_LIMITE = control_FPS(1)
+		end
+		if (Pads.check(PAD,PAD_RIGHT) or Left_X >= 90) and selector >= 4 and selector <= 6 and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
@@ -1905,20 +2249,22 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				if color2 <= 127 then
 					color2 = color2+1
 				else
-					color2 = 0
+					color2 = 10
 				end 
 			elseif selector == 6 then
 				if color3 <= 127 then
 					color3 = color3+1
 				else
-					color3 = 0
+					color3 = 10
 				end 
 			end
-			color_demo = Color.new(color1,color2,color3)
+			if tras_demo == 0 then
+				color_demo = Color.new(color1,color2,color3)
+			else
+				color_demo = Color.new(color1,color2,color3,tras_demo)
+			end
 			if lista_config[3] == 1 then
 				CAMBIOS_EMUS.COLOR_EMU = Color.new(color1,color2,color3)
-			elseif lista_config[3] == 0 then
-				color_emu(LISTAS.IDENTIDAD)
 			end
 			if OPCIONES.VIBRATION_ON == 1 then
 				Pads.rumble(1,255)
@@ -1926,7 +2272,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1) 
 		end
-		if Pads.check(PAD,PAD_LEFT) and selector >= 4 and selector <= 6 and CONTROL.JOYSTICK_ON == false then
+		if (Pads.check(PAD,PAD_LEFT) or Left_X <= -90) and selector >= 4 and selector <= 6 and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
@@ -1937,29 +2283,31 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					color1 = 128
 				end 
 			elseif selector == 5 then
-				if color2 >= 1 then
+				if color2 >= 11 then
 					color2 = color2-1
 				else
 					color2 = 128
 				end 
 			elseif selector == 6 then
-				if color3 >= 1 then
+				if color3 >= 11 then
 					color3 = color3-1
 				else
 					color3 = 128
 				end 
 			end
-			color_demo = Color.new(color1,color2,color3)
+			if tras_demo == 0 then
+				color_demo = Color.new(color1,color2,color3)
+			else
+				color_demo = Color.new(color1,color2,color3,tras_demo)
+			end
 			if lista_config[3] == 1 then
 				CAMBIOS_EMUS.COLOR_EMU = Color.new(color1,color2,color3)
-			elseif lista_config[3] == 0 then
-				color_emu(LISTAS.IDENTIDAD)
 			end
 			if OPCIONES.VIBRATION_ON == 1 then
 				Pads.rumble(1,255)
 			end
 			CONTROL.JOYSTICK_ON = true 
-			JOYSTICK_LIMITE = control_FPS(1) 
+			JOYSTICK_LIMITE = control_FPS(1)
 		end
 	
 		-- Mostrar todo en pantalla
@@ -1967,19 +2315,19 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 		if lista_config[1] == 1 then
 			RGB()
 		end
-		if lista_config[2] == 1 and lista_config[3] == 0 then
-			Graphics.drawRect(0,0,640,480,CAMBIOS_EMUS.COLOR_EMU_BACK)
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		if lista_config[2] == 1 and (lista_config[3] == 0 or (lista_config[3] == 1 and tras_demo == 0)) then
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU)
 		elseif lista_config[3] == 1 and lista_config[2] == 1 then
-			Graphics.drawRect(0,0,640,480,color_demo)
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO,color_demo)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,color_demo)
 		else
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 		end
-		Graphics.drawRect(12,28,615,405,COLOR.NEGRO_T)
-		Graphics.drawScaleImage(PAD_IMG.L1,214,0,32,32)
-		Font.ftPrint(CONTROL.fontARCA,279,6,0,0,8,page,COLOR.BLANCO_LISTA)
-		Graphics.drawScaleImage(PAD_IMG.R1,392,0,32,32)
+		Graphics.drawRect(12,28+CONTROL.Y_FIX_PAL,615,405,COLOR.NEGRO_T)
+		Graphics.drawScaleImage(PAD_IMG.L1,214,0+CONTROL.Y_FIX_PAL,32,32)
+		Font.ftPrint(CONTROL.fontARCA,279,6+CONTROL.Y_FIX_PAL,0,0,8,page,COLOR.BLANCO_LISTA)
+		Graphics.drawScaleImage(PAD_IMG.R1,392,0+CONTROL.Y_FIX_PAL,32,32)
 		local contador = 1
 		local ini = 1
 		if conf_numero == true then
@@ -1994,6 +2342,13 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			local acti = "ON"
 			if lista_config[estado] == 0 then
 				acti = "OFF"
+			end
+			if contador == 11 and conf_numero == false then
+				if lista_config[estado] == 0 then
+					acti = "NTSC"
+				else
+					acti = "PAL"
+				end
 			end
 			if contador == 7 and conf_numero == true then
 				if estilo_lista == 1 then
@@ -2021,38 +2376,41 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					acti = "USB"
 				end
 			end
-			local espacio_linea = (8+(contador)*25)
+			local espacio_linea = (8+(contador)*25)+CONTROL.Y_FIX_PAL
 			if estado <= 7 or estado >= 22 or estado == #lista_config then
 				if estado == selector then
-				    if estado ~= #lista_config then
+					if estado ~= #lista_config then
 						Graphics.drawRect(12+5,espacio_linea-3,610,25,COLOR.NEGRO_T)
 					end
 					if estado == #lista_config then
-						Font.ftPrint(CONTROL.fontARCA,209,408,0,0,8,"".. lista_texto_config[estado],CAMBIOS_EMUS.COLOR_EMU)
+						Font.ftPrint(CONTROL.fontARCA,209,408+CONTROL.Y_FIX_PAL,0,0,8,"".. lista_texto_config[estado],CAMBIOS_EMUS.COLOR_EMU)
 					elseif estado == 27 then 
 						Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,601,8,"".. string.sub(lista_texto_config[estado],LISTAS.SCROLL_TEX),CAMBIOS_EMUS.COLOR_EMU)
 					else
 						Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,0,8,"".. lista_texto_config[estado],CAMBIOS_EMUS.COLOR_EMU)
 					end
 					if estado >= 4 and estado <= 6 then
-						Graphics.drawRect(565,19+100,45,45,color_demo)
+						Graphics.drawRect(565,19+100+CONTROL.Y_FIX_PAL,45,45,color_demo)
 						if estado == 4 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. color1,CAMBIOS_EMUS.COLOR_EMU)
 						elseif estado == 5 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. color2,CAMBIOS_EMUS.COLOR_EMU)
 						elseif estado == 6 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. color3,CAMBIOS_EMUS.COLOR_EMU)
-						end	
+						end
 					else
+						if estado == 29 or estado == 25 then
+							Graphics.drawScaleImage(PAD_IMG.SELECT_S,458,espacio_linea,20,20)
+						end
 						if estado == 7 then
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. acti,CAMBIOS_EMUS.COLOR_EMU)
 						elseif estado == #lista_config then
-							Font.ftPrint(CONTROL.fontARCA,209,408,0,0,8," ",CAMBIOS_EMUS.COLOR_EMU)
+							Font.ftPrint(CONTROL.fontARCA,209,408+CONTROL.Y_FIX_PAL,0,0,8," ",CAMBIOS_EMUS.COLOR_EMU)
 						elseif estado == 22 then
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. selec_fuente,CAMBIOS_EMUS.COLOR_EMU)
 						elseif estado == 23 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. selec_fondo,CAMBIOS_EMUS.COLOR_EMU)
-						elseif estado == 26 then 
+						elseif estado == 26 or estado == 32 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. acti,CAMBIOS_EMUS.COLOR_EMU)
 						elseif estado == 30 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. volume,CAMBIOS_EMUS.COLOR_EMU)
@@ -2064,31 +2422,31 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					end
 				else
 					if estado == #lista_config then
-						Font.ftPrint(CONTROL.fontARCA,209,408,0,0,8,"".. lista_texto_config[estado],COLOR.BLANCO_LISTA)
+						Font.ftPrint(CONTROL.fontARCA,209,408+CONTROL.Y_FIX_PAL,0,0,8,"".. lista_texto_config[estado],COLOR.BLANCO_LISTA)
 					elseif estado == 27 then 
 						Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,601,8,"".. string.sub(lista_texto_config[estado],LISTAS.SCROLL_TEX),COLOR.BLANCO_LISTA)
 					else
 						Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,0,8,"".. lista_texto_config[estado],COLOR.BLANCO_LISTA)
 					end
 					if estado >= 4 and estado <= 6 then
-						Graphics.drawRect(565,19+100,45,45,color_demo)
+						Graphics.drawRect(565,19+100+CONTROL.Y_FIX_PAL,45,45,color_demo)
 						if estado == 4 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. color1,COLOR.BLANCO_LISTA)
 						elseif estado == 5 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. color2,COLOR.BLANCO_LISTA)
 						elseif estado == 6 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. color3,COLOR.BLANCO_LISTA)
-						end	
+						end
 					else
 						if estado == 7 then
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. acti,COLOR.BLANCO_LISTA)
 						elseif estado == #lista_config then
-							Font.ftPrint(CONTROL.fontARCA,209,408,0,0,8," ",COLOR.BLANCO_LISTA)
+							Font.ftPrint(CONTROL.fontARCA,209,408+CONTROL.Y_FIX_PAL,0,0,8," ",COLOR.BLANCO_LISTA)
 						elseif estado == 22 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. selec_fuente,COLOR.BLANCO_LISTA)
 						elseif estado == 23 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. selec_fondo,COLOR.BLANCO_LISTA)
-						elseif estado == 26 then 
+						elseif estado == 26 or estado == 32 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. acti,COLOR.BLANCO_LISTA)
 						elseif estado == 30 then 
 							Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,8,"".. volume,COLOR.BLANCO_LISTA)
@@ -2100,21 +2458,25 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 					end
 				end
 			else
-				Font.ftPrint(CONTROL.fontARCA,189,206,0,0,8,"- Activate Systems -",COLOR.BLANCO_LISTA)
+				Font.ftPrint(CONTROL.fontARCA,189,206+CONTROL.Y_FIX_PAL,0,0,8,"- Activate Systems -",COLOR.BLANCO_LISTA)
 				if estado <= 14 then
 					if estado == selector then
 						Graphics.drawRect(17,espacio_linea-3+23,293,25,COLOR.NEGRO_T)
 						Font.ftPrint(CONTROL.fontARCA,22,espacio_linea+23,0,0,8,"".. lista_texto_config[estado],CAMBIOS_EMUS.COLOR_EMU)
 						Font.ftPrint(CONTROL.fontARCA,268,espacio_linea+23,0,0,8,"".. acti,CAMBIOS_EMUS.COLOR_EMU)
+						Graphics.drawScaleImage(PAD_IMG.SELECT_S,242,espacio_linea+23,20,20)
 					else
 						Font.ftPrint(CONTROL.fontARCA,22,espacio_linea+23,0,0,8,"".. lista_texto_config[estado],COLOR.BLANCO_LISTA)
 						Font.ftPrint(CONTROL.fontARCA,268,espacio_linea+23,0,0,8,"".. acti,COLOR.BLANCO_LISTA)
 					end
-				else	
+				else
 					if estado == selector then
 						Graphics.drawRect(332,espacio_linea-155,280,25,COLOR.NEGRO_T)
 						Font.ftPrint(CONTROL.fontARCA,337,espacio_linea-152,0,0,8,"".. lista_texto_config[estado],CAMBIOS_EMUS.COLOR_EMU)
 						Font.ftPrint(CONTROL.fontARCA,570,espacio_linea-152,0,0,8,"".. acti,CAMBIOS_EMUS.COLOR_EMU)
+						if (estado >= 16 and estado <= 19) then
+							Graphics.drawScaleImage(PAD_IMG.SELECT_S,544,espacio_linea-152,20,20)
+						end
 					else
 						Font.ftPrint(CONTROL.fontARCA,337,espacio_linea-152,0,0,8,"".. lista_texto_config[estado],COLOR.BLANCO_LISTA)
 						Font.ftPrint(CONTROL.fontARCA,570,espacio_linea-152,0,0,8,"".. acti,COLOR.BLANCO_LISTA)
@@ -2124,7 +2486,30 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			contador = contador+1
 		end
 		if conf_numero == true then
-			Graphics.drawScaleImage(LOGOS.DEFAULT_DEMO,194,109,252,76,CAMBIOS_EMUS.COLOR_EMU)
+			if lista_config[3] == 1 and tras_demo ~= 0 then
+				Graphics.drawRect(194-3,109-3+CONTROL.Y_FIX_PAL,252+6,76+6,COLOR.NEGRO_T)
+				Graphics.drawScaleImage(LOGOS.DEFAULT_DEMO,194,109+CONTROL.Y_FIX_PAL,252,76)
+				Graphics.drawRect(194,109+CONTROL.Y_FIX_PAL,252,76,color_demo)
+			else
+				Graphics.drawScaleImage(LOGOS.DEFAULT_DEMO,194,109+CONTROL.Y_FIX_PAL,252,76,CAMBIOS_EMUS.COLOR_EMU)
+			end
+			if lista_config[3] == 1 and selector >= 4 and selector <= 6 then
+				Graphics.drawRect(12+5,185-3+CONTROL.Y_FIX_PAL,610,25,COLOR.NEGRO)
+				Graphics.drawScaleImage(PAD_IMG.SQUARE,196,185+CONTROL.Y_FIX_PAL,20,20)
+				if tras_demo == 0 then
+					if Pads.check(PAD,PAD_SQUARE) then
+						Font.ftPrint(CONTROL.fontARCA,224,185+CONTROL.Y_FIX_PAL,0,0,8,"Transparency OFF",CAMBIOS_EMUS.COLOR_EMU)
+					else
+						Font.ftPrint(CONTROL.fontARCA,224,185+CONTROL.Y_FIX_PAL,0,0,8,"Transparency OFF",COLOR.BLANCO_LISTA)
+					end
+				else
+					if Pads.check(PAD,PAD_SQUARE) then
+						Font.ftPrint(CONTROL.fontARCA,224,185+CONTROL.Y_FIX_PAL,0,0,8,"Transparency ".. tras_demo,CAMBIOS_EMUS.COLOR_EMU)
+					else
+						Font.ftPrint(CONTROL.fontARCA,224,185+CONTROL.Y_FIX_PAL,0,0,8,"Transparency ".. tras_demo,COLOR.BLANCO_LISTA)
+					end
+				end
+			end
 		end
 		refrescar()
 	end
@@ -2132,7 +2517,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 	if reinicio == false then
 		animaciones()
 	elseif reinicio == true then
-		reiniciar_conf(clean)
+		reiniciar_conf(clean,indi_rest_RL)
 	end
 	CONTROL.JOYSTICK_ON = false 
 	JOYSTICK_LIMITE = control_FPS(2)
@@ -2191,7 +2576,7 @@ function animaciones() -- Muestra los distintos tipos de animaciones al cambiar 
 					cargar_logo(LISTAS.IDENTIDAD)
 					cambio_ani = true
 				end
-			end				
+			end
 		elseif CONTROL.ESTILO == 2 then
 			if CONTROL.LADO_ANI == false then
 				if CONTROL.IMG_ALTO < actual_alto-velocidad and cambio_ani == true then
@@ -2417,11 +2802,14 @@ function animaciones() -- Muestra los distintos tipos de animaciones al cambiar 
 		-- Mostrar todo en pantalla
 		Screen.clear(COLOR.NEGRO)
 		RGB()
-		if OPCIONES.FONDO_RGB_ON == 1 then
-			Graphics.drawRect(0,0,640,480,CAMBIOS_EMUS.COLOR_EMU_BACK)
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		if OPCIONES.FONDO_RGB_ON == 1 and (OPCIONES.FONDO_RGB_FIJO_ON == 0 or (OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.Tras == 0)) then
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
+		elseif OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 1 then
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
+			Graphics.drawRect(0,0,CONTROL.ANCHO,CONTROL.ALTO_F,CAMBIOS_EMUS.COLOR_EMU_BACK)
 		else
-			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO)
+			Graphics.drawScaleImage(LISTAS.FONDO,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 		end
 		if CONTROL.ESTILO == 1 then
 			Graphics.drawScaleImage(LISTAS.LOGO,CONTROL.LOGO_ANCHO,CONTROL.LOGO_ALTO,252,76)
@@ -2461,13 +2849,6 @@ function animaciones() -- Muestra los distintos tipos de animaciones al cambiar 
 		end
 		refrescar()
 	end
-	
-	-- Cambia el límite de las extensiones de archivos
-	--if LISTAS.IDENTIDAD == 3 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 10 then
-	--	CONTROL.EXTENSION = 4
-	--else
-	--	CONTROL.EXTENSION = 5
-	--end
 end
 
 function color_emu(identidad) -- Determina los colores predeterminados de cada emulador
@@ -2477,10 +2858,10 @@ function color_emu(identidad) -- Determina los colores predeterminados de cada e
 		CAMBIOS_EMUS.R = 120
 		CAMBIOS_EMUS.G = 120
 		CAMBIOS_EMUS.B = 120 
-		CAMBIOS_EMUS.COLOR_MAX = 126 
-		CAMBIOS_EMUS.COLOR_MIN = 115
+		CAMBIOS_EMUS.COLOR_MAX = 127 
+		CAMBIOS_EMUS.COLOR_MIN = 116
 		CAMBIOS_EMUS.RGB_COLOR = 7
-		CAMBIOS_EMUS.COLOR_ACTUAL = 115
+		CAMBIOS_EMUS.COLOR_ACTUAL = 120
 		COLOR.BLANCO_LISTA = Color.new(74,74,74)
 	elseif identidad == 2 and OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 0 then
 		-- Colores Sega Master System
@@ -2507,13 +2888,13 @@ function color_emu(identidad) -- Determina los colores predeterminados de cada e
 	elseif identidad == 4 and OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 0 then
 		-- Colores Nintendo Famicom
 		CAMBIOS_EMUS.COLOR_EMU = Color.new(115,20,20)
-		CAMBIOS_EMUS.R = 125
+		CAMBIOS_EMUS.R = 128
 		CAMBIOS_EMUS.G = 0
 		CAMBIOS_EMUS.B = 0
-		CAMBIOS_EMUS.COLOR_MAX = 45
+		CAMBIOS_EMUS.COLOR_MAX = 40
 		CAMBIOS_EMUS.COLOR_MIN = 4
 		CAMBIOS_EMUS.RGB_COLOR = 4
-		CAMBIOS_EMUS.COLOR_ACTUAL = 0
+		CAMBIOS_EMUS.COLOR_ACTUAL = 4
 		COLOR.BLANCO_LISTA = Color.new(128,128,128)
 	elseif identidad == 5 and OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 0 then
 		-- Colores Nintendo Game Boy
@@ -2586,7 +2967,7 @@ function color_emu(identidad) -- Determina los colores predeterminados de cada e
 		CAMBIOS_EMUS.COLOR_EMU = Color.new(0,100,120)
 		CAMBIOS_EMUS.R = 0
 		CAMBIOS_EMUS.G = 80
-		CAMBIOS_EMUS.B = 80 
+		CAMBIOS_EMUS.B = 85 
 		CAMBIOS_EMUS.COLOR_MAX = 95
 		CAMBIOS_EMUS.COLOR_MIN = 80 
 		CAMBIOS_EMUS.RGB_COLOR = 2
@@ -2618,12 +2999,12 @@ function color_emu(identidad) -- Determina los colores predeterminados de cada e
 		-- Colores Play Station 2
 		CAMBIOS_EMUS.COLOR_EMU = Color.new(0,60,120)
 		CAMBIOS_EMUS.R = 0
-		CAMBIOS_EMUS.G = 60
-		CAMBIOS_EMUS.B = 120
-		CAMBIOS_EMUS.COLOR_MAX = 110
-		CAMBIOS_EMUS.COLOR_MIN = 60
+		CAMBIOS_EMUS.G = 64
+		CAMBIOS_EMUS.B = 127
+		CAMBIOS_EMUS.COLOR_MAX = 100
+		CAMBIOS_EMUS.COLOR_MIN = 64
 		CAMBIOS_EMUS.RGB_COLOR = 2
-		CAMBIOS_EMUS.COLOR_ACTUAL = 60
+		CAMBIOS_EMUS.COLOR_ACTUAL = 64
 		COLOR.BLANCO_LISTA = Color.new(128,128,128)
 	elseif OPCIONES.FONDO_RGB_FIJO_ON == 1 then
 		-- Colores personalizados 
@@ -2664,8 +3045,14 @@ function RGB() -- Realiza el efecto de cambio de colores del fondo
 			CAMBIOS_EMUS.CAM_COLOR_ACTUAL = true
 		end
 	end
-	if CAMBIOS_EMUS.RGB_COLOR == 0 or (OPCIONES.RGB_ON == 0 or OPCIONES.FONDO_RGB_FIJO_ON == 1) then
+	if (CAMBIOS_EMUS.RGB_COLOR == 0 or OPCIONES.RGB_ON == 0) and OPCIONES.FONDO_RGB_FIJO_ON == 0 then
 		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.R,CAMBIOS_EMUS.G,CAMBIOS_EMUS.B)
+	elseif (CAMBIOS_EMUS.RGB_COLOR == 0 or OPCIONES.RGB_ON == 0) and OPCIONES.FONDO_RGB_FIJO_ON == 1 then
+		if CAMBIOS_EMUS.Tras == 0 then
+			CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.R,CAMBIOS_EMUS.G,CAMBIOS_EMUS.B)
+		else
+			CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.R,CAMBIOS_EMUS.G,CAMBIOS_EMUS.B,CAMBIOS_EMUS.Tras)
+		end
 	elseif CAMBIOS_EMUS.RGB_COLOR == 1 then
 		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.G,CAMBIOS_EMUS.B) 
 	elseif CAMBIOS_EMUS.RGB_COLOR == 2 then
@@ -2677,9 +3064,9 @@ function RGB() -- Realiza el efecto de cambio de colores del fondo
 	elseif CAMBIOS_EMUS.RGB_COLOR == 5 then
 		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.G,CAMBIOS_EMUS.COLOR_ACTUAL)
 	elseif CAMBIOS_EMUS.RGB_COLOR == 6 then
-		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.B)	
+		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.B)
 	elseif CAMBIOS_EMUS.RGB_COLOR == 7 then
-		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.COLOR_ACTUAL)	
+		CAMBIOS_EMUS.COLOR_EMU_BACK = Color.new(CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.COLOR_ACTUAL,CAMBIOS_EMUS.COLOR_ACTUAL)
 	end
 end
 
@@ -2720,51 +3107,51 @@ end
 function existe(identidad,nombre_juego,alternativo) -- Verifica los ROMS y archivos necesarios de cada emulador
 	local actual = System.currentDirectory() 
 	if identidad == 1 then -- Verifica si existen emulador/juego SEGA Megadrive
-		if doesFileExist(actual .."/Roms/Roms Sega Megadrive/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Megadrive/cores/picodrive_libretro_ps2.elf") and alternativo == false then	
+		if doesFileExist(actual .."/Roms/Roms Sega Megadrive/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Megadrive/cores/picodrive_libretro_ps2.elf") and alternativo == false then
 			return true
-		elseif doesFileExist(actual .."/Roms/Roms Sega Megadrive/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Megadrive/cores/picodrive_libretro_ps2_alt.elf") and alternativo == true then	
+		elseif doesFileExist(actual .."/Roms/Roms Sega Megadrive/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Megadrive/cores/picodrive_libretro_ps2_alt.elf") and alternativo == true then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 2 then -- Verifica si existen emulador/juego SEGA Master System
-		if doesFileExist(actual .."/Roms/Roms Sega Master System/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Master System/cores/picodrive_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Sega Master System/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Master System/cores/picodrive_libretro_ps2.elf") then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 3 then -- Verifica si existen emulador/juego SEGA Game Gear
-		if doesFileExist(actual .."/Roms/Roms Sega Game Gear/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Game Gear/cores/picodrive_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Sega Game Gear/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega Game Gear/cores/picodrive_libretro_ps2.elf") then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 4 then -- Verifica si existen emulador/juego Nintendo Famicom
-		if doesFileExist(actual .."/Roms/Roms Nintendo Famicom/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Famicom/cores/fceumm_libretro_ps2.elf") and alternativo == false then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Famicom/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Famicom/cores/fceumm_libretro_ps2.elf") and alternativo == false then
 			return true
-		elseif doesFileExist(actual .."/Roms/Roms Nintendo Famicom/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Famicom/cores/quicknes_libretro_ps2.elf") and alternativo == true then	
+		elseif doesFileExist(actual .."/Roms/Roms Nintendo Famicom/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Famicom/cores/quicknes_libretro_ps2.elf") and alternativo == true then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 5 then -- Verifica si existen emulador/juego Nintendo Game Boy
-		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/gambatte_libretro_ps2.elf") and alternativo == false then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/gambatte_libretro_ps2.elf") and alternativo == false then
 			return true
-		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/tgbdual_libretro_ps2.elf") and alternativo == true then	
+		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy/cores/tgbdual_libretro_ps2.elf") and alternativo == true then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 6 then -- Verifica si existen emulador/juego Nintendo Game Boy Color
-		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/gambatte_libretro_ps2.elf") and alternativo == false then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/gambatte_libretro_ps2.elf") and alternativo == false then
 			return true
-		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/tgbdual_libretro_ps2.elf") and alternativo == true then	
+		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Color/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Color/cores/tgbdual_libretro_ps2.elf") and alternativo == true then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 7 then -- Verifica si existen emulador/juego Nintendo Game Boy Advance
-		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf") then
 			return true
 		else
 			return false
@@ -2776,41 +3163,45 @@ function existe(identidad,nombre_juego,alternativo) -- Verifica los ROMS y archi
 			return false
 		end
 	elseif identidad == 9 then -- Verifica si existen emulador/juego Atari 2600
-		if doesFileExist(actual .."/Roms/Roms Atari 2600/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Atari 2600/cores/stella2014_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Atari 2600/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Atari 2600/cores/stella2014_libretro_ps2.elf") then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 10 then -- Verifica si existen emulador/juego Sega SG-1000
-		if doesFileExist(actual .."/Roms/Roms Sega SG-1000/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega SG-1000/cores/picodrive_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Sega SG-1000/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sega SG-1000/cores/picodrive_libretro_ps2.elf") then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 11 then -- Verifica si existen emulador/juego Neo Geo Pocket
-		if doesFileExist(actual .."/Roms/Roms Neo Geo Pocket/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Neo Geo Pocket/cores/race_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Neo Geo Pocket/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Neo Geo Pocket/cores/race_libretro_ps2.elf") then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 12 then -- Verifica si existen emulador/juego Nintendo Super Famicom
-		if doesFileExist(actual .."/Roms/Roms Nintendo Super Famicom/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Super Famicom/cores/snes9x2002_libretro_ps2.elf") then	
+		if doesFileExist(actual .."/Roms/Roms Nintendo Super Famicom/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Super Famicom/cores/snes9x2002_libretro_ps2.elf") then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 13 then -- Verifica si existe APPS
-		if doesFileExist(LISTAS.DIR_FULL_APP[LISTAS.INDICE]) then	
+		if doesFileExist(LISTAS.DIR_FULL_APP[LISTAS.INDICE]) and doesFileExist(actual .."/System/RetroarchPS2/APPS/WLE.elf") and alternativo == false then
+			return true
+		elseif doesFileExist(LISTAS.DIR_FULL_APP[LISTAS.INDICE]) then
 			return true
 		else
 			return false
 		end
 	elseif identidad == 14 then -- Verifica si existen emulador/juego Play Station 2
-		if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") then	
+		if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") then
 			return true
 		elseif doesFileExist("mass:/DVD/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") and OPCIONES.DIR_EXTRAS_ON == 1 then
 			return true
 		elseif doesFileExist("mass:/CD/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") and OPCIONES.DIR_EXTRAS_ON == 1 then
+			return true
+		elseif doesFileExist("cdfs:/".. string.sub(nombre_juego,1,11)) then
 			return true
 		else
 			return false
@@ -2820,8 +3211,12 @@ function existe(identidad,nombre_juego,alternativo) -- Verifica los ROMS y archi
 	end
 end
 
-function obtener_nombre_DVD(nombre_id) -- Busca el nombre del juego DVD PS2
-	local nombre = "PS2 DISK: ".. nombre_id .. "    "
+function obtener_nombre_DVD(nombre_id,exten) -- Busca el nombre del juego DVD PS2
+	local ext = "    "
+	if exten == true then
+		ext = ".elf"
+	end
+	local nombre = "PS2 DISK: ".. nombre_id .. ext
 	local actual = System.currentDirectory()
 	if doesFileExist(actual.. "/System/Respaldo/PS2_IDs.cfg") then
 		local carga_id = System.openFile(actual.. "/System/Respaldo/PS2_IDs.cfg",FREAD)
@@ -2832,7 +3227,7 @@ function obtener_nombre_DVD(nombre_id) -- Busca el nombre del juego DVD PS2
 			local salto = string.find(linea, "=")
 			local fin = string.find(linea, "\n")
 			if salto ~= nil and salto ~= nil then
-				nombre = (string.sub(linea,salto+1,fin-2).. "    ")
+				nombre = (string.sub(linea,salto+1,fin-2).. ext)
 			end
 		end
 		System.closeFile(carga_id)
@@ -3146,7 +3541,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 			for contador = 1,#buscar5 do
 				if buscar5[contador].directory == false and string.lower(string.sub(buscar5[contador].name,-4)) == ".elf" or string.match(buscar5[contador].name,"%a+_%d+.%d+") == buscar5[contador].name then
 					if string.match(buscar5[contador].name,"%a+_%d+.%d+") == buscar5[contador].name then
-						table.insert(encontrados,obtener_nombre_DVD(buscar5[contador].name))
+						table.insert(encontrados,obtener_nombre_DVD(buscar5[contador].name,false))
 						table.insert(LISTAS.DIR_FULL_APP,"cdfs:/".. buscar5[contador].name)
 					else
 						table.insert(encontrados,buscar5[contador].name)
@@ -3316,9 +3711,11 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		local buscar = System.listDirectory(actual.."/Roms/ISOs Play Station 2")
 		local buscar2 = System.listDirectory("mass:/DVD")
 		local buscar3 = System.listDirectory("mass:/CD")
+		local buscar4 = System.listDirectory("cdfs:")
 		if OPCIONES.DIR_EXTRAS_ON == 0 then
 			buscar2 = nil
 			buscar3 = nil
+			buscar4 = nil
 		end
 		if buscar ~= nil then
 			for contador = 1,#buscar do
@@ -3341,6 +3738,13 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 				end
 			end
 		end
+		if buscar4 ~= nil then
+			for contador = 1,#buscar4 do
+				if buscar4[contador].directory == false and string.match(buscar4[contador].name,"%a+_%d+.%d+") == buscar4[contador].name then
+					table.insert(encontrados,buscar4[contador].name ..".".. obtener_nombre_DVD(buscar4[contador].name,true))
+				end
+			end
+		end
 		if encontrados ~= nil and #encontrados >= 1 then
 			lista = encontrados
 			table.sort(lista)
@@ -3359,7 +3763,21 @@ function ejecutar_iso(nombre) -- Ejecuta las ISO de Play Station 2
 	local vmc = nil
 	local modos = nil
 	local actual = System.currentDirectory()
-	if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".vmcd") then
+	if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".vmcd") then
+		local carga_vmc = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".vmcd",FREAD)
+		System.seekFile(carga_vmc,0,SET)
+		local size = System.sizeFile(carga_vmc)
+		local temp = System.readFile(carga_vmc,size)
+		for linea in string.gmatch(temp,"-mc0=.+") do 
+			vmc = linea
+		end
+		if vmc ~= nil then 
+			if doesFileExist(string.sub(vmc,6)) == false then
+				vmc = nil
+			end
+		end
+		System.closeFile(carga_vmc)
+	elseif doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".vmcd") then
 		local carga_vmc = System.openFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".vmcd",FREAD)
 		System.seekFile(carga_vmc,0,SET)
 		local size = System.sizeFile(carga_vmc)
@@ -3402,7 +3820,16 @@ function ejecutar_iso(nombre) -- Ejecuta las ISO de Play Station 2
 		end
 		System.closeFile(carga_vmc)
 	end
-	if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".mode") then
+	if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".mode") then
+		local carga_mode = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".mode",FREAD)
+		System.seekFile(carga_mode,0,SET)
+		local size2 = System.sizeFile(carga_mode)
+		local temp2 = System.readFile(carga_mode,size2)
+		for linea in string.gmatch(temp2,"-gc=%d+") do 
+			modos = linea
+		end
+		System.closeFile(carga_mode)
+	elseif doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".mode") then
 		local carga_mode = System.openFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".mode",FREAD)
 		System.seekFile(carga_mode,0,SET)
 		local size2 = System.sizeFile(carga_mode)
@@ -3574,7 +4001,7 @@ function ejecutar_juego(identidad,nombre_juego,alternativo) -- Ejecuta la ROM co
 		System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego)
 	elseif identidad == 8 then -- Ejecutar para Play Station
 		guardar()
-		if doesFileExist("mass:/POPS/XX.".. string.sub(nombre_juego,1,-5) ..".ELF") then	
+		if doesFileExist("mass:/POPS/XX.".. string.sub(nombre_juego,1,-5) ..".ELF") then
 			System.loadELF("mass:/POPS/XX.".. string.sub(nombre_juego,1,-5) ..".ELF",0,"mass:/POPS/","--nr")
 			error("No found mass:/POPS/XX.".. string.sub(nombre_juego,1,-5) ..".ELF")
 		else
@@ -3599,22 +4026,32 @@ function ejecutar_juego(identidad,nombre_juego,alternativo) -- Ejecuta la ROM co
 		guardar()
 		System.loadELF(actual .."/System/RetroarchPS2/Nintendo Super Famicom/cores/snes9x2002_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Super Famicom/".. nombre_juego)
 	elseif identidad == 13 then	-- Ejecutar para Aplicaciones
-		System.loadELF(LISTAS.DIR_FULL_APP[LISTAS.INDICE],0,salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE],false))
+		guardar()
+		if doesFileExist(actual .."/System/RetroarchPS2/APPS/WLE.elf") and alternativo == false then
+			app_alt()
+			System.loadELF(actual .."/System/RetroarchPS2/APPS/WLE.elf",0,actual .."/System/RetroarchPS2/APPS/")
+		else
+			System.loadELF(LISTAS.DIR_FULL_APP[LISTAS.INDICE],0,salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE],false))
+		end
 	elseif identidad == 14 then -- Ejecutar para Play Station 2
 		guardar()
-		ejecutar_iso(nombre_juego)
+		if string.lower(string.sub(nombre_juego,-4)) == ".elf" then
+			System.loadELF("cdfs:/".. string.sub(nombre_juego,1,11),0,"cdfs:/")
+		else
+			ejecutar_iso(nombre_juego)
+		end
 	end
 end
 
 function limpiar_retroarch(emulador) -- Elimina save states/save files(srm) de juegos creados por Retroarch
 	local actual = System.currentDirectory()
-	local limpiar =  System.listDirectory(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savestates")
+	local limpiar = System.listDirectory(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savestates")
 	if limpiar ~= nil then
 		for contador = 1,#limpiar do
 			System.removeFile(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savestates/".. limpiar[contador].name)
 		end
 	end
-	local limpiar2 =  System.listDirectory(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savefiles")
+	local limpiar2 = System.listDirectory(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savefiles")
 	if limpiar2 ~= nil then
 		for contador = 1,#limpiar2 do
 			System.removeFile(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savefiles/".. limpiar2[contador].name)
@@ -3622,19 +4059,29 @@ function limpiar_retroarch(emulador) -- Elimina save states/save files(srm) de j
 	end
 end
 
-function pantalla_reiniciar_conf(FONDO,estado,limpiar) -- Muestra barra de progreso
+function pantalla_reiniciar_conf(FONDO,estado,limpiar,indi_rest) -- Muestra barra de progreso
 	Screen.clear(Color.new(0,0,0))
-	Graphics.drawScaleImage(FONDO,-5,0,640+5,480,Color.new(0,80,120))
-	Graphics.drawScaleImage(LISTAS.LOADING,0,0,640,480)
-	Graphics.drawRect(-5,290-3,650,25,COLOR.NEGRO)
-	if limpiar == true then
-		Font.ftPrint(CONTROL.fontARCA,150,290,0,0,8,"- DELETING SAVES STATES -",COLOR.BLANCO)
-	else
-		Font.ftPrint(CONTROL.fontARCA,150,290,0,0,8,"-RESTARTING ALL SETTINGS-",COLOR.BLANCO)
+	local res_x, res_y_tex, res_y = 640,0,448
+	if doesFileExist("System/Respaldo/PAL") then
+		res_x, res_y_tex, res_y = 640,34,512
 	end
-	Font.ftPrint(CONTROL.fontARCA,152,315,0,0,8,"█████████████████████████",COLOR.BLANCO)
+	Graphics.drawScaleImage(FONDO,-5,0,res_x+5,res_y,Color.new(0,80,120))
+	Graphics.drawScaleImage(LISTAS.LOADING,0,0,res_x,res_y)
+	Graphics.drawRect(-5,278-3+res_y_tex,650,25,COLOR.NEGRO)
+	local lista_indi_rest = {"Atari 2600","Neo Geo Pocket","Nintendo Famicom","Nintendo Game Boy","Nintendo Game Boy Advance","Nintendo Game Boy Color","Nintendo Super Famicom","Sega Game Gear","Sega Master System","Sega Megadrive","Sega SG-1000"}
+	local indi_X_fix = {-14,10,24,28,82,70,64,10,34,10,-5}
+	if limpiar == true then
+		Font.ftPrint(CONTROL.fontARCA,150,278+res_y_tex,0,0,8,"- DELETING SAVES STATES -",COLOR.BLANCO)
+	elseif indi_rest ~= 0 and indi_rest ~= 20 and limpiar == false then
+		Font.ftPrint(CONTROL.fontARCA,150-indi_X_fix[indi_rest],278+res_y_tex,0,0,8,"-RESTARTING ".. lista_indi_rest[indi_rest] .."-",COLOR.BLANCO)
+	elseif indi_rest == 20 and limpiar == false then
+		Font.ftPrint(CONTROL.fontARCA,150,278+res_y_tex,0,0,8,"-CHANGING VIDEO SETTINGS-",COLOR.BLANCO)
+	else
+		Font.ftPrint(CONTROL.fontARCA,150,278+res_y_tex,0,0,8,"-RESTARTING ALL SETTINGS-",COLOR.BLANCO)
+	end
+	Font.ftPrint(CONTROL.fontARCA,152,304+res_y_tex,0,0,8,"█████████████████████████",COLOR.BLANCO)
 	if estado ~= 0 then
-		Font.ftPrint(CONTROL.fontARCA,152,315,0,0,8,string.sub("█████████████████████████",1,estado),Color.new(0,80,120))
+		Font.ftPrint(CONTROL.fontARCA,152,304+res_y_tex,0,0,8,string.sub("█████████████████████████",1,estado),Color.new(0,80,120))
 	end
 	refrescar()
 end
@@ -3701,294 +4148,410 @@ function directorios_faltantes(emulador,core) -- Crea los directorios faltantes
 	end
 end
 
-function reiniciar_conf(limpiar) -- Reinicia todas las configuraciones
+function reiniciar_conf(limpiar,indi_rest) -- Reinicia todas las configuraciones
 	local actual = System.currentDirectory()
 	local FONDO_LOAD = Graphics.loadImage("System/Medios/Default/FONDO.png")
-	pantalla_reiniciar_conf(FONDO_LOAD,0,limpiar)
-	OPCIONES.RGB_ON = 1
-	OPCIONES.FONDO_RGB_ON = 1
-	OPCIONES.FONDO_RGB_FIJO_ON = 0
-	OPCIONES.R = 0
-	OPCIONES.G = 80
-	OPCIONES.B = 120
-	CONTROL.ESTILO = 1
-	CONTROL.LOGO_ALTO = 5
-	CONTROL.LOGO_ANCHO = 194
-	SISTEMAS.MEGADRIVE_ON = 1
-	SISTEMAS.MASTERSYSTEM_ON = 1
-	SISTEMAS.GAMEGEAR_ON = 1
-	SISTEMAS.FAMICOM_ON = 1
-	SISTEMAS.GAMEBOY_ON = 1
-	SISTEMAS.GAMEBOYCOLOR_ON = 1
-	SISTEMAS.GAMEBOYADVANCE_ON = 1
-	SISTEMAS.PLAYSTATION_ON = 1
-	SISTEMAS.ATARI2600_ON = 1
-	SISTEMAS.SEGASG1000_ON = 1
-	SISTEMAS.NEOGEOPOCKET_ON = 1
-	SISTEMAS.SUPERFAMICOM_ON = 0
-	SISTEMAS.APPS_ON = 0
-	Font.ftUnload(CONTROL.fontARCA)
-	CONTROL.fontARCA = Font.ftLoad("System/Medios/Font/PublicPixel.ttf")
-	OPCIONES.CAMBIO_FUENTE_ON = 1
-	Graphics.freeImage(LISTAS.FONDO)
-	LISTAS.FONDO = Graphics.loadImage("System/Medios/Default/FONDO.png")
-	OPCIONES.CAMBIO_FONDO_ON = 1
-	OPCIONES.GUI_LIMPIA_ON = 0
-	OPCIONES.LIMITADOR_RAM_ON = 1
-	OPCIONES.SALIDA_RETROLANCHER_ON = 0
-	OPCIONES.SALIDA_RETROLANCHER = "PS2 SYSTEM MENU"
-	OPCIONES.SALIDA_DIR_ACTUALES = {}
-	OPCIONES.SALIDA_DIR_ANTERIORES = {}
-	OPCIONES.APPS_MENU_FULL_PATH = 0
-	OPCIONES.SOUND_ON = 0
-	OPCIONES.SOUND_VOLUME = 65
-	set_volume()
-	OPCIONES.SCREENSHOT_BACK_ON = 0
-	OPCIONES.SCANLINES_ON = 0
-	OPCIONES.VIBRATION_ON = 0
-	SISTEMAS.PLAYSTATION2_ON = 0
-	OPCIONES.DIR_EXTRAS_ON = 1
+	pantalla_reiniciar_conf(FONDO_LOAD,0,limpiar,indi_rest)
+	local dir_mode_video = "RetroarchPS2"
+	if OPCIONES.VIDEO_MODE == 0 then
+		dir_mode_video = "RetroarchPS2"
+	else
+		dir_mode_video = "RetroarchPS2_PAL"
+	end
+	if indi_rest == 0 or indi_rest == 20 then
+		if OPCIONES.VIDEO_MODE == 0 and doesFileExist("System/Respaldo/PAL")then
+			System.rename("System/Respaldo/PAL","System/Respaldo/NTSC")
+		elseif OPCIONES.VIDEO_MODE == 1 and doesFileExist("System/Respaldo/NTSC")then
+			System.rename("System/Respaldo/NTSC","System/Respaldo/PAL")
+		end
+	end
+	if indi_rest == 0 then
+		OPCIONES.RGB_ON = 1
+		OPCIONES.FONDO_RGB_ON = 1
+		OPCIONES.FONDO_RGB_FIJO_ON = 0
+		OPCIONES.R = 0
+		OPCIONES.G = 80
+		OPCIONES.B = 120
+		CONTROL.ESTILO = 1
+		CONTROL.LOGO_ALTO = 5
+		CONTROL.LOGO_ANCHO = 194
+		SISTEMAS.MEGADRIVE_ON = 1
+		SISTEMAS.MASTERSYSTEM_ON = 1
+		SISTEMAS.GAMEGEAR_ON = 1
+		SISTEMAS.FAMICOM_ON = 1
+		SISTEMAS.GAMEBOY_ON = 1
+		SISTEMAS.GAMEBOYCOLOR_ON = 1
+		SISTEMAS.GAMEBOYADVANCE_ON = 1
+		SISTEMAS.PLAYSTATION_ON = 1
+		SISTEMAS.ATARI2600_ON = 1
+		SISTEMAS.SEGASG1000_ON = 1
+		SISTEMAS.NEOGEOPOCKET_ON = 1
+		SISTEMAS.SUPERFAMICOM_ON = 0
+		SISTEMAS.APPS_ON = 0
+		Font.ftUnload(CONTROL.fontARCA)
+		CONTROL.fontARCA = Font.ftLoad("System/Medios/Font/PublicPixel.ttf")
+		OPCIONES.CAMBIO_FUENTE_ON = 1
+		Graphics.freeImage(LISTAS.FONDO)
+		LISTAS.FONDO = Graphics.loadImage("System/Medios/Default/FONDO.png")
+		OPCIONES.CAMBIO_FONDO_ON = 1
+		OPCIONES.GUI_LIMPIA_ON = 0
+		OPCIONES.LIMITADOR_RAM_ON = 1
+		OPCIONES.SALIDA_RETROLANCHER_ON = 0
+		OPCIONES.SALIDA_RETROLANCHER = "PS2 SYSTEM MENU"
+		OPCIONES.SALIDA_DIR_ACTUALES = {}
+		OPCIONES.SALIDA_DIR_ANTERIORES = {}
+		OPCIONES.APPS_MENU_FULL_PATH = 0
+		OPCIONES.SOUND_ON = 0
+		OPCIONES.SOUND_VOLUME = 65
+		set_volume()
+		OPCIONES.SCREENSHOT_BACK_ON = 0
+		--OPCIONES.VIDEO_MODE = 0
+		OPCIONES.VIBRATION_ON = 0
+		SISTEMAS.PLAYSTATION2_ON = 0
+		OPCIONES.DIR_EXTRAS_ON = 1
+		CAMBIOS_EMUS.Tras = 74
+		OPCIONES.LIBERAR_LISTAS = 0
+		if doesFileExist("System/Medios/Sound/Background/music.adp") then
+			System.rename("System/Medios/Sound/Background/music.adp","System/Medios/Sound/Background/music0.adp")
+			Sound.freeADPCM(MENU_SONIDOS.MUSICA)
+			MENU_SONIDOS.MUSICA = nil
+		end
+	end
 	
 	-- Limpiar saves de Retroarch ----------------
 	if limpiar == true then
-		pantalla_reiniciar_conf(FONDO_LOAD,5,true)
-		limpiar_retroarch("Atari 2600")
-		pantalla_reiniciar_conf(FONDO_LOAD,10,true)
-		limpiar_retroarch("Neo Geo Pocket")
-		pantalla_reiniciar_conf(FONDO_LOAD,15,true)
-		limpiar_retroarch("Nintendo Famicom")
-		pantalla_reiniciar_conf(FONDO_LOAD,20,true)
-		limpiar_retroarch("Nintendo Game Boy")
-		pantalla_reiniciar_conf(FONDO_LOAD,25,true)
-		limpiar_retroarch("Nintendo Game Boy Advance")
-		pantalla_reiniciar_conf(FONDO_LOAD,30,true)
-		limpiar_retroarch("Nintendo Game Boy Color")
-		pantalla_reiniciar_conf(FONDO_LOAD,35,true)
-		limpiar_retroarch("Nintendo Super Famicom")
-		pantalla_reiniciar_conf(FONDO_LOAD,40,true)
-		limpiar_retroarch("Sega Game Gear")
-		pantalla_reiniciar_conf(FONDO_LOAD,45,true)
-		limpiar_retroarch("Sega Master System")
-		pantalla_reiniciar_conf(FONDO_LOAD,50,true)
-		limpiar_retroarch("Sega Megadrive")
-		pantalla_reiniciar_conf(FONDO_LOAD,75,true)
-		limpiar_retroarch("Sega SG-1000")
+		pantalla_reiniciar_conf(FONDO_LOAD,5,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 1 then
+			limpiar_retroarch("Atari 2600")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,10,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 2 then
+			limpiar_retroarch("Neo Geo Pocket")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,15,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 3 then
+			limpiar_retroarch("Nintendo Famicom")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,20,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 4 then
+			limpiar_retroarch("Nintendo Game Boy")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,25,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 5 then
+			limpiar_retroarch("Nintendo Game Boy Advance")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,30,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 6 then
+			limpiar_retroarch("Nintendo Game Boy Color")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,35,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 7 then
+			limpiar_retroarch("Nintendo Super Famicom")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,40,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 8 then
+			limpiar_retroarch("Sega Game Gear")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,45,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 9 then
+			limpiar_retroarch("Sega Master System")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,50,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 10 then
+			limpiar_retroarch("Sega Megadrive")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,75,true,indi_rest)
+		if indi_rest == 0 or indi_rest == 11 then
+			limpiar_retroarch("Sega SG-1000")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Atari 2600 -----------------------
-	directorios_faltantes("Atari 2600","Stella 2014")
-	pantalla_reiniciar_conf(FONDO_LOAD,3,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Atari 2600/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Atari 2600/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Atari 2600/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,6,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Atari 2600/retroarch/config/Stella 2014/Stella 2014.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Atari 2600/retroarch/config/Stella 2014/Stella 2014.opt",actual .."/System/RetroarchPS2/Atari 2600/retroarch/config/Stella 2014/Stella 2014.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 1 then
+		directorios_faltantes("Atari 2600","Stella 2014")
+		pantalla_reiniciar_conf(FONDO_LOAD,3,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari 2600/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari 2600/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Atari 2600/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,6,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari 2600/retroarch/config/Stella 2014/Stella 2014.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari 2600/retroarch/config/Stella 2014/Stella 2014.opt",actual .."/System/RetroarchPS2/Atari 2600/retroarch/config/Stella 2014/Stella 2014.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Neo Geo Pocket -------------------
-	directorios_faltantes("Neo Geo Pocket","RACE")
-	pantalla_reiniciar_conf(FONDO_LOAD,9,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,12,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Neo Geo Pocket/retroarch/config/RACE/RACE.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Neo Geo Pocket/retroarch/config/RACE/RACE.opt",actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/config/RACE/RACE.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 2 then
+		directorios_faltantes("Neo Geo Pocket","RACE")
+		pantalla_reiniciar_conf(FONDO_LOAD,9,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Neo Geo Pocket/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Neo Geo Pocket/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,12,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Neo Geo Pocket/retroarch/config/RACE/RACE.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Neo Geo Pocket/retroarch/config/RACE/RACE.opt",actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/config/RACE/RACE.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Nintendo Famicom -----------------
-	directorios_faltantes("Nintendo Famicom","FCEUmm")
-	pantalla_reiniciar_conf(FONDO_LOAD,15,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,17,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/remaps/FCEUmm/FCEUmm.rmp") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/remaps/FCEUmm/FCEUmm.rmp",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/remaps/FCEUmm/FCEUmm.rmp")
-	end
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/remaps/QuickNES/QuickNES.rmp") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/remaps/QuickNES/QuickNES.rmp",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/remaps/QuickNES/QuickNES.rmp")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,19,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/config/FCEUmm/FCEUmm.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/config/FCEUmm/FCEUmm.opt",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/config/FCEUmm/FCEUmm.opt")
-	end
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/config/QuickNES/QuickNES.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Famicom/retroarch/config/QuickNES/QuickNES.opt",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/config/QuickNES/QuickNES.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 3 then
+		directorios_faltantes("Nintendo Famicom","FCEUmm")
+		directorios_faltantes("Nintendo Famicom","QuickNES")
+		pantalla_reiniciar_conf(FONDO_LOAD,15,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,17,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/remaps/FCEUmm/FCEUmm.rmp") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/remaps/FCEUmm/FCEUmm.rmp",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/remaps/FCEUmm/FCEUmm.rmp")
+		end
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/remaps/QuickNES/QuickNES.rmp") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/remaps/QuickNES/QuickNES.rmp",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/remaps/QuickNES/QuickNES.rmp")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,19,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/config/FCEUmm/FCEUmm.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/config/FCEUmm/FCEUmm.opt",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/config/FCEUmm/FCEUmm.opt")
+		end
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/config/QuickNES/QuickNES.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Famicom/retroarch/config/QuickNES/QuickNES.opt",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/config/QuickNES/QuickNES.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Nintendo Game Boy ----------------
-	directorios_faltantes("Nintendo Game Boy","Gambatte")
-	pantalla_reiniciar_conf(FONDO_LOAD,22,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,24,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/remaps/Gambatte/Gambatte.rmp") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/remaps/Gambatte/Gambatte.rmp",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/remaps/Gambatte/Gambatte.rmp")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,26,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt")
-	end
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 4 then
+		directorios_faltantes("Nintendo Game Boy","Gambatte")
+		directorios_faltantes("Nintendo Game Boy","TGB Dual")
+		pantalla_reiniciar_conf(FONDO_LOAD,22,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,24,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/config/remaps/Gambatte/Gambatte.rmp") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/config/remaps/Gambatte/Gambatte.rmp",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/remaps/Gambatte/Gambatte.rmp")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,26,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/Gambatte/Gambatte.opt")
+		end
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/config/TGB Dual/TGB Dual.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Nintendo Game Boy Advance --------
-	directorios_faltantes("Nintendo Game Boy Advance","gpSP")
-	pantalla_reiniciar_conf(FONDO_LOAD,29,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Advance/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Advance/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,32,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 5 then
+		directorios_faltantes("Nintendo Game Boy Advance","gpSP")
+		pantalla_reiniciar_conf(FONDO_LOAD,29,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,32,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Nintendo Game Boy Color ----------
-	directorios_faltantes("Nintendo Game Boy Color","Gambatte")
-	pantalla_reiniciar_conf(FONDO_LOAD,35,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,37,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/remaps/Gambatte/Gambatte.rmp") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/remaps/Gambatte/Gambatte.rmp",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/remaps/Gambatte/Gambatte.rmp")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,39,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt")
-	end
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 6 then
+		directorios_faltantes("Nintendo Game Boy Color","Gambatte")
+		directorios_faltantes("Nintendo Game Boy Color","TGB Dual")
+		pantalla_reiniciar_conf(FONDO_LOAD,35,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,37,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/config/remaps/Gambatte/Gambatte.rmp") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/config/remaps/Gambatte/Gambatte.rmp",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/remaps/Gambatte/Gambatte.rmp")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,39,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/Gambatte/Gambatte.opt")
+		end
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/config/TGB Dual/TGB Dual.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Nintendo Super Famicom -----------
-	directorios_faltantes("Nintendo Super Famicom","Snes9x 2002")
-	pantalla_reiniciar_conf(FONDO_LOAD,42,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Super Famicom/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Super Famicom/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Super Famicom/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,45,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Nintendo Super Famicom/retroarch/config/Snes9x 2002/Snes9x 2002.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Nintendo Super Famicom/retroarch/config/Snes9x 2002/Snes9x 2002.opt",actual .."/System/RetroarchPS2/Nintendo Super Famicom/retroarch/config/Snes9x 2002/Snes9x 2002.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 7 then
+		directorios_faltantes("Nintendo Super Famicom","Snes9x 2002")
+		pantalla_reiniciar_conf(FONDO_LOAD,42,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Super Famicom/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Super Famicom/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Nintendo Super Famicom/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,45,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Super Famicom/retroarch/config/Snes9x 2002/Snes9x 2002.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Super Famicom/retroarch/config/Snes9x 2002/Snes9x 2002.opt",actual .."/System/RetroarchPS2/Nintendo Super Famicom/retroarch/config/Snes9x 2002/Snes9x 2002.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Sega Game Gear -------------------
-	directorios_faltantes("Sega Game Gear","PicoDrive")
-	pantalla_reiniciar_conf(FONDO_LOAD,48,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega Game Gear/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega Game Gear/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega Game Gear/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,51,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega Game Gear/retroarch/config/PicoDrive/PicoDrive.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega Game Gear/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega Game Gear/retroarch/config/PicoDrive/PicoDrive.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 8 then
+		directorios_faltantes("Sega Game Gear","PicoDrive")
+		pantalla_reiniciar_conf(FONDO_LOAD,48,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Game Gear/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Game Gear/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega Game Gear/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,51,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Game Gear/retroarch/config/PicoDrive/PicoDrive.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Game Gear/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega Game Gear/retroarch/config/PicoDrive/PicoDrive.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Sega Master System ---------------
-	directorios_faltantes("Sega Master System","PicoDrive")
-	pantalla_reiniciar_conf(FONDO_LOAD,54,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega Master System/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega Master System/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega Master System/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,57,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega Master System/retroarch/config/PicoDrive/PicoDrive.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega Master System/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega Master System/retroarch/config/PicoDrive/PicoDrive.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 9 then
+		directorios_faltantes("Sega Master System","PicoDrive")
+		pantalla_reiniciar_conf(FONDO_LOAD,54,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Master System/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Master System/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega Master System/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,57,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Master System/retroarch/config/PicoDrive/PicoDrive.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Master System/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega Master System/retroarch/config/PicoDrive/PicoDrive.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Sega Megadrive -------------------
-	directorios_faltantes("Sega Megadrive","PicoDrive")
-	pantalla_reiniciar_conf(FONDO_LOAD,60,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega Megadrive/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega Megadrive/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega Megadrive/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,63,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega Megadrive/retroarch/config/PicoDrive/PicoDrive.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega Megadrive/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega Megadrive/retroarch/config/PicoDrive/PicoDrive.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 10 then
+		directorios_faltantes("Sega Megadrive","PicoDrive")
+		pantalla_reiniciar_conf(FONDO_LOAD,60,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Megadrive/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Megadrive/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega Megadrive/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,63,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Megadrive/retroarch/config/PicoDrive/PicoDrive.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega Megadrive/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega Megadrive/retroarch/config/PicoDrive/PicoDrive.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura Sega SG-1000 ---------------------
-	directorios_faltantes("Sega SG-1000","PicoDrive")
-	pantalla_reiniciar_conf(FONDO_LOAD,66,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega SG-1000/retroarch/retroarch.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega SG-1000/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega SG-1000/retroarch/retroarch.cfg")
-	end
-	pantalla_reiniciar_conf(FONDO_LOAD,68,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/Sega SG-1000/retroarch/config/PicoDrive/PicoDrive.opt") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/Sega SG-1000/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega SG-1000/retroarch/config/PicoDrive/PicoDrive.opt")
+	if indi_rest == 0 or indi_rest == 20 or indi_rest == 11 then
+		directorios_faltantes("Sega SG-1000","PicoDrive")
+		pantalla_reiniciar_conf(FONDO_LOAD,66,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega SG-1000/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega SG-1000/retroarch/retroarch.cfg",actual .."/System/RetroarchPS2/Sega SG-1000/retroarch/retroarch.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,68,false,indi_rest)
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Sega SG-1000/retroarch/config/PicoDrive/PicoDrive.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Sega SG-1000/retroarch/config/PicoDrive/PicoDrive.opt",actual .."/System/RetroarchPS2/Sega SG-1000/retroarch/config/PicoDrive/PicoDrive.opt")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura retroarch-salamander.cfg ---------
-	pantalla_reiniciar_conf(FONDO_LOAD,70,false)
-	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg") then
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Atari 2600/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/retroarch-salamander.cfg")
-		pantalla_reiniciar_conf(FONDO_LOAD,71,false)
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Super Famicom/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega Game Gear/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega Master System/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega Megadrive/retroarch/retroarch-salamander.cfg")
-		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega SG-1000/retroarch/retroarch-salamander.cfg")
+	pantalla_reiniciar_conf(FONDO_LOAD,70,false,indi_rest)
+	if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg") then
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 1 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Atari 2600/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 2 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 3 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Famicom/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 4 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 5 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/retroarch-salamander.cfg")
+		end
+		pantalla_reiniciar_conf(FONDO_LOAD,71,false,indi_rest)
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 6 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Color/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 7 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Nintendo Super Famicom/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 8 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega Game Gear/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 9 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega Master System/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 10 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega Megadrive/retroarch/retroarch-salamander.cfg")
+		end
+		if indi_rest == 0 or indi_rest == 20 or indi_rest == 11 then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg",actual .."/System/RetroarchPS2/Sega SG-1000/retroarch/retroarch-salamander.cfg")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura las configuraciones --------------
-	pantalla_reiniciar_conf(FONDO_LOAD,72,false)
-	if doesFileExist(actual .."/System/Respaldo/Path_file.cfg") then
-		System.copyFile(actual .."/System/Respaldo/Path_file.cfg",actual .."/System/Config/Path_file.cfg")
-	end
-	if doesFileExist(actual .."/System/Respaldo/Config.cfg") then
-		System.copyFile(actual .."/System/Respaldo/Config.cfg",actual .."/System/Config/Config.cfg")
-	end
-	if doesFileExist(actual .."/System/Respaldo/System.cfg") then
-		System.copyFile(actual .."/System/Respaldo/System.cfg",actual .."/System/Config/System.cfg")
+	pantalla_reiniciar_conf(FONDO_LOAD,72,false,indi_rest)
+	if indi_rest == 0 then
+		if doesFileExist(actual .."/System/Respaldo/Path_file.cfg") then
+			System.copyFile(actual .."/System/Respaldo/Path_file.cfg",actual .."/System/Config/Path_file.cfg")
+		end
+		if doesFileExist(actual .."/System/Respaldo/Config.cfg") then
+			System.copyFile(actual .."/System/Respaldo/Config.cfg",actual .."/System/Config/Config.cfg")
+		end
+		if doesFileExist(actual .."/System/Respaldo/System.cfg") then
+			System.copyFile(actual .."/System/Respaldo/System.cfg",actual .."/System/Config/System.cfg")
+		end
 	end
 	----------------------------------------------
 	
 	-- Restaura variables ------------------------
-	pantalla_reiniciar_conf(FONDO_LOAD,73,false)
-	guardar_opciones()
-	pantalla_reiniciar_conf(FONDO_LOAD,75,false)
-	recargar_todas()
-	cargar_config()
-	cargar_directorio_elf()
+	pantalla_reiniciar_conf(FONDO_LOAD,73,false,indi_rest)
+	if indi_rest == 0 or indi_rest == 20 then
+		guardar_opciones()
+		pantalla_reiniciar_conf(FONDO_LOAD,75,false,indi_rest)
+		recargar_todas()
+		cargar_config()
+		cargar_directorio_elf()
+	end
 	----------------------------------------------
 	Graphics.freeImage(FONDO_LOAD)
+end
+
+function app_alt() -- Crear archivo "LAUNCHELF.CNF" para lanzar aplicaciones con WLE
+	local actual = System.currentDirectory()
+	if doesFileExist(actual.. "/System/RetroarchPS2/APPS/LAUNCHELF.CNF") then
+		System.removeFile(actual.. "/System/RetroarchPS2/APPS/LAUNCHELF.CNF")
+	end
+	local apps_l = LISTAS.DIR_FULL_APP[LISTAS.INDICE]
+	local title_app_l = string.sub(LISTAS.ROMS[LISTAS.INDICE],1,-CONTROL.EXTENSION)
+	if OPCIONES.APPS_MENU_FULL_PATH == 1 then
+		title_app_l = salida_texto_dir(string.sub(LISTAS.ROMS[LISTAS.INDICE],1,-CONTROL.EXTENSION),true)
+	end
+	local LCHELF_COF = "CNF_version = 3\r\nLK_auto_E1 = ".. apps_l .."\r\nLK_Circle_E1 = ".. actual .."/RETROLauncher.elf\r\nLK_Cross_E1 = ".. apps_l .."\r\nLK_Square_E1 = MISC/About uLE\r\nLK_Triangle_E1 = MISC/PS2Browser\r\nLK_L1_E1 = \r\nLK_R1_E1 = \r\nLK_L2_E1 = \r\nLK_R2_E1 = \r\nLK_L3_E1 = \r\nLK_R3_E1 = \r\nLK_Start_E1 = \r\nLK_Select_E1 = \r\nLK_Left_E1 = \r\nLK_Right_E1 = \r\nMisc = MISC/\r\nMisc_PS2Disc = PS2Disc\r\nMisc_FileBrowser = FileBrowser\r\nMisc_PS2Browser = PS2Browser\r\nMisc_PS2Net = PS2Net\r\nMisc_PS2PowerOff = PS2PowerOff\r\nMisc_HddManager = HddManager\r\nMisc_TextEditor = TextEditor\r\nMisc_JpgViewer = JpgViewer\r\nMisc_Configure = Configure\r\nMisc_Load_CNFprev = Load CNF--\r\nMisc_Load_CNFnext = Load CNF++\r\nMisc_Set_CNF_Path = Set CNF_Path\r\nMisc_Load_CNF = Load CNF\r\nMisc_ShowFont = ShowFont\r\nMisc_Debug_Info = Debug Info\r\nMisc_About_uLE = About uLE\r\nMisc_Show_Build_Info = BuildInfo\r\nMisc_OSDSYS = OSDSYS\r\nGUI_Col_1_ABGR = 00A04000\r\nGUI_Col_2_ABGR = 00FFFFFF\r\nGUI_Col_3_ABGR = 00FFFFFF\r\nGUI_Col_4_ABGR = 00FFA0A0\r\nGUI_Col_5_ABGR = 0000FFFF\r\nGUI_Col_6_ABGR = 0000FF00\r\nGUI_Col_7_ABGR = 00404040\r\nGUI_Col_8_ABGR = 00808080\r\nSKIN_FILE = \r\nGUI_SKIN_FILE = \r\nSKIN_Brightness = 50\r\nTV_mode = 0\r\nScreen_Offset_X = 0\r\nScreen_Offset_Y = 0\r\nPopup_Opaque = 1\r\nMenu_Frame = 0\r\nShow_Menu = 0\r\nLK_auto_Timer = 0\r\nMenu_Hide_Paths = 1\r\nMenu_Pages = 1\r\nGUI_Swap_Keys = 0\r\nNET_HOSTwrite = 0\r\nMenu_Title = RETROLauncher\r\nInit_Delay = 0\r\nUSBKBD_USED = 0\r\nUSBKBD_FILE = \r\nKBDMAP_FILE = \r\nMenu_Show_Titles = 1\r\nPathPad_Lock = 0\r\nCNF_Path = \r\nLANG_FILE = \r\nFONT_FILE = \r\nJpgView_Timer = 5\r\nJpgView_Trans = 2\r\nJpgView_Full = 0\r\nPSU_HugeNames = 0\r\nPSU_DateNames = 0\r\nPSU_NoOverwrite = 0\r\nFB_NoIcons = 0\r\nLK_Circle_Title = RETROLauncher\r\nLK_Cross_Title = ".. title_app_l .."\r\nLK_Square_Title = PS2 Browser\r\nPathPad_Lock = 0\r\n"
+	local LCHELF = System.openFile(actual.. "/System/RetroarchPS2/APPS/LAUNCHELF.CNF",FCREATE)
+	System.writeFile(LCHELF,LCHELF_COF,string.len(LCHELF_COF))
+	System.closeFile(LCHELF)
 end
 
 function creditos() -- Muestra los créditos
 	local FONDO_LOAD = Graphics.loadImage("System/Medios/Default/FONDO.png")
 	local LOADING_LOAD = Graphics.loadImage("System/Medios/Default/LOADING.png")
+	local res_x, res_y_tex, res_y = 640,0,448
+	if doesFileExist("System/Respaldo/PAL") then
+		res_x, res_y_tex, res_y = 640,32,512
+	end
 	Screen.clear(Color.new(0,0,0))
-	Graphics.drawScaleImage(FONDO_LOAD,-5,0,640+5,480,Color.new(0,80,120))
-	Graphics.drawScaleImage(LOADING_LOAD,0,0,640,480)
+	Graphics.drawScaleImage(FONDO_LOAD,-5,0,res_x+5,res_y,Color.new(0,80,120))
+	Graphics.drawScaleImage(LOADING_LOAD,0,0,res_x,res_y)
 	refrescar()
 	local ENCELADUS = Graphics.loadImage("System/Medios/Credits/ENCELADUS.png")
 	local POPSTARTER = Graphics.loadImage("System/Medios/Credits/POPSTARTER.png")
 	local RETROARCH = Graphics.loadImage("System/Medios/Credits/RETROARCH.png")
 	local RETROLAUNCHER = Graphics.loadImage("System/Medios/Credits/RETROLAUNCHER.png")
 	local NEUTRINO = Graphics.loadImage("System/Medios/Credits/NEUTRINO.png")
+	local WLAUNCHELF = Graphics.loadImage("System/Medios/Credits/WLAUNCHELF_ISR.png")
 	local SPAGHETTICODE = Graphics.loadImage("System/Medios/Credits/SPAGHETTICODE.png")
-	local CREDITOS_IMG = {ENCELADUS,RETROARCH,POPSTARTER,NEUTRINO,SPAGHETTICODE,RETROLAUNCHER,RETROLAUNCHER}
-	local CREDITOS_TXT = {"Enceladus is an enhanced Lua environment for\ncreating homebrew software for the PS2.\nDanielSant0s X: https://x.com/danadsees\n\nProject Link:\nhttps://github.com/DanielSant0s/Enceladus\nLicense: Distributed under GNU GPL-3.0 License.","Retroarch port created by RetroArch contributor\nfjtrujy (Francisco J. Trujillo).\nfjtrujy X: https://x.com/fjtrujy\n\nRetroarch Link:\nhttps://www.retroarch.com\n\nLicenses: There is software behind RetroArch\nthat is protected by Non-Commercial licenses.\nIt is important to respect the wishes of the\ndevelopers and people behind the respective\nprojects.\nhttps://docs.libretro.com/development/licenses/","POPStarter is a launcher which lets you play\nyour PS1 games in combination with PS1 emulator\nfor PS2.\n\nPOPStarter v13 was created by developer krHACKen.\nPOPStarter Link: https://\nwww.psx-place.com/threads/popstarter.19139/","Neutrino is a small, fast and modular PS2 device\nemulator that maximizes compatibility and\nperformance. Neutrino was created by developer\nMaximus32 (Rick Gaiser).\n\nNeutrino Link:\nhttps://github.com/rickgaiser/neutrino\n\nLicense: Academic Free License \"AFL\" v. 3.0","Thanks to public education for the support \nduring my technical training.\nSpaghetticode / LC - Mendoza - Argentina / 2024","Original background created by < e s c p > Art\nLicense: This Image is licensed under the\nCreative Commons Zero v1.0 Universal.\nFree images by https://www.artapixel.com\n\nFont \"Public Pixel\" Designed by GGBotNet.\nGGBotNet X: https://twitter.com/ggbotnet\nPublic Pixel Link: https://www.ggbot.net/fonts/\nLicense: This Font Software is licensed under\nthe Creative Commons Zero v1.0 Universal.\nCC0 1.0 Link: https://\ncreativecommons.org/publicdomain/zero/1.0/\n","Thanks for using RETROLauncher.     Boon Tobias"}
+	local CREDITOS_IMG = {ENCELADUS,RETROARCH,POPSTARTER,NEUTRINO,WLAUNCHELF,SPAGHETTICODE,RETROLAUNCHER,RETROLAUNCHER}
+	local CREDITOS_TXT = {"Enceladus is an enhanced Lua environment for\ncreating homebrew software for the PS2.\nDanielSant0s X: https://x.com/danadsees\n\nProject Link:\nhttps://github.com/DanielSant0s/Enceladus\nLicense: Distributed under GNU GPL-3.0 License.","Retroarch port created by RetroArch contributor\nfjtrujy (Francisco J. Trujillo).\nfjtrujy X: https://x.com/fjtrujy\n\nRetroarch Link:\nhttps://www.retroarch.com\n\nLicenses: There is software behind RetroArch\nthat is protected by Non-Commercial licenses.\nIt is important to respect the wishes of the\ndevelopers and people behind the respective\nprojects.\nhttps://docs.libretro.com/development/licenses/","POPStarter is a launcher which lets you play\nyour PS1 games in combination with PS1 emulator\nfor PS2.\n\nPOPStarter v13 was created by developer krHACKen.\nPOPStarter Link: https://\nwww.psx-place.com/threads/popstarter.19139/","Neutrino is a small, fast and modular PS2 device\nemulator that maximizes compatibility and\nperformance. Neutrino was created by developer\nMaximus32 (Rick Gaiser).\n\nNeutrino Link:\nhttps://github.com/rickgaiser/neutrino\n\nLicense: Academic Free License \"AFL\" v. 3.0","wLaunchELF ISR is an open source file manager\nand executable launcher for the PS2 console.\nwLaunchELF 4.43x_ISR was created by developer\nisrapps (Matías Israelson) and is a wLaunchELF\nmod.\n\nisrapps (Matías Israelson):\nhttps://israpps.github.io\nwLaunchELF 4.43x_ISR Project Link:\nhttps://github.com/israpps/wLaunchELF_ISR\n\nwLaunchELF Project Link:\nhttps://github.com/ps2homebrew/wLaunchELF\nLicense: Academic Free License \"AFL\" v. 2.0\nwLaunchELF / project by AKuHAK and SP193.\nuLaunchELF / project by E P and dlanor.\nLaunchELF / project by Mirakichi.\nAnd to all the developers who contributed to uLE.","Thanks to public education for the support \nduring my technical training.\nSpaghetticode / LC - Mendoza - Argentina / 2024","Original background created by < e s c p > Art\nLicense: This Image is licensed under the\nCreative Commons Zero v1.0 Universal.\nFree images by https://www.artapixel.com\n\nFont \"Public Pixel\" Designed by GGBotNet.\nGGBotNet X: https://twitter.com/ggbotnet\nPublic Pixel Link: https://www.ggbot.net/fonts/\nLicense: This Font Software is licensed under\nthe Creative Commons Zero v1.0 Universal.\nCC0 1.0 Link: https://\ncreativecommons.org/publicdomain/zero/1.0/\n","A special thank you to the entire \"PSX-PLACE\"\ncommunity for providing support and visibility\nto the program.\nWe also thank all YouTube channels along with\ntheir communities for spreading and improving\nRETROLauncher with their supportive messages\nand constructive feedback.\n\nThanks for using RETROLauncher.     Boon Tobias"}
 	local TheLastLive = true 
 	local color_img = 129
 	local color_tex = 128
@@ -4002,6 +4565,7 @@ function creditos() -- Muestra los créditos
 	local pos_img_x = 640
 	local pos_img_y = 480
 	local autocambio = 0
+	local mostrar_sob = false
 	while TheLastLive do
 		CONTROL.FPS = Screen.getFPS(1)
 		capturar(JOYSTICK_LIMITE)
@@ -4013,7 +4577,7 @@ function creditos() -- Muestra los créditos
 				color_img = 0
 			elseif color_img <= 127 and cambio == false then
 				color_img = color_img+1
-			elseif color_img <= 128 and cambio == false then
+			elseif color_img >= 128 and cambio == false then
 				color_img = 128
 				cambio = true
 				estado = estado+1
@@ -4026,12 +4590,17 @@ function creditos() -- Muestra los créditos
 				pasaje = true
 			elseif color_tex <= 127 and cambio_t == false and color_img == 0 then
 				color_tex = color_tex+1
-			elseif color_tex <= 128 and cambio_t == false and color_img == 0 then
+			elseif color_tex >= 128 and cambio_t == false and color_img == 0 then
 				color_tex = 128
 				cambio_t = true
 				cambio = false
 			end
-			
+		if estado == 7 and color_img == 0 and color_tex == 128 then
+			mostrar_sob = true
+		elseif estado == 8 and color_img == 0 and color_tex == 0 then
+			mostrar_sob = false
+		end
+		
 		-- Controla los créditos
 		elseif Pads.check(PAD,PAD_CIRCLE) or Pads.check(PAD,PAD_TRIANGLE) then
 			TheLastLive = false 
@@ -4047,53 +4616,62 @@ function creditos() -- Muestra los créditos
 		if estado == 1 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -73
 			pos_imgX = 10
-			pos_tex = 309
+			pos_tex = 309+res_y_tex
 			pos_img_x = 620
-			pos_img_y = 460
+			pos_img_y = 460+res_y_tex
 		elseif estado == 2 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -140
 			pos_imgX = 0
-			pos_tex = 185
+			pos_tex = 185+res_y_tex
 			pos_img_x = 640
-			pos_img_y = 480
+			pos_img_y = 480+res_y_tex
 		elseif estado == 3 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -40
 			pos_imgX = 10
-			pos_tex = 310
+			pos_tex = 310+res_y_tex
 			pos_img_x = 620
-			pos_img_y = 460
+			pos_img_y = 460+res_y_tex
 		elseif estado == 4 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -93
 			pos_imgX = 10
-			pos_tex = 260
+			pos_tex = 260+res_y_tex
 			pos_img_x = 620
-			pos_img_y = 460
+			pos_img_y = 460+res_y_tex
 		elseif estado == 5 and color_img == 128 and color_tex == 128 then
+			pos_imgY = -179
+			pos_imgX = 10
+			pos_tex = 109+res_y_tex
+			pos_img_x = 620
+			pos_img_y = 460+res_y_tex
+		elseif estado == 6 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -80
 			pos_imgX = -10
-			pos_tex = 360
+			pos_tex = 360+res_y_tex
 			pos_img_x = 660
-			pos_img_y = 500
-		elseif estado == 6 and color_img == 128 and color_tex == 128 then
-			pos_imgY = -110
-			pos_imgX = 0
-			pos_tex = 210
-			pos_img_x = 640
-			pos_img_y = 480
+			pos_img_y = 500+res_y_tex
 		elseif estado == 7 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -110
 			pos_imgX = 0
-			pos_tex = 280
+			pos_tex = 210+res_y_tex
 			pos_img_x = 640
-			pos_img_y = 480
+			pos_img_y = 480+res_y_tex
+		elseif estado == 8 and color_tex == 128 then
+			pos_imgY = -110
+			pos_imgX = 0
+			pos_tex = 234+res_y_tex
+			pos_img_x = 640
+			pos_img_y = 480+res_y_tex
 		end
 		
 		-- Mostrar todo en pantalla
 		if estado <= #CREDITOS_IMG then
 			Graphics.drawScaleImage(CREDITOS_IMG[estado],pos_imgX-5,pos_imgY,pos_img_x+5,pos_img_y)
-			Graphics.drawRect(0,0,640,480,Color.new(0,0,0,color_img))
-			Font.ftPrint(CONTROL.fontARCA,5,pos_tex,0,640,480,CREDITOS_TXT[estado],Color.new(128,128,128))
-			Graphics.drawRect(0,pos_tex,640,300,Color.new(0,0,0,color_tex))
+			Graphics.drawRect(0,0,640,res_y,Color.new(0,0,0,color_img))
+			if mostrar_sob == true then
+				Graphics.drawScaleImage(CREDITOS_IMG[estado],pos_imgX-5,pos_imgY,pos_img_x+5,pos_img_y)
+			end
+			Font.ftPrint(CONTROL.fontARCA,5,pos_tex,0,640,res_y,CREDITOS_TXT[estado],Color.new(128,128,128))
+			Graphics.drawRect(0,pos_tex,640,res_y,Color.new(0,0,0,color_tex))
 		else
 			TheLastLive = false
 		end
@@ -4104,6 +4682,7 @@ function creditos() -- Muestra los créditos
 	Graphics.freeImage(ENCELADUS)
 	Graphics.freeImage(POPSTARTER)
 	Graphics.freeImage(NEUTRINO)
+	Graphics.freeImage(WLAUNCHELF)
 	Graphics.freeImage(RETROARCH)
 	Graphics.freeImage(RETROLAUNCHER)
 	Graphics.freeImage(SPAGHETTICODE)

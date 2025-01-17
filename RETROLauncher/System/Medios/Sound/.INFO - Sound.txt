@@ -1,21 +1,21 @@
-Aquí van los Sonidos para el menú RETROLauncher.
-RETROLauncher buscara en la raíz de estos directorio.
+Here are the Sounds for the RETROLauncher menu.
+RETROLauncher will search in the root of these directories.
 
-Requisitos de los Sonidos:
-  * Debe ser sonidos en formato ADPCM
-  * Deben tener la extensión .adp
-  * Si se tiene un audio con extensión .adpcm bastara con renombrarlo a .adp
-  * El nombre de los sonidos deben ser los siguientes:
-	+ back.adp / Audio para volver atrás y cambiar de imagen.
-	+ error.adp / Audio para marcar errores de ejecución o cancelación de acciones.
-	+ move.adp / Audio para el movimiento por los elementos del menú.
-	+ next.adp / Audio para el cambio de emulador.
-	+ run.adp / Audio para la ejecución y activación de elementos.
-	Directorio: "mass:/RETROLauncher/System/Medios/Sound/Menu/"
-  * Puede existir problemas de reproducción si el audio está mal codificado o si es de un tamaño muy grande.
-  * Existe un audio extra que cumple la función de música de fondo.
-  * Este audio extra, puede borrarse sin problemas si no se desea escucharlo (también puede remplazarse).
-	+ music.adp / Audio con música de fondo.
-	Directorio: "mass:/RETROLauncher/System/Medios/Sound/Background/"
+Sound Requirements:
+	* They must be sounds in ADPCM format
+	* They must have the extension .adp
+	* If you have an audio with the extension .adpcm, you just have to rename it to .adp
+	* The names of the sounds must be the following:
+	+ back.adp / Audio to go back and change images.
+	+ error.adp / Audio to mark execution errors or cancel actions.
+	+ move.adp / Audio for moving through menu items.
+	+ next.adp / Audio for changing emulator.
+	+ run.adp / Audio for executing and activating items.
+		Directory: "masa:/RETROLauncher/System/Media/Sound/Menu/"
+	* There may be playback problems if the audio is poorly encoded or if it is too large.
+	* There is an extra audio that acts as background music.
+	* This extra audio can be easily deleted if you don't want to listen to it (it can also be replaced).
+	+ music.adp / Audio with background music.
+		Directory: "mass:/RETROLauncher/System/Media/Sound/Background/"
 
-Extensiones soportadas: .adp (.adpcm se debe renombrar a .adp)
+Supported extensions: .adp (.adpcm must be renamed to .adp)
