@@ -17,11 +17,13 @@ An environment in neutrino describes what IOP modules are loaded and defines wha
 ## Backing Store Driver
 A backing store driver provides a storage location for storing virtual disk images. For instance of DVD's, HDD's or MC's.
 The following backing storage devices are supported:
-- USB
-- MX4SIO
-- ATA (internal HDD)
-- UDPBD
-- iLink / IEEE1394
+- USB (`usb`)
+- MX4SIO (`sdc`)
+- ATA (internal HDD) (`ata`)
+- UDPBD (`udp`)
+- iLink / IEEE1394 (`sd`)
+
+NOTE: Internal block device names between (parenthesis), these must be used for `bdfs:`
 
 These are all BDM drivers, or "Block Devices". On all devices the following partitioning schemes are supported:
 - MBR (Master Boot Record)
@@ -30,6 +32,7 @@ These are all BDM drivers, or "Block Devices". On all devices the following part
 And the following file systems:
 - exFat/FAT32, accessable as `mass:<file>.iso`
 - HDLoader, accessable as `hdl:<file>`, `hdl:<file>.iso`, `hdl:<part>` or `hdl:<part>.iso`
+- Block Devices, accessable as `bdfs:<blockdevice>`. Like `bdfs:udp0p0`
 
 Note that the HDLoader backing store is currently read-ony, and limited to only emulating the DVD.
 
@@ -45,6 +48,12 @@ The following HDD emulation drivers are supported:
 - File: using a virtual HDD image file from the backing store
 
 ## Usage instructions
+Neutrino is a command line application. To get the most out of neutrino you will need to run it from the command line, for instance using [ps2link](https://github.com/ps2dev/ps2link) and [ps2client](https://github.com/ps2dev/ps2client).
+
+Alternatively you can use a more user friendly GUI from one of the third-party projects (see below), but with a limited feature set.
+
+Command line usage instructions:
+
 ```
 Usage: neutrino.elf options
 
@@ -93,17 +102,21 @@ Options:
                     Defaults to cd for size<=650MiB, and dvd for size>650MiB
 
   -gc=<compat>      Game compatibility modes, supported are:
-                    - 0: Disable builtin compat flags
-                    - 1: IOP: Accurate reads (sceCdRead)
+                    - 0: IOP: Fast reads (sceCdRead)
+                    - 1: dummy
                     - 2: IOP: Sync reads (sceCdRead)
                     - 3: EE : Unhook syscalls
                     - 5: IOP: Emulate DVD-DL
+                    - 7: IOP: Fix game buffer overrun
                     Multiple options possible, for example -gc=23
+
+  -cwd=<path>       Change working directory
 
   -cfg=<file>       Load extra user/game specific config file (without .toml extension)
 
   -dbc              Enable debug colors
   -logo             Enable logo (adds rom0:PS2LOGO to arguments)
+  -qb               Quick-Boot directly into load environment
 
   --b               Break, all following parameters are passed to the ELF
 
@@ -113,3 +126,15 @@ Usage examples:
   neutrino.elf -bsd=ata -bsdfs=hdl -dvd=hdl:filename.iso
   neutrino.elf -bsd=udpbd -bsdfs=bd -dvd=bdfs:udp0p0
 ```
+
+## Third-Party Loaders
+The following third-party projects use neutrino:
+
+Loader | Author
+-|-
+[XEB+ neutrino Launcher Plugin](https://github.com/sync-on-luma/xebplus-neutrino-loader-plugin) | sync-on-luma
+[OPLNEUTRINO](https://www.psx-place.com/threads/opl-based-gui-frontend-for-neutrino.42166/) | crt0
+[NHDDL](https://github.com/pcm720/nhddl) | pcm720
+[RETROLauncher](https://github.com/Spaghetticode-Boon-Tobias/RETROLauncher) | Boon Tobias
+
+Add your project here? Send me a PR.

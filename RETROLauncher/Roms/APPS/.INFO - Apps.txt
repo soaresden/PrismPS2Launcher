@@ -1,9 +1,9 @@
-Aquí van las aplicaciones con extensión ".elf"
-RETROLauncher buscara en la raíz de este directorio y en 1 nivel de subcarpetas.
+Here are the applications with the extension ".elf"
+RETROLauncher will search in the root of this directory and in 1 level of subfolders.
 
-Ejemplo: 
-"mass:/RETROLauncher/Roms/APPS/Ejemplo.elf" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/APPS/subcarpeta1/Ejemplo.elf" - Lo encontrara y lo enlistara.
-"mass:/RETROLauncher/Roms/APPS/subcarpeta1/subcarpeta2/Ejemplo.elf" - NO LO ENCONTRARA.
+Example:
+"mass:/RETROLauncher/Roms/APPS/Example.elf" - It will find it and list it.
+"mass:/RETROLauncher/Roms/APPS/subfolder1/Example.elf" - It will find it and list it.
+"mass:/RETROLauncher/Roms/APPS/subfolder1/subfolder2/Example.elf" - IT WILL NOT FIND IT.
 
-Extensiones soportadas: .elf
+Supported extensions: .elf

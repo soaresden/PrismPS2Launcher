@@ -5,8 +5,8 @@ What is RETROLauncher?
 
 RETROLauncher is a launcher with a graphical environment for retro games, 
 created entirely in Lua under the Enceladus development environment, in 
-conjunction with Retroarch, POPStarter and Neutrino for the execution of 
-the games.
+conjunction with Retroarch, POPStarter, Neutrino and wLaunchELF ISR for the execution of 
+the games/APPS.
 
 The main objective of creating this program is to provide a friendly, 
 attractive and customizable graphical environment to manage ROMS libraries 
@@ -47,10 +47,23 @@ POPStarter: POPStarter is a launcher which lets you play your PS1 games
  / POPStarter Link: https://www.psx-place.com/threads/popstarter.19139/ 
 
 Neutrino: Neutrino is a small, fast and modular PS2 device emulator that 
- / maximizes compatibility and performance. 
+maximizes compatibility and performance. 
  / Created by developer Maximus32 (Rick Gaiser). 
  / Neutrino Link: https://github.com/rickgaiser/neutrino 
  / License: Academic Free License "AFL" v. 3.0 
+
+wLaunchELF ISR: wLaunchELF ISR is an open source file manager and executable 
+launcher for the PS2 console. wLaunchELF 4.43x_ISR was created by developer 
+israpps (Matías Israelson) and is a wLaunchELF mod.
+ / israpps (Matías Israelson): https://israpps.github.io/
+ / Youtube: https://www.youtube.com/@El_IsraPS2
+ / wLaunchELF 4.43x_ISR Project Link: https://github.com/israpps/wLaunchELF_ISR
+ / wLaunchELF Project Link: https://github.com/ps2homebrew/wLaunchELF
+ / License: Academic Free License "AFL" v. 2.0
+ / wLaunchELF - project by AKuHAK and SP193.
+ / uLaunchELF - project by E P and dlanor.
+ / LaunchELF - project by Mirakichi.
+ / And to all the developers who contributed to uLaunchELF.
 
 Original background: 
  / https://www.artapixel.com/escp-art-midnight-sun-city-night-retrowave-cyberpunk.html
@@ -63,6 +76,11 @@ Public Pixel: Retro video game style text font.
  / GGBotNet X: https://twitter.com/ggbotnet 
  / Youtube: https://www.youtube.com/channel/UCndkEEd767CI7wTlNJYKrTg 
  / Public Pixel Link: https://www.ggbot.net/fonts/
+ 
+Special thanks to the entire "PSX-PLACE" community for providing support 
+and visibility to the program. We also thank all the YouTube channels 
+along with their communities for spreading and improving RETROLauncher 
+with their messages of support and constructive feedback.
 
 Spaghetticode: I created RETROLauncher with the sole purpose of having 
 a simple and editable graphical environment to have collections of retro 
