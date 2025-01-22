@@ -147,6 +147,14 @@ LISTAS = {
 	EXISTE_SCR = false;
 	EXISTE_COV2 = false;
 	EXISTE_COV3 = false;
+	COV_X = 250;
+	SCR_X = 250;
+	COV_1_X = 250;
+	COV_2_X = 250;
+	COV_FIX = 0;
+	SCR_FIX = 0;
+	COV_1_FIX = 0;
+	COV_2_FIX = 0;
 }; -- Define las variables usadas para la ejecución de las listas
 
 CAMBIOS_EMUS = {
@@ -305,7 +313,7 @@ function limpiar_art() -- Elimina las imágenes de memoria
 		end
 	end
 end
-
+	
 function cargar_art() -- Cargar imágenes en memoria 
 	local actual = System.currentDirectory()
 	local nombre = string.sub(LISTAS.ROMS[LISTAS.INDICE],1,-CONTROL.EXTENSION)
@@ -500,6 +508,66 @@ function cargar_art() -- Cargar imágenes en memoria
 				LISTAS.EXISTE_COV3 = false
 			end
 		end
+	end
+	ajustar_art()
+end
+
+function ajustar_art() -- Corrigue la relación de aspecto de las imágenes
+	if LISTAS.COVER_ART ~= nil and LISTAS.EXISTE_COV == true then
+		local x = Graphics.getImageWidth(LISTAS.COVER_ART)
+		local y = Graphics.getImageHeight(LISTAS.COVER_ART)
+		if x<y then
+			LISTAS.COV_X = 154
+			LISTAS.COV_FIX = 48
+		else
+			LISTAS.COV_X = 250
+			LISTAS.COV_FIX = 0
+		end
+	else
+		LISTAS.COV_X = 250
+		LISTAS.COV_FIX = 0
+	end
+	if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
+		local x = Graphics.getImageWidth(LISTAS.SCREENSHOT)
+		local y = Graphics.getImageHeight(LISTAS.SCREENSHOT)
+		if x<y then
+			LISTAS.SCR_X = 154
+			LISTAS.SCR_FIX = 48
+		else
+			LISTAS.SCR_X = 250
+			LISTAS.SCR_FIX = 0
+		end
+	else
+		LISTAS.SCR_X = 250
+		LISTAS.SCR_FIX = 0
+	end
+	if CONTROL.ESTILO == 2 and LISTAS.COVER_ART2 ~= nil and LISTAS.EXISTE_COV2 == true then
+		local x = Graphics.getImageWidth(LISTAS.COVER_ART2)
+		local y = Graphics.getImageHeight(LISTAS.COVER_ART2)
+		if x<y then
+			LISTAS.COV_1_X = 154
+			LISTAS.COV_1_FIX = 48
+		else
+			LISTAS.COV_1_X = 250
+			LISTAS.COV_1_FIX = 0
+		end
+	elseif CONTROL.ESTILO == 2 then
+		LISTAS.COV_1_X = 250
+		LISTAS.COV_1_FIX = 0
+	end
+	if CONTROL.ESTILO == 2 and LISTAS.COVER_ART3 ~= nil and LISTAS.EXISTE_COV3 == true then
+		local x = Graphics.getImageWidth(LISTAS.COVER_ART3)
+		local y = Graphics.getImageHeight(LISTAS.COVER_ART3)
+		if x<y then
+			LISTAS.COV_2_X = 154
+			LISTAS.COV_2_FIX = 48
+		else
+			LISTAS.COV_2_X = 250
+			LISTAS.COV_2_FIX = 0
+		end
+	elseif CONTROL.ESTILO == 2 then
+		LISTAS.COV_2_X = 250
+		LISTAS.COV_2_FIX = 0
 	end
 end
 
