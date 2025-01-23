@@ -147,6 +147,14 @@ LISTAS = {
 	EXISTE_SCR = false;
 	EXISTE_COV2 = false;
 	EXISTE_COV3 = false;
+	COV_X = 250;
+	SCR_X = 250;
+	COV_1_X = 250;
+	COV_2_X = 250;
+	COV_FIX = 0;
+	SCR_FIX = 0;
+	COV_1_FIX = 0;
+	COV_2_FIX = 0;
 }; -- Define las variables usadas para la ejecución de las listas
 
 CAMBIOS_EMUS = {
@@ -500,6 +508,66 @@ function cargar_art() -- Cargar imágenes en memoria
 				LISTAS.EXISTE_COV3 = false
 			end
 		end
+	end
+	ajustar_art()
+end
+
+function ajustar_art() -- Corrigue la relación de aspecto de las imágenes
+	if LISTAS.COVER_ART ~= nil and LISTAS.EXISTE_COV == true then
+		local x = Graphics.getImageWidth(LISTAS.COVER_ART)
+		local y = Graphics.getImageHeight(LISTAS.COVER_ART)
+		if x<y then
+			LISTAS.COV_X = 154
+			LISTAS.COV_FIX = 48
+		else
+			LISTAS.COV_X = 250
+			LISTAS.COV_FIX = 0
+		end
+	else
+		LISTAS.COV_X = 250
+		LISTAS.COV_FIX = 0
+	end
+	if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
+		local x = Graphics.getImageWidth(LISTAS.SCREENSHOT)
+		local y = Graphics.getImageHeight(LISTAS.SCREENSHOT)
+		if x<y then
+			LISTAS.SCR_X = 154
+			LISTAS.SCR_FIX = 48
+		else
+			LISTAS.SCR_X = 250
+			LISTAS.SCR_FIX = 0
+		end
+	else
+		LISTAS.SCR_X = 250
+		LISTAS.SCR_FIX = 0
+	end
+	if CONTROL.ESTILO == 2 and LISTAS.COVER_ART2 ~= nil and LISTAS.EXISTE_COV2 == true then
+		local x = Graphics.getImageWidth(LISTAS.COVER_ART2)
+		local y = Graphics.getImageHeight(LISTAS.COVER_ART2)
+		if x<y then
+			LISTAS.COV_1_X = 154
+			LISTAS.COV_1_FIX = 48
+		else
+			LISTAS.COV_1_X = 250
+			LISTAS.COV_1_FIX = 0
+		end
+	elseif CONTROL.ESTILO == 2 then
+		LISTAS.COV_1_X = 250
+		LISTAS.COV_1_FIX = 0
+	end
+	if CONTROL.ESTILO == 2 and LISTAS.COVER_ART3 ~= nil and LISTAS.EXISTE_COV3 == true then
+		local x = Graphics.getImageWidth(LISTAS.COVER_ART3)
+		local y = Graphics.getImageHeight(LISTAS.COVER_ART3)
+		if x<y then
+			LISTAS.COV_2_X = 154
+			LISTAS.COV_2_FIX = 48
+		else
+			LISTAS.COV_2_X = 250
+			LISTAS.COV_2_FIX = 0
+		end
+	elseif CONTROL.ESTILO == 2 then
+		LISTAS.COV_2_X = 250
+		LISTAS.COV_2_FIX = 0
 	end
 end
 
@@ -1104,6 +1172,7 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 	local modo_2 = 0
 	local modo_3 = 0
 	local modo_5 = 0
+	local modo_7 = 0
 	if MODE ~= nil then
 		if string.match(MODE, "0") == "0" then
 			modo_0 = 1
@@ -1120,15 +1189,21 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 		if string.match(MODE, "5") == "5" then
 			modo_5 = 1
 		end
+		if string.match(MODE, "7") == "7" then
+			modo_7 = 1
+		end
 	end
-	local menus_nombres = {"USE VIRTUAL MEMORY CARD","NO VIRTUAL MEMORY CARD","COMPATIBILITY MODES:","DISABLE BUILTIN COMPAT FLAGS","IOP: ACCURATE READS","IOP: SYNC READS","EE : UNHOOK SYSCALLS","IOP: EMULATE DVD-DL","SAVE GAME SETTINGS"}
-	local menus_valores = {encontrado_vmcd,selector_VMC,0,modo_0,modo_1,modo_2,modo_3,modo_5,"SAVE"}
+	local menus_nombres = {"USE VIRTUAL MEMORY CARD","NO VIRTUAL MEMORY CARD","COMPATIBILITY MODES:","IOP: FAST READS","DUMMY","IOP: SYNC READS","EE : UNHOOK SYSCALLS","IOP: EMULATE DVD-DL","IOP: FIX GAME BUFFER OVERRUN","SAVE GAME SETTINGS"}
+	local menus_valores = {encontrado_vmcd,selector_VMC,0,modo_0,modo_1,modo_2,modo_3,modo_5,modo_7,"SAVE"}
 	local selector = 1
 	while pregunta do
 		-- Controlar menú de Configuración PS2
 		CONTROL.FPS = Screen.getFPS(1)
 		capturar(JOYSTICK_LIMITE)
 		if Pads.check(PAD,PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.EJECUTAR ~= nil then
+				Sound.playADPCM(1,MENU_SONIDOS.EJECUTAR)
+			end
 			if selector == 2 and #VMC_encontradas >= 1 and menus_valores[1] == 1 then
 				if selector_VMC <= #VMC_encontradas-1 then
 					selector_VMC = selector_VMC + 1 
@@ -1198,6 +1273,10 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 					modos_on = modos_on.. "5"
 					crear_modos = true
 				end
+				if menus_valores[9] == 1 then
+					modos_on = modos_on.. "7"
+					crear_modos = true
+				end
 				if crear_modos == true then
 					carga_de_modos = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mode",FCREATE)
 					System.writeFile(carga_de_modos,modos_on,string.len(modos_on))
@@ -1256,10 +1335,10 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
 			Graphics.drawScaleImage(LISTAS.SCREENSHOT,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 		end
-		Graphics.drawScaleImage(LISTAS.LOGO,194,15+CONTROL.Y_FIX_PAL,252,76)
-		Graphics.drawRect(12,100+CONTROL.Y_FIX_PAL,615,312,COLOR.NEGRO_T)
-		Font.ftPrint(CONTROL.fontARCA,22,110+CONTROL.Y_FIX_PAL,0,540,8,"GAME SETTINGS:")
-		Font.ftPrint(CONTROL.fontARCA,22,134+CONTROL.Y_FIX_PAL,0,600,8,nombre_iso,COLOR.BLANCO)
+		Graphics.drawScaleImage(LISTAS.LOGO,194,5+CONTROL.Y_FIX_PAL,252,76)
+		Graphics.drawRect(12,84+CONTROL.Y_FIX_PAL,615,330,COLOR.NEGRO_T)
+		Font.ftPrint(CONTROL.fontARCA,22,90+CONTROL.Y_FIX_PAL,0,540,8,"GAME SETTINGS:")
+		Font.ftPrint(CONTROL.fontARCA,22,114+CONTROL.Y_FIX_PAL,0,600,8,nombre_iso,COLOR.BLANCO)
 		if OPCIONES.GUI_LIMPIA_ON == 0 then
 			if OPCIONES.CAMBIO_FUENTE_ON == 1 then	 
 				Graphics.drawRect(490,420+CONTROL.Y_FIX_PAL,114,20,COLOR.NEGRO_T)
@@ -1282,7 +1361,7 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			elseif menus_valores[1] == 0 then
 				menus_nombres[2] = "NO VIRTUAL MEMORY CARD"
 			end
-			local espacio_linea = 148+((contador)*26)+CONTROL.Y_FIX_PAL
+			local espacio_linea = 128+((contador)*26)+CONTROL.Y_FIX_PAL
 			if contador == selector and contador ~= #menus_valores then
 				Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,600,25,menus_nombres[selector],CAMBIOS_EMUS.COLOR_EMU)
 				Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,25,acti,CAMBIOS_EMUS.COLOR_EMU)
@@ -4526,7 +4605,7 @@ function app_alt() -- Crear archivo "LAUNCHELF.CNF" para lanzar aplicaciones con
 	if OPCIONES.APPS_MENU_FULL_PATH == 1 then
 		title_app_l = salida_texto_dir(string.sub(LISTAS.ROMS[LISTAS.INDICE],1,-CONTROL.EXTENSION),true)
 	end
-	local LCHELF_COF = "CNF_version = 3\r\nLK_auto_E1 = ".. apps_l .."\r\nLK_Circle_E1 = ".. actual .."/RETROLauncher.elf\r\nLK_Cross_E1 = ".. apps_l .."\r\nLK_Square_E1 = MISC/About uLE\r\nLK_Triangle_E1 = MISC/PS2Browser\r\nLK_L1_E1 = \r\nLK_R1_E1 = \r\nLK_L2_E1 = \r\nLK_R2_E1 = \r\nLK_L3_E1 = \r\nLK_R3_E1 = \r\nLK_Start_E1 = \r\nLK_Select_E1 = \r\nLK_Left_E1 = \r\nLK_Right_E1 = \r\nMisc = MISC/\r\nMisc_PS2Disc = PS2Disc\r\nMisc_FileBrowser = FileBrowser\r\nMisc_PS2Browser = PS2Browser\r\nMisc_PS2Net = PS2Net\r\nMisc_PS2PowerOff = PS2PowerOff\r\nMisc_HddManager = HddManager\r\nMisc_TextEditor = TextEditor\r\nMisc_JpgViewer = JpgViewer\r\nMisc_Configure = Configure\r\nMisc_Load_CNFprev = Load CNF--\r\nMisc_Load_CNFnext = Load CNF++\r\nMisc_Set_CNF_Path = Set CNF_Path\r\nMisc_Load_CNF = Load CNF\r\nMisc_ShowFont = ShowFont\r\nMisc_Debug_Info = Debug Info\r\nMisc_About_uLE = About uLE\r\nMisc_Show_Build_Info = BuildInfo\r\nMisc_OSDSYS = OSDSYS\r\nGUI_Col_1_ABGR = 00A04000\r\nGUI_Col_2_ABGR = 00FFFFFF\r\nGUI_Col_3_ABGR = 00FFFFFF\r\nGUI_Col_4_ABGR = 00FFA0A0\r\nGUI_Col_5_ABGR = 0000FFFF\r\nGUI_Col_6_ABGR = 0000FF00\r\nGUI_Col_7_ABGR = 00404040\r\nGUI_Col_8_ABGR = 00808080\r\nSKIN_FILE = \r\nGUI_SKIN_FILE = \r\nSKIN_Brightness = 50\r\nTV_mode = 0\r\nScreen_Offset_X = 0\r\nScreen_Offset_Y = 0\r\nPopup_Opaque = 1\r\nMenu_Frame = 0\r\nShow_Menu = 0\r\nLK_auto_Timer = 0\r\nMenu_Hide_Paths = 1\r\nMenu_Pages = 1\r\nGUI_Swap_Keys = 0\r\nNET_HOSTwrite = 0\r\nMenu_Title = RETROLauncher\r\nInit_Delay = 0\r\nUSBKBD_USED = 0\r\nUSBKBD_FILE = \r\nKBDMAP_FILE = \r\nMenu_Show_Titles = 1\r\nPathPad_Lock = 0\r\nCNF_Path = \r\nLANG_FILE = \r\nFONT_FILE = \r\nJpgView_Timer = 5\r\nJpgView_Trans = 2\r\nJpgView_Full = 0\r\nPSU_HugeNames = 0\r\nPSU_DateNames = 0\r\nPSU_NoOverwrite = 0\r\nFB_NoIcons = 0\r\nLK_Circle_Title = RETROLauncher\r\nLK_Cross_Title = ".. title_app_l .."\r\nLK_Square_Title = PS2 Browser\r\nPathPad_Lock = 0\r\n"
+	local LCHELF_COF = "CNF_version = 3\r\nLK_auto_E1 = ".. apps_l .."\r\nLK_Circle_E1 = ".. actual .."/RETROLauncher.elf\r\nLK_Cross_E1 = ".. apps_l .."\r\nLK_Square_E1 = MISC/About uLE\r\nLK_Triangle_E1 = MISC/PS2Browser\r\nLK_L1_E1 = \r\nLK_R1_E1 = \r\nLK_L2_E1 = \r\nLK_R2_E1 = \r\nLK_L3_E1 = \r\nLK_R3_E1 = \r\nLK_Start_E1 = \r\nLK_Select_E1 = \r\nLK_Left_E1 = \r\nLK_Right_E1 = \r\nMisc = MISC/\r\nMisc_PS2Disc = PS2Disc\r\nMisc_FileBrowser = FileBrowser\r\nMisc_PS2Browser = PS2Browser\r\nMisc_PS2Net = PS2Net\r\nMisc_PS2PowerOff = PS2PowerOff\r\nMisc_HddManager = HddManager\r\nMisc_TextEditor = TextEditor\r\nMisc_JpgViewer = JpgViewer\r\nMisc_Configure = Configure\r\nMisc_Load_CNFprev = Load CNF--\r\nMisc_Load_CNFnext = Load CNF++\r\nMisc_Set_CNF_Path = Set CNF_Path\r\nMisc_Load_CNF = Load CNF\r\nMisc_ShowFont = ShowFont\r\nMisc_Debug_Info = Debug Info\r\nMisc_About_uLE = About uLE\r\nMisc_Show_Build_Info = BuildInfo\r\nMisc_OSDSYS = OSDSYS\r\nGUI_Col_1_ABGR = 00A04000\r\nGUI_Col_2_ABGR = 00FFFFFF\r\nGUI_Col_3_ABGR = 00FFFFFF\r\nGUI_Col_4_ABGR = 00FFA0A0\r\nGUI_Col_5_ABGR = 0000FFFF\r\nGUI_Col_6_ABGR = 0000FF00\r\nGUI_Col_7_ABGR = 00404040\r\nGUI_Col_8_ABGR = 00808080\r\nSKIN_FILE = \r\nGUI_SKIN_FILE = \r\nSKIN_Brightness = 50\r\nTV_mode = 0\r\nScreen_Offset_X = 0\r\nScreen_Offset_Y = 0\r\nPopup_Opaque = 1\r\nMenu_Frame = 0\r\nShow_Menu = 0\r\nLK_auto_Timer = 0\r\nMenu_Hide_Paths = 1\r\nMenu_Pages = 1\r\nGUI_Swap_Keys = 0\r\nNET_HOSTwrite = 0\r\nMenu_Title = RETROLauncher\r\nInit_Delay = 0\r\nUSBKBD_USED = 0\r\nUSBKBD_FILE = \r\nKBDMAP_FILE = \r\nMenu_Show_Titles = 1\r\nPathPad_Lock = 0\r\nCNF_Path = \r\nLANG_FILE = \r\nFONT_FILE = \r\nJpgView_Timer = 5\r\nJpgView_Trans = 2\r\nJpgView_Full = 0\r\nPSU_HugeNames = 0\r\nPSU_DateNames = 0\r\nPSU_NoOverwrite = 0\r\nFB_NoIcons = 0\r\nLK_Circle_Title = RETROLauncher\r\nLK_Cross_Title = ".. title_app_l .."\r\nLK_Square_Title = About uLE\r\nPathPad_Lock = 0\r\n"
 	local LCHELF = System.openFile(actual.. "/System/RetroarchPS2/APPS/LAUNCHELF.CNF",FCREATE)
 	System.writeFile(LCHELF,LCHELF_COF,string.len(LCHELF_COF))
 	System.closeFile(LCHELF)
