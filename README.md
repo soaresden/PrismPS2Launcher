@@ -52,6 +52,11 @@ maximizes compatibility and performance.
  / Neutrino Link: https://github.com/rickgaiser/neutrino 
  / License: Academic Free License "AFL" v. 3.0 
 
+TempGBA: TempGBA (GpSP) is a Game Boy Advance emulator ported to PS2.
+Created by developer belek666. 
+ / belek666 GitHub: https://github.com/belek666
+ / TempGBA(GpSP) - PS2 link: https://www.psx-place.com/resources/gpsp-by-belek666.687/
+
 wLaunchELF ISR: wLaunchELF ISR is an open source file manager and executable 
 launcher for the PS2 console. wLaunchELF 4.43x_ISR was created by developer 
 israpps (Matías Israelson) and is a wLaunchELF mod.

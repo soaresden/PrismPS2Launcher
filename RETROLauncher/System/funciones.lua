@@ -3230,7 +3230,9 @@ function existe(identidad,nombre_juego,alternativo) -- Verifica los ROMS y archi
 			return false
 		end
 	elseif identidad == 7 then -- Verifica si existen emulador/juego Nintendo Game Boy Advance
-		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf") then
+		if doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf") and alternativo == false then
+			return true
+		elseif doesFileExist(actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/TempGBA/TempGBA.elf") and alternativo == true then
 			return true
 		else
 			return false
@@ -4077,7 +4079,11 @@ function ejecutar_juego(identidad,nombre_juego,alternativo) -- Ejecuta la ROM co
 		end
 	elseif identidad == 7 then -- Ejecutar para Nintendo Game Boy Advance
 		guardar()
-		System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego)
+		if alternativo == true then
+			System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/TempGBA/TempGBA.elf",0,actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego)
+		else
+			System.loadELF(actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/cores/gpsp_libretro_ps2.elf",0,actual .."/Roms/Roms Nintendo Game Boy Advance/".. nombre_juego)
+		end
 	elseif identidad == 8 then -- Ejecutar para Play Station
 		guardar()
 		if doesFileExist("mass:/POPS/XX.".. string.sub(nombre_juego,1,-5) ..".ELF") then
@@ -4134,6 +4140,16 @@ function limpiar_retroarch(emulador) -- Elimina save states/save files(srm) de j
 	if limpiar2 ~= nil then
 		for contador = 1,#limpiar2 do
 			System.removeFile(actual .."/System/RetroarchPS2/".. emulador .."/retroarch/savefiles/".. limpiar2[contador].name)
+		end
+	end
+	if emulador == "Nintendo Game Boy Advance" then
+		local limpiar3 = System.listDirectory(actual .."/System/RetroarchPS2/".. emulador .."/TempGBA")
+		if limpiar3 ~= nil then
+			for contador = 1,#limpiar3 do
+				if limpiar3[contador].directory == false and (string.lower(string.sub(limpiar3[contador].name,-4)) == ".sav" or string.match(string.sub(limpiar3[contador].name,-4),".s%d%d")) then
+					System.removeFile(actual .."/System/RetroarchPS2/".. emulador .."/TempGBA/".. limpiar3[contador].name)
+				end
+			end
 		end
 	end
 end
@@ -4432,6 +4448,9 @@ function reiniciar_conf(limpiar,indi_rest) -- Reinicia todas las configuraciones
 		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt") then
 			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/retroarch/config/gpSP/gpSP.opt")
 		end
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/TempGBA/global_config.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Nintendo Game Boy Advance/TempGBA/global_config.cfg",actual .."/System/RetroarchPS2/Nintendo Game Boy Advance/TempGBA/global_config.cfg")
+		end
 	end
 	----------------------------------------------
 	
@@ -4625,12 +4644,13 @@ function creditos() -- Muestra los créditos
 	local ENCELADUS = Graphics.loadImage("System/Medios/Credits/ENCELADUS.png")
 	local POPSTARTER = Graphics.loadImage("System/Medios/Credits/POPSTARTER.png")
 	local RETROARCH = Graphics.loadImage("System/Medios/Credits/RETROARCH.png")
+	local GPSP = Graphics.loadImage("System/Medios/Credits/GPSP.png")
 	local RETROLAUNCHER = Graphics.loadImage("System/Medios/Credits/RETROLAUNCHER.png")
 	local NEUTRINO = Graphics.loadImage("System/Medios/Credits/NEUTRINO.png")
 	local WLAUNCHELF = Graphics.loadImage("System/Medios/Credits/WLAUNCHELF_ISR.png")
 	local SPAGHETTICODE = Graphics.loadImage("System/Medios/Credits/SPAGHETTICODE.png")
-	local CREDITOS_IMG = {ENCELADUS,RETROARCH,POPSTARTER,NEUTRINO,WLAUNCHELF,SPAGHETTICODE,RETROLAUNCHER,RETROLAUNCHER}
-	local CREDITOS_TXT = {"Enceladus is an enhanced Lua environment for\ncreating homebrew software for the PS2.\nDanielSant0s X: https://x.com/danadsees\n\nProject Link:\nhttps://github.com/DanielSant0s/Enceladus\nLicense: Distributed under GNU GPL-3.0 License.","Retroarch port created by RetroArch contributor\nfjtrujy (Francisco J. Trujillo).\nfjtrujy X: https://x.com/fjtrujy\n\nRetroarch Link:\nhttps://www.retroarch.com\n\nLicenses: There is software behind RetroArch\nthat is protected by Non-Commercial licenses.\nIt is important to respect the wishes of the\ndevelopers and people behind the respective\nprojects.\nhttps://docs.libretro.com/development/licenses/","POPStarter is a launcher which lets you play\nyour PS1 games in combination with PS1 emulator\nfor PS2.\n\nPOPStarter v13 was created by developer krHACKen.\nPOPStarter Link: https://\nwww.psx-place.com/threads/popstarter.19139/","Neutrino is a small, fast and modular PS2 device\nemulator that maximizes compatibility and\nperformance. Neutrino was created by developer\nMaximus32 (Rick Gaiser).\n\nNeutrino Link:\nhttps://github.com/rickgaiser/neutrino\n\nLicense: Academic Free License \"AFL\" v. 3.0","wLaunchELF ISR is an open source file manager\nand executable launcher for the PS2 console.\nwLaunchELF 4.43x_ISR was created by developer\nisrapps (Matías Israelson) and is a wLaunchELF\nmod.\n\nisrapps (Matías Israelson):\nhttps://israpps.github.io\nwLaunchELF 4.43x_ISR Project Link:\nhttps://github.com/israpps/wLaunchELF_ISR\n\nwLaunchELF Project Link:\nhttps://github.com/ps2homebrew/wLaunchELF\nLicense: Academic Free License \"AFL\" v. 2.0\nwLaunchELF / project by AKuHAK and SP193.\nuLaunchELF / project by E P and dlanor.\nLaunchELF / project by Mirakichi.\nAnd to all the developers who contributed to uLE.","Thanks to public education for the support \nduring my technical training.\nSpaghetticode / LC - Mendoza - Argentina / 2024","Original background created by < e s c p > Art\nLicense: This Image is licensed under the\nCreative Commons Zero v1.0 Universal.\nFree images by https://www.artapixel.com\n\nFont \"Public Pixel\" Designed by GGBotNet.\nGGBotNet X: https://twitter.com/ggbotnet\nPublic Pixel Link: https://www.ggbot.net/fonts/\nLicense: This Font Software is licensed under\nthe Creative Commons Zero v1.0 Universal.\nCC0 1.0 Link: https://\ncreativecommons.org/publicdomain/zero/1.0/\n","A special thank you to the entire \"PSX-PLACE\"\ncommunity for providing support and visibility\nto the program.\nWe also thank all YouTube channels along with\ntheir communities for spreading and improving\nRETROLauncher with their supportive messages\nand constructive feedback.\n\nThanks for using RETROLauncher.     Boon Tobias"}
+	local CREDITOS_IMG = {ENCELADUS,RETROARCH,GPSP,POPSTARTER,NEUTRINO,WLAUNCHELF,SPAGHETTICODE,RETROLAUNCHER,RETROLAUNCHER}
+	local CREDITOS_TXT = {"Enceladus is an enhanced Lua environment for\ncreating homebrew software for the PS2.\nDanielSant0s X: https://x.com/danadsees\n\nProject Link:\nhttps://github.com/DanielSant0s/Enceladus\nLicense: Distributed under GNU GPL-3.0 License.","Retroarch port created by RetroArch contributor\nfjtrujy (Francisco J. Trujillo).\nfjtrujy X: https://x.com/fjtrujy\n\nRetroarch Link:\nhttps://www.retroarch.com\n\nLicenses: There is software behind RetroArch\nthat is protected by Non-Commercial licenses.\nIt is important to respect the wishes of the\ndevelopers and people behind the respective\nprojects.\nhttps://docs.libretro.com/development/licenses/","TempGBA (GpSP) is a GBA emulator ported to PS2\nby developer belek666.\n\nbelek666 GitHub: https://github.com/belek666\n\nGpSP - PS2 link: https://www.psx-place.com/\nresources/gpsp-by-belek666.687/","POPStarter is a launcher which lets you play\nyour PS1 games in combination with PS1 emulator\nfor PS2.\n\nPOPStarter v13 was created by developer krHACKen.\nPOPStarter Link: https://\nwww.psx-place.com/threads/popstarter.19139/","Neutrino is a small, fast and modular PS2 device\nemulator that maximizes compatibility and\nperformance. Neutrino was created by developer\nMaximus32 (Rick Gaiser).\n\nNeutrino Link:\nhttps://github.com/rickgaiser/neutrino\n\nLicense: Academic Free License \"AFL\" v. 3.0","wLaunchELF ISR is an open source file manager\nand executable launcher for the PS2 console.\nwLaunchELF 4.43x_ISR was created by developer\nisrapps (Matías Israelson) and is a wLaunchELF\nmod.\n\nisrapps (Matías Israelson):\nhttps://israpps.github.io\nwLaunchELF 4.43x_ISR Project Link:\nhttps://github.com/israpps/wLaunchELF_ISR\n\nwLaunchELF Project Link:\nhttps://github.com/ps2homebrew/wLaunchELF\nLicense: Academic Free License \"AFL\" v. 2.0\nwLaunchELF / project by AKuHAK and SP193.\nuLaunchELF / project by E P and dlanor.\nLaunchELF / project by Mirakichi.\nAnd to all the developers who contributed to uLE.","Thanks to public education for the support \nduring my technical training.\nSpaghetticode / LC - Mendoza - Argentina / 2024","Original background created by < e s c p > Art\nLicense: This Image is licensed under the\nCreative Commons Zero v1.0 Universal.\nFree images by https://www.artapixel.com\n\nFont \"Public Pixel\" Designed by GGBotNet.\nGGBotNet X: https://twitter.com/ggbotnet\nPublic Pixel Link: https://www.ggbot.net/fonts/\nLicense: This Font Software is licensed under\nthe Creative Commons Zero v1.0 Universal.\nCC0 1.0 Link: https://\ncreativecommons.org/publicdomain/zero/1.0/\n","A special thank you to the entire \"PSX-PLACE\"\ncommunity for providing support and visibility\nto the program.\nWe also thank all YouTube channels along with\ntheir communities for spreading and improving\nRETROLauncher with their supportive messages\nand constructive feedback.\n\nThanks for using RETROLauncher.     Boon Tobias"}
 	local TheLastLive = true 
 	local color_img = 129
 	local color_tex = 128
@@ -4674,9 +4694,9 @@ function creditos() -- Muestra los créditos
 				cambio_t = true
 				cambio = false
 			end
-		if estado == 7 and color_img == 0 and color_tex == 128 then
+		if estado == 8 and color_img == 0 and color_tex == 128 then
 			mostrar_sob = true
-		elseif estado == 8 and color_img == 0 and color_tex == 0 then
+		elseif estado == 9 and color_img == 0 and color_tex == 0 then
 			mostrar_sob = false
 		end
 		
@@ -4705,36 +4725,42 @@ function creditos() -- Muestra los créditos
 			pos_img_x = 640
 			pos_img_y = 480+res_y_tex
 		elseif estado == 3 and color_img == 128 and color_tex == 128 then
+			pos_imgY = -140
+			pos_imgX = 0
+			pos_tex = 240+res_y_tex
+			pos_img_x = 640
+			pos_img_y = 480+res_y_tex
+		elseif estado == 4 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -40
 			pos_imgX = 10
 			pos_tex = 310+res_y_tex
 			pos_img_x = 620
 			pos_img_y = 460+res_y_tex
-		elseif estado == 4 and color_img == 128 and color_tex == 128 then
+		elseif estado == 5 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -93
 			pos_imgX = 10
 			pos_tex = 260+res_y_tex
 			pos_img_x = 620
 			pos_img_y = 460+res_y_tex
-		elseif estado == 5 and color_img == 128 and color_tex == 128 then
+		elseif estado == 6 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -179
 			pos_imgX = 10
 			pos_tex = 109+res_y_tex
 			pos_img_x = 620
 			pos_img_y = 460+res_y_tex
-		elseif estado == 6 and color_img == 128 and color_tex == 128 then
+		elseif estado == 7 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -80
 			pos_imgX = -10
 			pos_tex = 360+res_y_tex
 			pos_img_x = 660
 			pos_img_y = 500+res_y_tex
-		elseif estado == 7 and color_img == 128 and color_tex == 128 then
+		elseif estado == 8 and color_img == 128 and color_tex == 128 then
 			pos_imgY = -110
 			pos_imgX = 0
 			pos_tex = 210+res_y_tex
 			pos_img_x = 640
 			pos_img_y = 480+res_y_tex
-		elseif estado == 8 and color_tex == 128 then
+		elseif estado == 9 and color_tex == 128 then
 			pos_imgY = -110
 			pos_imgX = 0
 			pos_tex = 234+res_y_tex
@@ -4763,6 +4789,7 @@ function creditos() -- Muestra los créditos
 	Graphics.freeImage(NEUTRINO)
 	Graphics.freeImage(WLAUNCHELF)
 	Graphics.freeImage(RETROARCH)
+	Graphics.freeImage(GPSP)
 	Graphics.freeImage(RETROLAUNCHER)
 	Graphics.freeImage(SPAGHETTICODE)
 	CREDITOS_IMG = nil

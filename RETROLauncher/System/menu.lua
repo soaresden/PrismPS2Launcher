@@ -785,7 +785,7 @@ function Generar_Listas()
 			elseif Pads.check(PAD,PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
 				-- Verificar archivos / estilo 1 / estilo 4 / estilo 6
 				local alt = false
-				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 13) then
+				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 7 or LISTAS.IDENTIDAD == 13) then
 					alt = true
 				end
 				local verificar = existe(LISTAS.IDENTIDAD,LISTAS.ROMS[LISTAS.INDICE],alt)
@@ -993,7 +993,7 @@ function Generar_Listas()
 			elseif Pads.check(PAD,PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
 				-- Verificar archivos / estilo 2
 				local alt = false
-				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 13) then
+				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 7 or LISTAS.IDENTIDAD == 13) then
 					alt = true
 				end
 				local verificar = existe(LISTAS.IDENTIDAD,LISTAS.ROMS[LISTAS.INDICE],alt)
@@ -1253,7 +1253,7 @@ function Generar_Listas()
 			elseif Pads.check(PAD,PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
 				-- Verificar archivos / estilo 3
 				local alt = false
-				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 13) then
+				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 7 or LISTAS.IDENTIDAD == 13) then
 					alt = true
 				end
 				local verificar = existe(LISTAS.IDENTIDAD,LISTAS.ROMS[LISTAS.INDICE],alt)
@@ -1499,7 +1499,7 @@ function Generar_Listas()
 			elseif Pads.check(PAD,PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
 				-- Verificar archivos / estilo 5
 				local alt = false
-				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 13) then
+				if Pads.check(PAD,PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or LISTAS.IDENTIDAD == 4 or LISTAS.IDENTIDAD == 5 or LISTAS.IDENTIDAD == 6 or LISTAS.IDENTIDAD == 7 or LISTAS.IDENTIDAD == 13) then
 					alt = true
 				end
 				local verificar = existe(LISTAS.IDENTIDAD,LISTAS.ROMS[LISTAS.INDICE],alt)
