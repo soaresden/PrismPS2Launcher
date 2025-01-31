@@ -1150,7 +1150,7 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 	end
 	Pads.rumble(0,0)
 	OPCIONES.PREGUNTAR_PS2 = true
-	local VMCD, MODE = ejecutar_iso(nombre_iso)
+	local VMCD, MODE ,GSM_ON = ejecutar_iso(nombre_iso)
 	OPCIONES.PREGUNTAR_PS2 = false
 	local VMC_encontradas = buscar_VMC()
 	local selector_VMC = 1
@@ -1193,8 +1193,26 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			modo_7 = 1
 		end
 	end
-	local menus_nombres = {"USE VIRTUAL MEMORY CARD","NO VIRTUAL MEMORY CARD","COMPATIBILITY MODES:","IOP: FAST READS","DUMMY","IOP: SYNC READS","EE : UNHOOK SYSCALLS","IOP: EMULATE DVD-DL","IOP: FIX GAME BUFFER OVERRUN","SAVE GAME SETTINGS"}
-	local menus_valores = {encontrado_vmcd,selector_VMC,0,modo_0,modo_1,modo_2,modo_3,modo_5,modo_7,"SAVE"}
+	local gsm_estatus = "GSM: OFF (default)"
+	if GSM_ON ~= nil then
+		if GSM_ON == "-gsm=1" then
+			gsm_estatus = "GSM: ON (576p/480p)"
+		elseif GSM_ON == "-gsm=2" then
+			gsm_estatus = "GSM: ON (576p/480p) + line doubling"
+		elseif GSM_ON == "-gsm=1F" then
+			gsm_estatus = "GSM: ON (576p/480p) + filed flipping"
+		elseif GSM_ON == "-gsm=2F" then
+			gsm_estatus = "GSM: ON (line doubling + filed flipping)"
+		else
+			GSM_ON = "-gsm=0"
+			gsm_estatus = "GSM: OFF (default)"
+		end
+	else
+		GSM_ON = "-gsm=0"
+		gsm_estatus = "GSM: OFF (default)"
+	end
+	local menus_nombres = {"USE VIRTUAL MEMORY CARD","NO VIRTUAL MEMORY CARD","COMPATIBILITY MODES:","IOP: FAST READS","DUMMY","IOP: SYNC READS","EE : UNHOOK SYSCALLS","IOP: EMULATE DVD-DL","IOP: FIX GAME BUFFER OVERRUN",gsm_estatus,"SAVE GAME SETTINGS"}
+	local menus_valores = {encontrado_vmcd,selector_VMC,0,modo_0,modo_1,modo_2,modo_3,modo_5,modo_7,"GSM","SAVE"}
 	local selector = 1
 	while pregunta do
 		-- Controlar menú de Configuración PS2
@@ -1210,9 +1228,31 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 				else
 					selector_VMC = 1
 				end
+			elseif selector == 10 then
+				if GSM_ON == "-gsm=0" then
+					GSM_ON = "-gsm=1"
+					gsm_estatus = "GSM: ON (576p/480p)"
+					menus_nombres[10] = gsm_estatus
+				elseif GSM_ON == "-gsm=1" then
+					GSM_ON = "-gsm=2"
+					gsm_estatus = "GSM: ON (576p/480p) + line doubling"
+					menus_nombres[10] = gsm_estatus
+				elseif GSM_ON == "-gsm=2" then
+					GSM_ON = "-gsm=1F"
+					gsm_estatus = "GSM: ON (576p/480p) + filed flipping"
+					menus_nombres[10] = gsm_estatus
+				elseif GSM_ON == "-gsm=1F" then
+					GSM_ON = "-gsm=2F"
+					gsm_estatus = "GSM: ON (line doubling + filed flipping)"
+					menus_nombres[10] = gsm_estatus
+				else
+					GSM_ON = "-gsm=0"
+					gsm_estatus = "GSM: OFF (default)"
+					menus_nombres[10] = gsm_estatus
+				end
 			elseif selector == 2 and #VMC_encontradas <= 0 then
 				selector_VMC = 0
-			elseif selector ~= 2 and selector ~= #menus_valores then
+			elseif selector ~= 2 and selector ~= 10 and selector ~= #menus_valores then
 				if menus_valores[selector] == 0 then
 					menus_valores[selector] = 1
 				else
@@ -1243,7 +1283,19 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 				if doesFileExist("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".mode") then
 					System.removeFile("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".mode")
 				end
-				if menus_valores[1] == 1 then
+				if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mgsm") then
+					System.removeFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mgsm")
+				end
+				if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".mgsm") then
+					System.removeFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre_iso,1,-5) ..".mgsm")
+				end
+				if doesFileExist("mass:/DVD/".. string.sub(nombre_iso,1,-5) ..".mgsm") then
+					System.removeFile("mass:/DVD/".. string.sub(nombre_iso,1,-5) ..".mgsm")
+				end
+				if doesFileExist("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".mgsm") then
+					System.removeFile("mass:/CD/".. string.sub(nombre_iso,1,-5) ..".mgsm")
+				end
+				if menus_valores[1] == 1 and #VMC_encontradas >= 1 then
 					local carga_de_VMC = "nada"
 					local dir = ("-mc0=".. VMC_encontradas[selector_VMC])
 					carga_de_VMC = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".vmcd",FCREATE)
@@ -1282,6 +1334,11 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 					System.writeFile(carga_de_modos,modos_on,string.len(modos_on))
 					System.closeFile(carga_de_modos)
 				end
+				if GSM_ON ~= "-gsm=0" then
+					carga_de_gsm = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre_iso,1,-5) ..".mgsm",FCREATE)
+					System.writeFile(carga_de_gsm,GSM_ON,string.len(GSM_ON))
+					System.closeFile(carga_de_gsm)
+				end
 				pregunta = false
 			end
 			CONTROL.JOYSTICK_ON = true 
@@ -1290,7 +1347,9 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
-			if selector <= #menus_nombres-1 then
+			if selector == 2 then
+				selector = selector+2
+			elseif selector <= #menus_nombres-1 then
 				selector = selector+1
 			else
 				selector = 1
@@ -1301,7 +1360,9 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
-			if selector >= 2 then
+			if selector == 4 then
+				selector = selector-2
+			elseif selector >= 2 then
 				selector = selector-1
 			else
 				selector = #menus_nombres
@@ -1336,9 +1397,10 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			Graphics.drawScaleImage(LISTAS.SCREENSHOT,-5,0,CONTROL.ANCHO+5,CONTROL.ALTO_F)
 		end
 		Graphics.drawScaleImage(LISTAS.LOGO,194,5+CONTROL.Y_FIX_PAL,252,76)
-		Graphics.drawRect(12,84+CONTROL.Y_FIX_PAL,615,330,COLOR.NEGRO_T)
-		Font.ftPrint(CONTROL.fontARCA,22,90+CONTROL.Y_FIX_PAL,0,540,8,"GAME SETTINGS:")
-		Font.ftPrint(CONTROL.fontARCA,22,114+CONTROL.Y_FIX_PAL,0,600,8,nombre_iso,COLOR.BLANCO)
+		Graphics.drawRect(12,76+CONTROL.Y_FIX_PAL,615,340,COLOR.NEGRO_T)
+		Graphics.drawRect(12,76+CONTROL.Y_FIX_PAL,615,50,COLOR.NEGRO_T)
+		Font.ftPrint(CONTROL.fontARCA,22,80+CONTROL.Y_FIX_PAL,0,540,8,"GAME SETTINGS:")
+		Font.ftPrint(CONTROL.fontARCA,22,104+CONTROL.Y_FIX_PAL,0,600,8,nombre_iso,COLOR.BLANCO)
 		if OPCIONES.GUI_LIMPIA_ON == 0 then
 			if OPCIONES.CAMBIO_FUENTE_ON == 1 then	 
 				Graphics.drawRect(490,420+CONTROL.Y_FIX_PAL,114,20,COLOR.NEGRO_T)
@@ -1351,7 +1413,7 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			if menus_valores[contador] == 0 then
 				acti = "STATE: OFF"
 			end
-			if contador == 2 or contador == 3 then
+			if contador == 2 or contador == 3 or contador == 10 then
 				acti = " "
 			end
 			if #VMC_encontradas <= 0 and menus_valores[1] == 1 then
@@ -1361,7 +1423,7 @@ function menu_neutrino(nombre_iso) -- Menú de Configuración PS2
 			elseif menus_valores[1] == 0 then
 				menus_nombres[2] = "NO VIRTUAL MEMORY CARD"
 			end
-			local espacio_linea = 128+((contador)*26)+CONTROL.Y_FIX_PAL
+			local espacio_linea = 104+((contador)*26)+CONTROL.Y_FIX_PAL
 			if contador == selector and contador ~= #menus_valores then
 				Font.ftPrint(CONTROL.fontARCA,22,espacio_linea,0,600,25,menus_nombres[selector],CAMBIOS_EMUS.COLOR_EMU)
 				Font.ftPrint(CONTROL.fontARCA,489,espacio_linea,0,0,25,acti,CAMBIOS_EMUS.COLOR_EMU)
@@ -3807,14 +3869,14 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 		end
 		if buscar2 ~= nil then
 			for contador = 1,#buscar2 do
-				if buscar2[contador].directory == false and string.lower(string.sub(buscar2[contador].name,-4)) == ".iso" or string.lower(string.sub(buscar2[contador].name,-4)) == ".mx4" or string.lower(string.sub(buscar2[contador].name,-4)) == ".hdd" then
+				if buscar2[contador].directory == false and string.lower(string.sub(buscar2[contador].name,-4)) == ".iso" or string.lower(string.sub(buscar2[contador].name,-4)) == ".mx4" or string.lower(string.sub(buscar2[contador].name,-4)) == ".hdd" or string.lower(string.sub(buscar2[contador].name,-4)) == ".mmc" then
 					table.insert(encontrados,buscar2[contador].name)
 				end
 			end
 		end
 		if buscar3 ~= nil then
 			for contador = 1,#buscar3 do
-				if buscar3[contador].directory == false and string.lower(string.sub(buscar3[contador].name,-4)) == ".iso" or string.lower(string.sub(buscar3[contador].name,-4)) == ".mx4" or string.lower(string.sub(buscar3[contador].name,-4)) == ".hdd" then
+				if buscar3[contador].directory == false and string.lower(string.sub(buscar3[contador].name,-4)) == ".iso" or string.lower(string.sub(buscar3[contador].name,-4)) == ".mx4" or string.lower(string.sub(buscar3[contador].name,-4)) == ".hdd" or string.lower(string.sub(buscar3[contador].name,-4)) == ".mmc" then
 					table.insert(encontrados,buscar3[contador].name)
 				end
 			end
@@ -3843,6 +3905,7 @@ end
 function ejecutar_iso(nombre) -- Ejecuta las ISO de Play Station 2
 	local vmc = nil
 	local modos = nil
+	local GSM = nil
 	local actual = System.currentDirectory()
 	if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".vmcd") then
 		local carga_vmc = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".vmcd",FREAD)
@@ -3938,106 +4001,170 @@ function ejecutar_iso(nombre) -- Ejecuta las ISO de Play Station 2
 		end
 		System.closeFile(carga_mode)
 	end
+	if doesFileExist(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".mgsm") then
+		local carga_gsm = System.openFile(actual .."/Roms/ISOs Play Station 2/Configs/".. string.sub(nombre,1,-5) ..".mgsm",FREAD)
+		System.seekFile(carga_gsm,0,SET)
+		local size3 = System.sizeFile(carga_gsm)
+		local temp3 = System.readFile(carga_gsm,size3)
+		for linea in string.gmatch(temp3,"-gsm=%w+") do 
+			GSM = linea
+		end
+		System.closeFile(carga_gsm)
+	elseif doesFileExist(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".mgsm") then
+		local carga_gsm = System.openFile(actual .."/Roms/ISOs Play Station 2/".. string.sub(nombre,1,-5) ..".mgsm",FREAD)
+		System.seekFile(carga_gsm,0,SET)
+		local size3 = System.sizeFile(carga_gsm)
+		local temp3 = System.readFile(carga_gsm,size3)
+		for linea in string.gmatch(temp3,"-gsm=%w+") do 
+			GSM = linea
+		end
+		System.closeFile(carga_gsm)
+	elseif doesFileExist("mass:/DVD/".. string.sub(nombre,1,-5) ..".mgsm") and OPCIONES.DIR_EXTRAS_ON == 1 then
+		local carga_gsm = System.openFile("mass:/DVD/".. string.sub(nombre,1,-5) ..".mgsm",FREAD)
+		System.seekFile(carga_gsm,0,SET)
+		local size3 = System.sizeFile(carga_gsm)
+		local temp3 = System.readFile(carga_gsm,size3)
+		for linea in string.gmatch(temp3,"-gsm=%w+") do 
+			GSM = linea
+		end
+		System.closeFile(carga_gsm)
+	elseif doesFileExist("mass:/CD/".. string.sub(nombre,1,-5) ..".mgsm") and OPCIONES.DIR_EXTRAS_ON == 1 then
+		local carga_gsm = System.openFile("mass:/CD/".. string.sub(nombre,1,-5) ..".mgsm",FREAD)
+		System.seekFile(carga_gsm,0,SET)
+		local size3 = System.sizeFile(carga_gsm)
+		local temp3 = System.readFile(carga_gsm,size3)
+		for linea in string.gmatch(temp3,"-gsm=%w+") do 
+			GSM = linea
+		end
+		System.closeFile(carga_gsm)
+	end
 	if OPCIONES.PREGUNTAR_PS2 == false then
+		if GSM == nil then
+			GSM = "-gsm=0"
+		end
 		if modos == nil and vmc == nil then
 			if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre) then
-				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
+				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
 			elseif doesFileExist("mass:/DVD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=mmce","-dvd=mmce:/DVD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=usb","-dvd=mass:/DVD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=usb","-dvd=mass:/DVD/".. nombre)
 				end
 			elseif doesFileExist("mass:/CD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=mmce","-dvd=mmce:/CD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,"-dbc","-bsd=usb","-dvd=mass:/CD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,GSM,"-bsd=usb","-dvd=mass:/CD/".. nombre)
 				end
 			end
 		elseif modos == nil and vmc ~= nil then
 			if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre) then
-				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
+				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
 			elseif doesFileExist("mass:/DVD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=mmce","-dvd=mmce:/DVD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=usb","-dvd=mass:/DVD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=usb","-dvd=mass:/DVD/".. nombre)
 				end
 			elseif doesFileExist("mass:/CD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=mmce","-dvd=mmce:/CD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,"-dbc","-bsd=usb","-dvd=mass:/CD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,GSM,"-bsd=usb","-dvd=mass:/CD/".. nombre)
 				end
 			end
 		elseif modos ~= nil and vmc == nil then
 			if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre) then
-				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
+				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
 			elseif doesFileExist("mass:/DVD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=mmce","-dvd=mmce:/DVD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=usb","-dvd=mass:/DVD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=usb","-dvd=mass:/DVD/".. nombre)
 				end
 			elseif doesFileExist("mass:/CD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=mmce","-dvd=mmce:/CD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,"-dbc","-bsd=usb","-dvd=mass:/CD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,modos,GSM,"-bsd=usb","-dvd=mass:/CD/".. nombre)
 				end
 			end
 		elseif modos ~= nil and vmc ~= nil then
 			if doesFileExist(actual .."/Roms/ISOs Play Station 2/".. nombre) then
-				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
+				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=usb","-dvd=".. actual .."/Roms/ISOs Play Station 2/".. nombre)
 			elseif doesFileExist("mass:/DVD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=mx4sio","-dvd=mass:/DVD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=ata","-dvd=mass:/DVD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=mmce","-dvd=mmce:/DVD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=usb","-dvd=mass:/DVD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=usb","-dvd=mass:/DVD/".. nombre)
 				end
 			elseif doesFileExist("mass:/CD/".. nombre) then
 				if string.lower(string.sub(nombre,-4)) == ".mx4" then
 					local nombre_mx4 = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=mx4sio","-dvd=mass:/CD/".. nombre_mx4)
 				elseif string.lower(string.sub(nombre,-4)) == ".hdd" then
 					local nombre_hdd = string.sub(nombre,1,-5) ..".iso"
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=ata","-dvd=mass:/CD/".. nombre_hdd)
+				elseif string.lower(string.sub(nombre,-4)) == ".mmc" then
+					local nombre_mmc = string.sub(nombre,1,-5) ..".iso"
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=mmce","-dvd=mmce:/CD/".. nombre_mmc)
 				else
-					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,"-dbc","-bsd=usb","-dvd=mass:/CD/".. nombre)
+					System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf",0,vmc,modos,GSM,"-bsd=usb","-dvd=mass:/CD/".. nombre)
 				end
 			end
 		end
 	elseif OPCIONES.PREGUNTAR_PS2 == true then
-		return vmc, modos
+		return vmc, modos, GSM
 	end
 end
 

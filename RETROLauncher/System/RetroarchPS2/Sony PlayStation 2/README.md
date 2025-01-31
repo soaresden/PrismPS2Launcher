@@ -4,7 +4,7 @@ Small, Fast and Modular PS2 Device Emulator
 ## Design
 A neutrino is a particle with almost zero mass, and that's what this device emulator's primary goal is. To have almost 0 mass when emulating devices to maximize compatibility.
 
-Neutrino also does not have a user interface, instead it's meant to be integrated as a backend to a frontend (user interface). Possible user interfaces can be uLaunchELF, XEB+, OPL or any new user interface. This makes neutrino much more easy to maintain, and allows many more applications to be made using neutrino as the backend.
+Neutrino also does not have a user interface, instead it's meant to be integrated as a backend to a frontend (user interface). This makes neutrino much more easy to maintain, and allows many more applications to be made using neutrino as the backend.
 
 With neutrino all modules are... modular. They are in a separate folder called `modules`. This allows the user add new and improved modules. What modules are loaded is fully configurable using TOML config files in the `config` folder.
 
@@ -17,15 +17,19 @@ An environment in neutrino describes what IOP modules are loaded and defines wha
 ## Backing Store Driver
 A backing store driver provides a storage location for storing virtual disk images. For instance of DVD's, HDD's or MC's.
 The following backing storage devices are supported:
-- USB (`usb`)
-- MX4SIO (`sdc`)
-- ATA (internal HDD) (`ata`)
-- UDPBD (`udp`)
-- iLink / IEEE1394 (`sd`)
+Device             | PS2 model | Speed                                                      | Device comp.                       | Type         | bsd      | internal
+-------------------|-----------|------------------------------------------------------------|------------------------------------|--------------|----------|-----
+USB                | FAT       |![x](https://progress-bar.xyz/800?scale=2200&suffix=KB/s)   | ![x](https://progress-bar.xyz/80)  | Block Device | `usb`    | `usb`
+USB                | slim      |![x](https://progress-bar.xyz/1000?scale=2200&suffix=KB/s)  | ![x](https://progress-bar.xyz/80)  | Block Device | `usb`    | `usb`
+MX4SIO             | slim      |![x](https://progress-bar.xyz/1200?scale=2200&suffix=KB/s)  | ![x](https://progress-bar.xyz/60)  | Block Device | `mx4sio` | `sdc`
+MMCE               | slim      |![x](https://progress-bar.xyz/1200?scale=2200&suffix=KB/s)  | ![x](https://progress-bar.xyz/100) | File System  | `mmce`   | -
+MX4SIO             | FAT       |![x](https://progress-bar.xyz/1800?scale=2200&suffix=KB/s)  | ![x](https://progress-bar.xyz/60)  | Block Device | `mx4sio` | `sdc`
+MMCE               | FAT       |![x](https://progress-bar.xyz/1800?scale=2200&suffix=KB/s)  | ![x](https://progress-bar.xyz/100) | File System  | `mmce`   | -
+iLink / IEEE1394   | FAT       |![x](https://progress-bar.xyz/6?scale=2&suffix=MB/s)        | ![x](https://progress-bar.xyz/10)  | Block Device | `ilink`  | `sd`
+UDPBD              | ALL       |![x](https://progress-bar.xyz/10?scale=2&suffix=MB/s)       | ![x](https://progress-bar.xyz/100) | Block Device | `udpbd`  | `udp`
+ATA (internal HDD) | FAT       |![x](https://progress-bar.xyz/20?scale=2&suffix=MB/s)       | ![x](https://progress-bar.xyz/100) | Block Device | `ata`    | `ata`
 
-NOTE: Internal block device names between (parenthesis), these must be used for `bdfs:`
-
-These are all BDM drivers, or "Block Devices". On all devices the following partitioning schemes are supported:
+On "Block Devices" the following partitioning schemes are supported:
 - MBR (Master Boot Record)
 - GPT (GUID Partition Table)
 
@@ -59,17 +63,19 @@ Usage: neutrino.elf options
 
 Options:
   -bsd=<driver>     Backing store drivers, supported are:
-                    - no (default)
-                    - ata
-                    - usb
-                    - mx4sio
-                    - udpbd
-                    - ilink
+                    - no     (uses cdvd, default)
+                    - ata    (block device)
+                    - usb    (block device)
+                    - mx4sio (block device)
+                    - udpbd  (block device)
+                    - ilink  (block device)
+                    - mmce   (file system)
 
-  -bsdfs=<driver>   Backing store fileystem drivers, supported are:
+  -bsdfs=<driver>   Backing store fileystem drivers used for block device, supported are:
                     - exfat (default)
                     - hdl   (HD Loader)
                     - bd    (Block Device)
+                    NOTE: Used only for block devices (see -bsd)
 
   -dvd=<mode>       DVD emulation mode, supported are:
                     - no (default)
@@ -110,21 +116,33 @@ Options:
                     - 7: IOP: Fix game buffer overrun
                     Multiple options possible, for example -gc=23
 
+  -gsm=<mode>       GS video mode forcing (also know as GSM)
+                    - 0:  off (default)
+                    - 1:  on  576i/480i -> 576p/480p
+                    - 2:  on  576i/480i -> 576p/480p + line doubling
+                    - 1F: on  576i/480i -> 576p/480p                 + filed flipping
+                    - 2F: on  576i/480i -> 576p/480p + line doubling + filed flipping
+                    Note that many games are not compatible with GSM.
+                    1 or 1F are the advised options to try.
+
   -cwd=<path>       Change working directory
 
   -cfg=<file>       Load extra user/game specific config file (without .toml extension)
 
-  -dbc              Enable debug colors
   -logo             Enable logo (adds rom0:PS2LOGO to arguments)
   -qb               Quick-Boot directly into load environment
 
   --b               Break, all following parameters are passed to the ELF
 
 Usage examples:
-  neutrino.elf -bsd=usb -dvd=mass:path/to/filename.iso
-  neutrino.elf -bsd=ata -dvd=mass:path/to/filename.iso
-  neutrino.elf -bsd=ata -bsdfs=hdl -dvd=hdl:filename.iso
-  neutrino.elf -bsd=udpbd -bsdfs=bd -dvd=bdfs:udp0p0
+  neutrino.elf -bsd=usb    -dvd=mass:path/to/filename.iso
+  neutrino.elf -bsd=mx4sio -dvd=mass:path/to/filename.iso
+  neutrino.elf -bsd=mmce   -dvd=mmce:path/to/filename.iso
+  neutrino.elf -bsd=ilink  -dvd=mass:path/to/filename.iso
+  neutrino.elf -bsd=udpbd  -dvd=mass:path/to/filename.iso
+  neutrino.elf -bsd=ata    -dvd=mass:path/to/filename.iso
+  neutrino.elf -bsd=ata    -dvd=hdl:filename.iso -bsdfs=hdl
+  neutrino.elf -bsd=udpbd  -dvd=bdfs:udp0p0      -bsdfs=bd
 ```
 
 ## Third-Party Loaders
@@ -133,8 +151,8 @@ The following third-party projects use neutrino:
 Loader | Author
 -|-
 [XEB+ neutrino Launcher Plugin](https://github.com/sync-on-luma/xebplus-neutrino-loader-plugin) | sync-on-luma
-[OPLNEUTRINO](https://www.psx-place.com/threads/opl-based-gui-frontend-for-neutrino.42166/) | crt0
 [NHDDL](https://github.com/pcm720/nhddl) | pcm720
 [RETROLauncher](https://github.com/Spaghetticode-Boon-Tobias/RETROLauncher) | Boon Tobias
+[OSD-XMB](https://github.com/HiroTex/OSD-XMB) | Hiro Tex
 
 Add your project here? Send me a PR.
