@@ -3,8 +3,17 @@
 --[[█▀▄ █▄▄  █  █▀▄ █▄█ █▄▄ ▀▄█ █▄█ █ █ █▄▄ █ █ ██▄ █ ]]--
 --[[--------------------------------------------------]]--
 
--- Mostrar imagen antes de la carga de variables
+-- Mostrar la pantalla de carga y comprobar directorio
 if true then
+	local actual = System.currentDirectory()
+	local salamander = System.openFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg",FREAD)
+	System.seekFile(salamander,0,SET)
+	local size = System.sizeFile(salamander)
+	local temp_dir = System.readFile(salamander,size)
+	System.closeFile(salamander)
+	if string.lower("libretro_path = \"".. actual .."/RETROLauncher.elf\"") ~= string.lower(temp_dir) or System.listDirectory("mass1:") ~= nil then
+		require("System/relocation")
+	end
 	local res_x, res_y = 640,448
 	if doesFileExist("System/Respaldo/PAL") == false and doesFileExist("System/Respaldo/NTSC") == false then
 		local mensaje = "Boinas Hijo"
@@ -28,11 +37,8 @@ if true then
 	end
 end
 
---- Líneas para audio
------------------------------------------------------------------------------------------
 -- Define formato de audio
-Sound.setFormat(16,48000,4)
-
+Sound.setFormat(16,48000,2)
 function set_volume() -- Define el volumen
 	Sound.setADPCMVolume(1,OPCIONES.SOUND_VOLUME)
 	if OPCIONES.SOUND_VOLUME >= 9 then
@@ -40,10 +46,7 @@ function set_volume() -- Define el volumen
 	else
 		Sound.setADPCMVolume(2,0)
 	end
-	Sound.setADPCMVolume(3,OPCIONES.SOUND_VOLUME)
-	Sound.setADPCMVolume(4,OPCIONES.SOUND_VOLUME)
 end
-
 function verificar_sonidos(sonido,dir) -- Verifica los sonidos
 	local actual = System.currentDirectory()
 	if doesFileExist(actual .."/".. dir) then
@@ -53,7 +56,6 @@ function verificar_sonidos(sonido,dir) -- Verifica los sonidos
 	end
 	return sonido
 end
-
 MENU_SONIDOS = {
 	CANCELAR = verificar_sonidos(CANCELAR,"System/Medios/Sound/Menu/back.adp");
 	NETX = verificar_sonidos(NETX,"System/Medios/Sound/Menu/next.adp");
@@ -61,18 +63,15 @@ MENU_SONIDOS = {
 	EJECUTAR = verificar_sonidos(EJECUTAR,"System/Medios/Sound/Menu/run.adp");
 	ERROR = verificar_sonidos(ERROR,"System/Medios/Sound/Menu/error.adp");
 	MUSICA = verificar_sonidos(MUSICA,"System/Medios/Sound/Background/music.adp");
-}; -- Pre cargar sonidos del menu
+};-- Pre cargar sonidos del menu
 
 -- Cargar todas las variables y configuraciones
------------------------------------------------------------------------------------------
 require("System/menu")
 require("System/funciones")
-puerto_usb()
 recargar_todas()
 cargar_config()
 
 -- Ejecutar RETROLauncher
------------------------------------------------------------------------------------------
 while true do
 	Dibujar()
 	Generar_Listas()

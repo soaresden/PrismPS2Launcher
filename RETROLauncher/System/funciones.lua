@@ -149,12 +149,26 @@ LISTAS = {
 	EXISTE_COV3 = false;
 	COV_X = 250;
 	SCR_X = 250;
-	COV_1_X = 250;
-	COV_2_X = 250;
+	COV_1_X = 160;
+	COV_2_X = 160;
 	COV_FIX = 0;
 	SCR_FIX = 0;
 	COV_1_FIX = 0;
 	COV_2_FIX = 0;
+	COV_Y = 193;
+	SCR_Y = 193;
+	COV_1_Y = 103;
+	COV_2_Y = 103;
+	COV_FIX_Y = 0;
+	SCR_FIX_Y = 0;
+	COV_1_FIX_Y = 0;
+	COV_2_FIX_Y = 0;
+	EX_FIX_S = 0;
+	EX_FIX_S_Y = 0;
+	EX_FIX_C = 0;
+	EX_FIX_C_Y = 0;
+	EXPAN_IMG = 270;
+	EXPAN_IMG_Y = 197;
 }; -- Define las variables usadas para la ejecución de las listas
 
 CAMBIOS_EMUS = {
@@ -285,32 +299,21 @@ function letter_breaks(inicial,pos,lado) -- Saltar letras en las listas
 end
 
 function limpiar_art() -- Elimina las imágenes de memoria
-	if CONTROL.ESTILO <= 1 or CONTROL.ESTILO >= 3 then
-		if LISTAS.COVER_ART ~= nil then
-			Graphics.freeImage(LISTAS.COVER_ART)
-			LISTAS.COVER_ART = nil
-		end
-		if LISTAS.SCREENSHOT ~= nil then
-			Graphics.freeImage(LISTAS.SCREENSHOT)
-			LISTAS.SCREENSHOT = nil
-		end
-	elseif CONTROL.ESTILO == 2 then
-		if LISTAS.COVER_ART ~= nil then
-			Graphics.freeImage(LISTAS.COVER_ART)
-			LISTAS.COVER_ART = nil
-		end
-		if LISTAS.SCREENSHOT ~= nil then
-			Graphics.freeImage(LISTAS.SCREENSHOT)
-			LISTAS.SCREENSHOT = nil
-		end
-		if LISTAS.COVER_ART2 ~= nil then
-			Graphics.freeImage(LISTAS.COVER_ART2)
-			LISTAS.COVER_ART2 = nil
-		end
-		if LISTAS.COVER_ART3 ~= nil then
-			Graphics.freeImage(LISTAS.COVER_ART3)
-			LISTAS.COVER_ART3 = nil
-		end
+	if LISTAS.COVER_ART ~= nil then
+		Graphics.freeImage(LISTAS.COVER_ART)
+		LISTAS.COVER_ART = nil
+	end
+	if LISTAS.SCREENSHOT ~= nil then
+		Graphics.freeImage(LISTAS.SCREENSHOT)
+		LISTAS.SCREENSHOT = nil
+	end
+	if LISTAS.COVER_ART2 ~= nil then
+		Graphics.freeImage(LISTAS.COVER_ART2)
+		LISTAS.COVER_ART2 = nil
+	end
+	if LISTAS.COVER_ART3 ~= nil then
+		Graphics.freeImage(LISTAS.COVER_ART3)
+		LISTAS.COVER_ART3 = nil
 	end
 end
 
@@ -512,71 +515,157 @@ function cargar_art() -- Cargar imágenes en memoria
 	ajustar_art()
 end
 
-function ajustar_art() -- Corrigue la relación de aspecto de las imágenes
+function ajustar_art() -- Corrige la relación de aspecto y centra las imágenes
+	local x_img = 250
+	local y_img = 193
+	local x_alter = 160
+	local y_alter = 103
+	LISTAS.EXPAN_IMG = 520-x_img
+	LISTAS.EXPAN_IMG_Y = 390-y_img
+	if CONTROL.ESTILO == 4 or CONTROL.ESTILO == 5 then
+		x_img = 295
+		y_img = 228
+		LISTAS.EXPAN_IMG = 520-x_img
+		LISTAS.EXPAN_IMG_Y = 390-y_img
+	elseif CONTROL.ESTILO == 6 then
+		x_img = 270
+		y_img = 208
+		LISTAS.EXPAN_IMG = 520-x_img
+		LISTAS.EXPAN_IMG_Y = 390-y_img
+	end
 	if LISTAS.COVER_ART ~= nil and LISTAS.EXISTE_COV == true then
 		local x = Graphics.getImageWidth(LISTAS.COVER_ART)
 		local y = Graphics.getImageHeight(LISTAS.COVER_ART)
-		if x<y then
-			LISTAS.COV_X = 154
-			LISTAS.COV_FIX = 48
-		else
-			LISTAS.COV_X = 250
+		local eiuqal = (y_img*x)/y
+		local ymot = (x_img*y)/x
+		if eiuqal <= x_img then
+			LISTAS.COV_X = eiuqal
+			LISTAS.COV_Y = y_img
+			LISTAS.COV_FIX = (x_img-eiuqal)/2
+			LISTAS.COV_FIX_Y = 0
+			LISTAS.EX_FIX_C = (520-((400*x)/y))/2
+			LISTAS.EX_FIX_C_Y = 0
+		elseif ymot <= y_img then
+			LISTAS.COV_X = x_img
+			LISTAS.COV_Y = ymot
 			LISTAS.COV_FIX = 0
-		end
+			LISTAS.COV_FIX_Y = (y_img-ymot)/2
+			LISTAS.EX_FIX_C = 0
+			LISTAS.EX_FIX_C_Y = (400-((520*y)/x))/2
+		else
+			LISTAS.COV_X = x_img
+			LISTAS.COV_Y = y_img
+			LISTAS.COV_FIX = 0
+			LISTAS.COV_FIX_Y = 0
+			LISTAS.EX_FIX_C = 0
+			LISTAS.EX_FIX_C_Y = 0
+		end	
 	else
-		LISTAS.COV_X = 250
+		LISTAS.COV_X = x_img
+		LISTAS.COV_Y = y_img
 		LISTAS.COV_FIX = 0
+		LISTAS.COV_FIX_Y = 0
+		LISTAS.EX_FIX_C = 0
+		LISTAS.EX_FIX_C_Y = 0
 	end
 	if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
 		local x = Graphics.getImageWidth(LISTAS.SCREENSHOT)
 		local y = Graphics.getImageHeight(LISTAS.SCREENSHOT)
-		if x<y then
-			LISTAS.SCR_X = 154
-			LISTAS.SCR_FIX = 48
-		else
-			LISTAS.SCR_X = 250
+		local eiuqal = (y_img*x)/y
+		local ymot = (x_img*y)/x
+		if eiuqal <= x_img then
+			LISTAS.SCR_X = eiuqal
+			LISTAS.SCR_Y = y_img
+			LISTAS.SCR_FIX = (x_img-eiuqal)/2
+			LISTAS.SCR_FIX_Y = 0
+			LISTAS.EX_FIX_S = (520-((400*x)/y))/2
+			LISTAS.EX_FIX_S_Y = 0
+		elseif ymot <= y_img then
+			LISTAS.SCR_X = x_img
+			LISTAS.SCR_Y = ymot
 			LISTAS.SCR_FIX = 0
-		end
+			LISTAS.SCR_FIX_Y = (y_img-ymot)/2
+			LISTAS.EX_FIX_S = 0
+			LISTAS.EX_FIX_S_Y = (400-((520*y)/x))/2
+		else
+			LISTAS.SCR_X = x_img
+			LISTAS.SCR_Y = y_img
+			LISTAS.SCR_FIX = 0
+			LISTAS.SCR_FIX_Y = 0
+			LISTAS.EX_FIX_S = 0
+			LISTAS.EX_FIX_S_Y = 0
+		end	
 	else
-		LISTAS.SCR_X = 250
+		LISTAS.SCR_X = x_img
+		LISTAS.SCR_Y = y_img
 		LISTAS.SCR_FIX = 0
+		LISTAS.SCR_FIX_Y = 0
+		LISTAS.EX_FIX_S = 0
+		LISTAS.EX_FIX_S_Y = 0
 	end
 	if CONTROL.ESTILO == 2 and LISTAS.COVER_ART2 ~= nil and LISTAS.EXISTE_COV2 == true then
 		local x = Graphics.getImageWidth(LISTAS.COVER_ART2)
 		local y = Graphics.getImageHeight(LISTAS.COVER_ART2)
-		if x<y then
-			LISTAS.COV_1_X = 154
-			LISTAS.COV_1_FIX = 48
-		else
-			LISTAS.COV_1_X = 250
+		local eiuqal = (y_alter*x)/y
+		local ymot = (x_alter*y)/x
+		if eiuqal <= x_alter then
+			LISTAS.COV_1_X = eiuqal
+			LISTAS.COV_1_Y = y_alter
+			LISTAS.COV_1_FIX = (x_alter-eiuqal)/2
+			LISTAS.COV_1_FIX_Y = 0
+		elseif ymot <= y_alter then
+			LISTAS.COV_1_X = x_alter
+			LISTAS.COV_1_Y = ymot
 			LISTAS.COV_1_FIX = 0
+			LISTAS.COV_1_FIX_Y = (y_alter-ymot)/2
+		else
+			LISTAS.COV_1_X = x_alter
+			LISTAS.COV_1_Y = y_alter
+			LISTAS.COV_1_FIX = 0
+			LISTAS.COV_1_FIX_Y = 0
 		end
-	elseif CONTROL.ESTILO == 2 then
-		LISTAS.COV_1_X = 250
+	else
+		LISTAS.COV_1_X = x_alter
+		LISTAS.COV_1_Y = y_alter
 		LISTAS.COV_1_FIX = 0
+		LISTAS.COV_1_FIX_Y = 0
 	end
 	if CONTROL.ESTILO == 2 and LISTAS.COVER_ART3 ~= nil and LISTAS.EXISTE_COV3 == true then
 		local x = Graphics.getImageWidth(LISTAS.COVER_ART3)
 		local y = Graphics.getImageHeight(LISTAS.COVER_ART3)
-		if x<y then
-			LISTAS.COV_2_X = 154
-			LISTAS.COV_2_FIX = 48
-		else
-			LISTAS.COV_2_X = 250
+		local eiuqal = (y_alter*x)/y
+		local ymot = (x_alter*y)/x
+		if eiuqal <= x_alter then
+			LISTAS.COV_2_X = eiuqal
+			LISTAS.COV_2_Y = y_alter
+			LISTAS.COV_2_FIX = (x_alter-eiuqal)/2
+			LISTAS.COV_2_FIX_Y = 0
+		elseif ymot <= y_alter then
+			LISTAS.COV_2_X = x_alter
+			LISTAS.COV_2_Y = ymot
 			LISTAS.COV_2_FIX = 0
+			LISTAS.COV_2_FIX_Y = (y_alter-ymot)/2
+		else
+			LISTAS.COV_2_X = x_alter
+			LISTAS.COV_2_Y = y_alter
+			LISTAS.COV_2_FIX = 0
+			LISTAS.COV_2_FIX_Y = 0
 		end
-	elseif CONTROL.ESTILO == 2 then
-		LISTAS.COV_2_X = 250
+	else
+		LISTAS.COV_2_X = x_alter
+		LISTAS.COV_2_Y = y_alter
 		LISTAS.COV_2_FIX = 0
+		LISTAS.COV_2_FIX_Y = 0
 	end
 end
 
 function guardar() -- Guardar último ROM y emulador usado
 	local actual = System.currentDirectory()
-	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .." ".. LAST_MOVE[1] .." ".. LAST_MOVE[2] .." ".. LAST_MOVE[3] .." ".. LAST_MOVE[4] .." ".. LAST_MOVE[5] .." ".. LAST_MOVE[6] .." ".. LAST_MOVE[7] .." ".. LAST_MOVE[8] .." ".. LAST_MOVE[9] .." ".. LAST_MOVE[10] .." ".. LAST_MOVE[11] .." ".. LAST_MOVE[12] .." ".. LAST_MOVE[13] .." ".. LAST_MOVE[14] .."")
+	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .." ".. LAST_MOVE[1] .." ".. LAST_MOVE[2] .." ".. LAST_MOVE[3] .." ".. LAST_MOVE[4] .." ".. LAST_MOVE[5] .." ".. LAST_MOVE[6] .." ".. LAST_MOVE[7] .." ".. LAST_MOVE[8] .." ".. LAST_MOVE[9] .." ".. LAST_MOVE[10] .." ".. LAST_MOVE[11] .." ".. LAST_MOVE[12] .." ".. LAST_MOVE[13] .." ".. LAST_MOVE[14] .."                                        ")
 	if doesFileExist(actual .."/System/Config/Config.cfg") then
-		local carga_de_config = System.openFile("System/Config/Config.cfg",FWRITE)
-		System.writeFile(carga_de_config,config .."                              ",string.len(config)+30)
+		System.removeFile(actual .."/System/Config/Config.cfg")
+		local carga_de_config = System.openFile("System/Config/Config.cfg",FCREATE)
+		System.writeFile(carga_de_config,config .." ",string.len(config))
 		System.closeFile(carga_de_config)
 	else
 		if doesFileExist(actual .."/System/Respaldo/Config.cfg") then
@@ -624,10 +713,11 @@ end
 
 function guardar_opciones() -- Guardar opciones
 	local actual = System.currentDirectory()
-	local config = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.VIDEO_MODE .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .." ".. CAMBIOS_EMUS.Tras .." ".. OPCIONES.LIBERAR_LISTAS .."")
+	local config = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.VIDEO_MODE .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .." ".. CAMBIOS_EMUS.Tras .." ".. OPCIONES.LIBERAR_LISTAS .."                                        ")
 	if doesFileExist(actual .."/System/Config/System.cfg") then
-		local carga_de_opciones = System.openFile("System/Config/System.cfg",FWRITE)
-		System.writeFile(carga_de_opciones,config .."                              ",string.len(config)+30)
+		System.removeFile(actual .."/System/Config/System.cfg")
+		local carga_de_opciones = System.openFile("System/Config/System.cfg",FCREATE)
+		System.writeFile(carga_de_opciones,config,string.len(config))
 		System.closeFile(carga_de_opciones)
 	else
 		if doesFileExist(actual .."/System/Respaldo/System.cfg") then
@@ -641,11 +731,12 @@ end
 
 function cargar_config() -- Cargar último ROM y emulador usado / Cargar opciones guardadas
 	local actual = System.currentDirectory()
-	local config2 = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G .." ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON .." ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON .." ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON .." ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON .." ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON .." ".. OPCIONES.VIDEO_MODE .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .." ".. CAMBIOS_EMUS.Tras .." ".. OPCIONES.LIBERAR_LISTAS .."")
+	-- Cargar opciones guardadas
 	if doesFileExist(actual .."/System/Config/System.cfg") then
 		local carga_de_config2 = System.openFile(actual .."/System/Config/System.cfg",FREAD)
 		System.seekFile(carga_de_config2,0,SET)
-		local temp2 = System.readFile(carga_de_config2,string.len(config2)+30)
+		local size_config2 = System.sizeFile(carga_de_config2)
+		local temp2 = System.readFile(carga_de_config2,size_config2)
 		local lista_config2 = {}
 		for linea in string.gmatch(temp2,"%d+") do 
 			table.insert(lista_config2,tonumber(linea))
@@ -882,9 +973,6 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 			end
 			if lista_config2[35] <= 1 and lista_config2[35] >= 0 then
 				OPCIONES.LIBERAR_LISTAS = lista_config2[35]
-				if OPCIONES.LIBERAR_LISTAS == 1 then
-					PRE_CARGADAS = {{},{},{},{},{},{},{},{},{},{},{},{},{},{}}
-				end
 			end
 		else
 			OPCIONES.RGB_ON = 1
@@ -972,17 +1060,22 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 		OPCIONES.LIBERAR_LISTAS = 0
 		guardar_opciones()
 	end
-	local config = ("".. LISTAS.IDENTIDAD .." ".. LISTAS.INDICE .." ".. LAST_MOVE[1] .." ".. LAST_MOVE[2] .." ".. LAST_MOVE[3] .." ".. LAST_MOVE[4] .." ".. LAST_MOVE[5] .." ".. LAST_MOVE[6] .." ".. LAST_MOVE[7] .." ".. LAST_MOVE[8] .." ".. LAST_MOVE[9] .." ".. LAST_MOVE[10] .." ".. LAST_MOVE[11] .." ".. LAST_MOVE[12] .." ".. LAST_MOVE[13] .." ".. LAST_MOVE[14] .."")
+	-- Cargar último ROM y emulador usado
 	if doesFileExist(actual .."/System/Config/Config.cfg") then
 		local carga_de_config = System.openFile(actual .."/System/Config/Config.cfg",FREAD)
 		System.seekFile(carga_de_config,0,SET)
-		local temp = System.readFile(carga_de_config,string.len(config)+30)
+		local size_config = System.sizeFile(carga_de_config)
+		local temp = System.readFile(carga_de_config,size_config)
 		local lista_config = {}
 		for linea in string.gmatch(temp,"%d+") do 
 			table.insert(lista_config,tonumber(linea))
 		end
 		if lista_config ~= nil and #lista_config == 16 then
 			LISTAS.IDENTIDAD = lista_config[1]
+			if OPCIONES.LIBERAR_LISTAS == 1 then
+				PRE_CARGADAS = {{},{},{},{},{},{},{},{},{},{},{},{},{},{}}
+				recargar_una(LISTAS.IDENTIDAD)
+			end
 			LISTAS.ROMS = nil
 			LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
 			if #LISTAS.ROMS >= 1 and LISTAS.IDENTIDAD ~= 13 then
@@ -998,6 +1091,10 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 			LAST_MOVE = {lista_config[3],lista_config[4],lista_config[5],lista_config[6],lista_config[7],lista_config[8],lista_config[9],lista_config[10],lista_config[11],lista_config[12],lista_config[13],lista_config[14],lista_config[15],lista_config[16]}
 		else
 			LISTAS.IDENTIDAD = 1
+			if OPCIONES.LIBERAR_LISTAS == 1 then
+				PRE_CARGADAS = {{},{},{},{},{},{},{},{},{},{},{},{},{},{}}
+				recargar_una(LISTAS.IDENTIDAD)
+			end
 			LISTAS.ROMS = nil
 			LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
 			if #LISTAS.ROMS >= 1 and LISTAS.IDENTIDAD ~= 13 then
@@ -1010,6 +1107,10 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 		System.closeFile(carga_de_config)
 	else
 		LISTAS.IDENTIDAD = 1
+		if OPCIONES.LIBERAR_LISTAS == 1 then
+			PRE_CARGADAS = {{},{},{},{},{},{},{},{},{},{},{},{},{},{}}
+			recargar_una(LISTAS.IDENTIDAD)
+		end
 		LISTAS.ROMS = nil
 		LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
 		if #LISTAS.ROMS >= 1 and LISTAS.IDENTIDAD ~= 13 then
@@ -1021,11 +1122,6 @@ function cargar_config() -- Cargar último ROM y emulador usado / Cargar opcione
 		guardar()
 	end
 	desactivados(nil)
-	LISTAS.ROMS = nil
-	LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
-	if #LISTAS.ROMS >= 1 and LISTAS.IDENTIDAD ~= 13 then
-		table.sort(LISTAS.ROMS,orden_alfabetico)
-	end
 	indices_extras()
 	animaciones()
 end
@@ -1111,22 +1207,6 @@ end
 function recargar_una(identidad) -- Recarga una lista determinada de un emulador
 	PRE_CARGADAS[identidad] = crear_listas(identidad,PRE_CARGADAS[identidad])
 	LISTAS.IDENTIDAD = identidad
-end
-
-function puerto_usb() -- Verifica que el programa no se ejecute desde el segundo puerto
-	local actual = System.currentDirectory()
-	local buscar = System.listDirectory("mass1:/")
-	if actual == "mass1:/RETROLauncher" or buscar ~= nil then
-		while true do
-			Screen.clear(COLOR.NEGRO)
-			if actual == "mass1:/RETROLauncher" then
-				Font.ftPrint(CONTROL.fontARCA,5,140,0,CONTROL.ANCHO,400,"Warning\nThis program was created to run from the first\nport(USB) of PS2.\nPlease, reconnect the USB to the first port and\nrestart the program.",COLOR.BLANCO)
-			elseif buscar ~= nil then
-				Font.ftPrint(CONTROL.fontARCA,5,140,0,CONTROL.ANCHO,400,"Warning\nUSB storage device detected on second port(USB)\nPlease, Disconnect the USB from the second port\nand restart the program.",COLOR.BLANCO)
-			end
-			refrescar()
-		end
-	end
 end
 
 function buscar_VMC() -- Busca y guarda VMC/Modos de PS2 
@@ -1915,7 +1995,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				JOYSTICK_LIMITE = control_FPS(1)
 			end
 		end
-		if Pads.check(PAD,PAD_L1) or Pads.check(PAD,PAD_R1) or Pads.check(PAD,PAD_L2) or Pads.check(PAD,PAD_R2) and CONTROL.JOYSTICK_ON == false then
+		if Pads.check(PAD,PAD_L1) or Pads.check(PAD,PAD_R1) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.NETX ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.NETX)
 			end
@@ -2271,13 +2351,27 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1) 
 		end
-		if (Pads.check(PAD,PAD_DOWN) or Left_Y >= 90) and CONTROL.JOYSTICK_ON == false then
+		if (Pads.check(PAD,PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD,PAD_R2)) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
+			local cambio = 1
+			if Pads.check(PAD,PAD_R2) and conf_numero == true then
+				if selector+4 <= 22 then
+					cambio = 4
+				else
+					cambio = 22-selector
+				end
+			elseif Pads.check(PAD,PAD_R2) and conf_numero == false then
+				if selector+4 <= #lista_config then
+					cambio = 4
+				else
+					cambio = #lista_config-selector
+				end
+			end
 			if conf_numero == true then
 				if selector <= 21 or selector <= #lista_config-1 then
-					selector = selector+1
+					selector = selector+cambio
 					if selector == 22 then
 						selector = #lista_config
 					end
@@ -2286,7 +2380,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				end
 			else
 				if selector <= #lista_config-1 then
-					selector = selector+1
+					selector = selector+cambio
 				else
 					selector = 22
 				end
@@ -2294,13 +2388,29 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 			CONTROL.JOYSTICK_ON = true 
 			JOYSTICK_LIMITE = control_FPS(1)
 		end
-		if (Pads.check(PAD,PAD_UP) or Left_Y <= -90) and CONTROL.JOYSTICK_ON == false then
+		if (Pads.check(PAD,PAD_UP) or Left_Y <= -90 or Pads.check(PAD,PAD_L2)) and CONTROL.JOYSTICK_ON == false then
 			if OPCIONES.SOUND_ON == 1 and MENU_SONIDOS.MOVER ~= nil then
 				Sound.playADPCM(1,MENU_SONIDOS.MOVER)
 			end
+			local cambio = 1
+			if Pads.check(PAD,PAD_L2) and conf_numero == false then
+				if selector-4 >= 22 then
+					cambio = 4
+				else
+					cambio = selector-22
+				end
+			elseif Pads.check(PAD,PAD_L2) and conf_numero == true then
+				if selector-4 >= 1 and selector ~= #lista_config then
+					cambio = 4
+				elseif selector == #lista_config then
+					cambio = 23 - 4
+				else
+					cambio = selector-1
+				end
+			end
 			if conf_numero == true then
 				if selector >= 2 then
-					selector = selector-1
+					selector = selector-cambio
 					if selector == #lista_config-1 then
 						selector = 21
 					end
@@ -2309,7 +2419,7 @@ function menu_config() -- Muestra, cambia y guarda las configuraciones
 				end
 			else
 				if selector >= 23 then
-					selector = selector-1
+					selector = selector-cambio
 				else
 					selector = #lista_config
 				end
@@ -3698,7 +3808,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 				if buscar2[contador].directory == false and string.lower(string.sub(buscar2[contador].name,-4)) == ".elf" then
 					table.insert(encontrados,buscar2[contador].name)
 					table.insert(LISTAS.DIR_FULL_APP,"mc0:/APPS/".. buscar2[contador].name)
-				elseif buscar2[contador].directory == true and string.sub(buscar2[contador].name,-1) ~= "." and string.sub(buscar2[contador].name,-2) ~= ".." then
+				elseif buscar2[contador].directory == true and string.sub(buscar2[contador].name,-1) ~= "." and string.sub(buscar2[contador].name,-2) ~= ".." and string.lower(buscar2[contador].name) ~= "retrolauncher" then
 					local recursiva = System.listDirectory("mc0:/APPS/".. buscar2[contador].name)
 					if recursiva ~= nil then
 						for contador2 = 1,#recursiva do
@@ -3720,7 +3830,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 				if buscar3[contador].directory == false and string.lower(string.sub(buscar3[contador].name,-4)) == ".elf" then
 					table.insert(encontrados,buscar3[contador].name)
 					table.insert(LISTAS.DIR_FULL_APP,"mc1:/APPS/".. buscar3[contador].name)
-				elseif buscar3[contador].directory == true and string.sub(buscar3[contador].name,-1) ~= "." and string.sub(buscar3[contador].name,-2) ~= ".." then
+				elseif buscar3[contador].directory == true and string.sub(buscar3[contador].name,-1) ~= "." and string.sub(buscar3[contador].name,-2) ~= ".." and string.lower(buscar3[contador].name) ~= "retrolauncher" then
 					local recursiva = System.listDirectory("mc1:/APPS/".. buscar3[contador].name)
 					if recursiva ~= nil then
 						for contador2 = 1,#recursiva do
@@ -3780,7 +3890,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 				if buscar4[contador].directory == false and string.lower(string.sub(buscar4[contador].name,-4)) == ".elf" then
 					table.insert(encontrados,buscar4[contador].name)
 					table.insert(LISTAS.DIR_FULL_APP,actual .."/Roms/APPS/".. buscar4[contador].name)
-				elseif buscar4[contador].directory == true then
+				elseif buscar4[contador].directory == true and string.lower(buscar4[contador].name) ~= "retrolauncher" then
 					local recursiva = System.listDirectory(actual .."/Roms/APPS/".. buscar4[contador].name)
 					if recursiva ~= nil then
 						for contador2 = 1,#recursiva do
@@ -3802,7 +3912,7 @@ function crear_listas(identidad,lista) -- Crea las listas de ROMS encontradas pa
 				if buscar[contador].directory == false and string.lower(string.sub(buscar[contador].name,-4)) == ".elf" then
 					table.insert(encontrados,buscar[contador].name)
 					table.insert(LISTAS.DIR_FULL_APP,"mass:/APPS/".. buscar[contador].name)
-				elseif buscar[contador].directory == true then
+				elseif buscar[contador].directory == true and string.lower(buscar[contador].name) ~= "retrolauncher" then
 					local recursiva = System.listDirectory("mass:/APPS/".. buscar[contador].name)
 					if recursiva ~= nil then
 						for contador2 = 1,#recursiva do
