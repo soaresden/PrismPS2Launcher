@@ -7,7 +7,7 @@ Requirements for the Covers:
 	* The name of the Cover must be the same as the ROM/APPS, respecting upper and lower case.
 	Example:
 		If the ROMS is called "GaMe.nes" the image must be called "GaMe.png".
-	* It is recommended to use resolutions lower than 420x320.
+	* It is recommended to use resolutions lower than 320x240.
 	* It is recommended to use 8-bit png images with 256 colors.
 	* The lighter the image, the smoother the system will run.
 	* The image must be in the directory corresponding to the ROM emulator.
