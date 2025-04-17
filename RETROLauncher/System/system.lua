@@ -157,6 +157,8 @@ OPCIONES = {
 	FONT_PIXEL_Y = 16;
 	FONT_SHADOW = 5;
 	SCROLL_MIN = 24;
+	OPL_ELF = "mass:/RETROLauncher/System/RetroarchPS2/Sony PlayStation 2/OPL/OPNPS2LD.ELF";
+	OPL_DIR = "DVD";
 };
 
 -- Define el estado de los emuladores (Activado / Desactivado). -------------------------
@@ -221,6 +223,7 @@ CONTROL = {
 	CUSTOM_BUTTON_R3 = true;
 	CUSTOM_BUTTON_STA = true;
 	CUSTOM_BUTTON_SEL = true;
+	CUSTOM_BACK = true;
 	Font.ftInit();
 	fontARCA = Font.ftLoad("System/Medios/Font/PublicPixel.ttf");
 	fontABC = Font.ftLoad("System/Medios/Font/PublicPixel.ttf");

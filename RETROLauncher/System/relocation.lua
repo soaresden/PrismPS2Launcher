@@ -100,6 +100,8 @@ function barra_de_progreso(estado, indi_rest, pal, LOADING)
 		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING ".. lista_indi_rest[indi_rest] .."-", Color.new(128, 128, 128))
 	elseif pal == true then
 		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING ".. lista_indi_rest[indi_rest] .." PAL-", Color.new(128, 128, 128))
+	elseif pal == nil and estado == 70 then
+		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING SNESticle-", Color.new(128, 128, 128))
 	elseif pal == nil then
 		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING ALL SETTINGS-", Color.new(128, 128, 128))
 	end
@@ -2861,8 +2863,22 @@ function relocation_dir()
 			System.copyFile(actual .."/System/Respaldo/RetroarchPS2_PAL/".. directorios_ori[sistema] .."retroarch/retroarch.cfg", actual .."/System/RetroarchPS2/".. directorios_ori[sistema] .."retroarch/retroarch.cfg")
 		end
 	end
+	
+	-- Edita los directorios de SNESticle. ----------------------------------------------
+	barra_de_progreso(70, sistema, nil, LOADING_LOAD)
+	local dirfinal = actual .."/Roms/Roms Nintendo Super Famicom/";
+	if string.len(dirfinal) <= 165 then
+		System.copyFile(actual .."/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/RETRO", actual .."/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/SNESticle")
+		local Snesticle_mod = System.openFile(actual .. "/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/SNESticle", FWRITE)
+		System.seekFile(Snesticle_mod, 432448, CUR)
+		System.writeFile(Snesticle_mod, dirfinal, string.len(dirfinal))
+		System.closeFile(Snesticle_mod)
+	else
+		System.copyFile(actual .."/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/DEFAULT", actual .."/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/SNESticle")
+	end
 
 	-- Crear archivos de retorno a RETROLauncher. ---------------------------------------
+	barra_de_progreso(75, sistema, nil, LOADING_LOAD)
 	local salamander_def = "libretro_path = \"".. actual .."/RETROLauncher.elf\""
 	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg") then
 		System.removeFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg")
@@ -2875,7 +2891,7 @@ function relocation_dir()
 		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg", actual .."/System/RetroarchPS2/".. directorios_ori[sistema] .."retroarch/retroarch-salamander.cfg")
 	end
 	System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg", actual .."/System/Respaldo/RetroarchPS2_PAL/retroarch-salamander.cfg")
-	barra_de_progreso(75, sistema, nil, LOADING_LOAD)
+
 	System.sleep(2)
 	Graphics.freeImage(FONDO_LOAD)
 	Graphics.freeImage(LOADING_LOAD)

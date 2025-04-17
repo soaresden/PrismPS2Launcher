@@ -5,8 +5,8 @@ What is RETROLauncher?
 
 RETROLauncher is a launcher with a graphical environment for retro games, 
 created entirely in Lua under the Enceladus development environment, in 
-conjunction with Retroarch, POPStarter, Neutrino and wLaunchELF ISR for the execution of 
-the games/APPS.
+conjunction with Retroarch, POPStarter, Neutrino and wLaunchELF ISR for the 
+execution of the games/APPS.
 
 The main objective of creating this program is to provide a friendly, 
 attractive and customizable graphical environment to manage ROMS libraries 
@@ -69,6 +69,27 @@ israpps (Matías Israelson) and is a wLaunchELF mod.
  / uLaunchELF - project by E P and dlanor.
  / LaunchELF - project by Mirakichi.
  / And to all the developers who contributed to uLaunchELF.
+ 
+SNESticle: SNESticle is a SNES emulator that was ported by its creator, 
+Icer Addis (Sardu), to several platforms, including PS2.
+ / Source code: https://github.com/iaddis/SNESticle
+ / License: MIT License Copyright 2022 Icer Addis
+
+RadShell: RadShell is a command line client for PS2 created by developer 
+“RadAd”, that allows the automation of basic tasks within PS2.
+ / RadShell Link: https://archive.org/details/radshell
+
+BDMAssault: BDMAssault is a PS2 homebrew project created by israpps (Matias Israelson) 
+that aims to bring USB EXFAT support to older closed-source homebrew applications 
+that can load external USB controllers.
+ / BDMAssault Project Link: https://github.com/israpps/BDMAssault
+ / License: Academic Free License "AFL" v. 2.0
+
+Open PS2 Loader: OPL is a 100% open source game and application loader for PS2 
+and PS3 devices, created by Ifcaro and jimmikaelkael in conjunction with a huge 
+community of developers who are constantly improving it.
+ / Open PS2 Loader Project Link: https://github.com/ps2homebrew/Open-PS2-Loader
+ / License: Copyright 2013, Ifcaro & jimmikaelkael Licensed under "AFL" v. 3.0.
 
 Original background: 
  / https://www.artapixel.com/escp-art-midnight-sun-city-night-retrowave-cyberpunk.html

@@ -588,15 +588,17 @@ function animaciones(lado)
 			elseif CONTROL.ESTILO ~= 2 and CONTROL.CUSTOM_LIST == true then
 				Graphics.drawRect(representar[2]-3, representar[8]-3, CONTROL.LISTA_X+6, CONTROL.LISTA_Y+6, COLOR.NEGRO_T)
 			end
-			if CONTROL.CUSTOM_ART1 == true then
-				Graphics.drawRect(representar[1]-5, representar[7]-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
-			end
-			if (CONTROL.ESTILO == 3 or CONTROL.ESTILO == 5 or CONTROL.ESTILO == 6 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_ART2 == true then
-				Graphics.drawRect(representar[4]-5, representar[10]-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
-			end
-			if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
-				Graphics.drawRect(representar[5]-5, representar[11]-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
-				Graphics.drawRect(representar[6]-5, representar[12]-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+			if CONTROL.CUSTOM_BACK == true then
+				if CONTROL.CUSTOM_ART1 == true then
+					Graphics.drawRect(representar[1]-5, representar[7]-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+				end
+				if (CONTROL.ESTILO == 3 or CONTROL.ESTILO == 5 or CONTROL.ESTILO == 6 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_ART2 == true then
+					Graphics.drawRect(representar[4]-5, representar[10]-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
+				end
+				if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
+					Graphics.drawRect(representar[5]-5, representar[11]-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
+					Graphics.drawRect(representar[6]-5, representar[12]-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+				end
 			end
 
 			-- Dibujar Logo. ------------------------------------------------------------
@@ -744,14 +746,14 @@ function color_emu(identidad)
 		MAX = 128; MIN = 100; RGB = 2; ACTUAL = 100;
 		BLANCO_1 = 128; BLANCO_2 = 128; BLANCO_3 = 128;
 
-	-- Colores para Play Station. -------------------------------------------------------
+	-- Colores para PlayStation 1. ------------------------------------------------------
 	elseif identidad == 13 and OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 0 then
 		EMU_1 = 0; EMU_2 = 60; EMU_3 = 128;
 		R = 0; G = 60; B = 128;
 		MAX = 80; MIN = 60; RGB = 2; ACTUAL = 60;
 		BLANCO_1 = 128; BLANCO_2 = 128; BLANCO_3 = 128;
 
-	-- Colores para Play Station 2. -----------------------------------------------------
+	-- Colores para PlayStation 2. ------------------------------------------------------
 	elseif identidad == 14 and OPCIONES.FONDO_RGB_ON == 1 and OPCIONES.FONDO_RGB_FIJO_ON == 0 then
 		EMU_1 = 0; EMU_2 = 80; EMU_3 = 128;
 		R = 0; G = 80; B = 128;
@@ -1343,11 +1345,20 @@ function buscar_directorio(dir)
 end
 
 --- Muestra mini explorador de directorios. ---------------------------------------------
-function marcar_directorio()
+function marcar_directorio(tipo, busqueda)
+	local device = salida_texto_dir(System.currentDirectory(), nil)
 	local selector = 1
 	local cachucho = true
 	CONTROL.JOYSTICK_ON = true
 	JOYSTICK_LIMITE = control_FPS(1)-20
+	local prev = OPCIONES.SALIDA_RETROLANCHER
+	if tipo == true and busqueda == 1 then
+		OPCIONES.SALIDA_RETROLANCHER = "mc0:/"
+	elseif tipo == true and busqueda == 2 then
+		OPCIONES.SALIDA_RETROLANCHER = "mc1:/"
+	elseif tipo == true and busqueda == 3 then
+		OPCIONES.SALIDA_RETROLANCHER = device .."/"
+	end
 	buscar_directorio(true)
 	while cachucho do
 		CONTROL.FPS = Screen.getFPS(1)
@@ -1405,10 +1416,15 @@ function marcar_directorio()
 				if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then
 					Sound.playADPCM(1, S_EJECUTAR)
 				end
+				if tipo == true then 
+					OPCIONES.OPL_ELF = OPCIONES.SALIDA_RETROLANCHER
+					OPCIONES.SALIDA_RETROLANCHER = prev
+				end
 			else
 				OPCIONES.SALIDA_RETROLANCHER_ON = 0
 				buscar_directorio(nil)
 				cachucho = false
+				if tipo == true then OPCIONES.SALIDA_RETROLANCHER = prev end
 				if OPCIONES.SOUND_ON == 1 and S_ERROR ~= nil then
 					Sound.playADPCM(1, S_ERROR)
 				end
@@ -1444,6 +1460,10 @@ function marcar_directorio()
 			Font.ftPrint(CONTROL.fontARCA, 22, 25+CONTROL.Y_FIX_PAL, 0, 601, 2, OPCIONES.SALIDA_RETROLANCHER, COLOR.BLANCO)
 			if string.lower(string.sub(OPCIONES.SALIDA_RETROLANCHER, -4)) == ".elf" then
 				cachucho = false
+				if tipo == true then 
+					OPCIONES.OPL_ELF = OPCIONES.SALIDA_RETROLANCHER
+					OPCIONES.SALIDA_RETROLANCHER = prev
+				end
 			end
 		else
 			Graphics.drawRect(-5, 22+CONTROL.Y_FIX_PAL, 650, 25, COLOR.NEGRO)
@@ -1484,7 +1504,7 @@ function menu_config()
 	0; 0; "SAVE";};
 	local lista_texto_config = {"RGB EFFECT"; "COLOR IN BACKGROUNDS"; "FIXED COLOR IN BACKGROUNDS"; "RED"; "GREEN"; "BLUE";
 	"LIST STYLE"; "MEGADRIVE"; "MASTER SYSTEM"; "GAME GEAR"; "FAMICOM"; "GAME BOY"; "GAME BOY COLOR"; "GAME BOY ADVANCE";
-	"ATARI 2600"; "SEGA SG-1000"; "NEO GEO POCKET"; "SUPER FAMICOM"; "APPS"; "PLAY STATION"; "PLAY STATION 2"; "FONT TYPE";
+	"ATARI 2600"; "SEGA SG-1000"; "NEO GEO POCKET"; "SUPER FAMICOM"; "APPS"; "PLAYSTATION"; "PLAYSTATION 2"; "FONT TYPE";
 	"CHANGE THE BACKGROUND"; "CLEAN GUI"; "FORCE GARBAGE COLLECTION"; "CUSTOM APP/ELF OUTPUT"; "DIRECTORY";
 	"SEE FULL ROUTE IN THE APPS MENU"; "SOUND IN THE MENU"; "SOUND VOLUME"; "SCREENSHOT AS BACKGROUND"; "VIDEO MODE";
 	"VIBRATION IN MENU"; "EXTRA DIRECTORIES"; "RESET ALL SETTINGS"; "CREDITS"; "- SAVE SETTINGS -";};
@@ -1601,7 +1621,7 @@ function menu_config()
 					Screen.clear(CAMBIOS_EMUS.COLOR_EMU)
 					local Right_X, Right_Y, Right_XY = zoom(LISTAS.ART_ZOOM, CONTROL.ANCHO, CONTROL.ALTO_F)
 					Graphics.drawScaleImage(help, 0-(Right_XY//2)-(Right_X//2), -10-(Right_Y//2), CONTROL.ANCHO+Right_XY, CONTROL.ALTO_F+Right_Y)
-					Font.ftPrint(CONTROL.fontARCA, 5, CONTROL.ALTO_F-19, 0, 640, 88, "RETROLauncher v1.0 / rev 0", COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA, 5, CONTROL.ALTO_F-19, 0, 640, 88, "RETROLauncher v1.0 / rev 1", COLOR.BLANCO)
 					refrescar(false)
 					if not Pads.check(PAD, PAD_L3) and not Pads.check(PAD, PAD_SELECT) and not Pads.check(PAD, PAD_R3) and not Pads.check(PAD, PAD_CROSS) and PAD ~= 0 then
 						yoshi = false
@@ -1617,7 +1637,7 @@ function menu_config()
 		end
 
 		-- Sistemas de configuraciones extras. ------------------------------------------
-		if Pads.check(PAD, PAD_SELECT) and CONTROL.JOYSTICK_ON == false and (selector == 22 or (selector == 7 and estilo_lista == 7) or (selector >= 8 and selector <= 18) or selector == 25 or selector == 29) then
+		if Pads.check(PAD, PAD_SELECT) and CONTROL.JOYSTICK_ON == false and (selector == 22 or (selector == 7 and estilo_lista == 7) or (selector >= 8 and selector <= 18) or selector == 21 or selector == 25 or selector == 29) then
 			if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then
 				Sound.playADPCM(1, S_EJECUTAR)
 			end
@@ -1626,6 +1646,60 @@ function menu_config()
 			if selector == 7 and estilo_lista == 7 then
 				local reload = editor_tema()
 				if CONTROL.ESTILO == 7 and reload == true then cargar_style(true) end
+				
+			-- Configurar directorio de OPL. --------------------------------------------
+			elseif selector == 21 then
+				local device = salida_texto_dir(System.currentDirectory(), nil)
+				local mens_text = {"SELECT SEARCH DEVICE", "mc0:", "mc1:", device}
+				local selec_disp = 1
+				local color = {Color.new(128, 128, 128), Color.new(128, 128, 128), Color.new(128, 128, 128)}
+				local scroll_opl = 1
+				local pregunta = true
+				CONTROL.JOYSTICK_ON = true
+				JOYSTICK_LIMITE = control_FPS(1)-20
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					tiempo_de_scroll()
+					if CONTROL.ESPERA_CARGA_SCR == false then
+						scroll_opl = scroll_texto(scroll_opl, OPCIONES.OPL_ELF, 44)
+					end
+					Graphics.drawRect(0, 160+CONTROL.Y_FIX_PAL, 640, 170, Color.new(128, 128, 128))
+					Graphics.drawRect(0, 162+CONTROL.Y_FIX_PAL, 640, 166, Color.new(0, 0, 0))
+					Font.ftPrint(CONTROL.fontARCA, (640//2), (162+8)+CONTROL.Y_FIX_PAL, 8, 640, 88, mens_text[1], COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA, (640//2), 195+CONTROL.Y_FIX_PAL, 8, 640, 24, mens_text[2], color[1])
+					Font.ftPrint(CONTROL.fontARCA, (640//2), 219+CONTROL.Y_FIX_PAL, 8, 640, 24, mens_text[3], color[2])
+					Font.ftPrint(CONTROL.fontARCA, (640//2), 243+CONTROL.Y_FIX_PAL, 8, 640, 24, mens_text[4], color[3])
+					Graphics.drawScaleImage(PAD_IMG.CROSS, 250-30, 270+CONTROL.Y_FIX_PAL, 20, 20)
+					Font.ftPrint(CONTROL.fontARCA, 250, 270+CONTROL.Y_FIX_PAL, 0, 640, 24, "SEARCH", COLOR.BLANCO)
+					Graphics.drawScaleImage(PAD_IMG.TRIANGLE, 374-30, 270+CONTROL.Y_FIX_PAL, 20, 20)
+					Font.ftPrint(CONTROL.fontARCA, 374, 270+CONTROL.Y_FIX_PAL, 0, 640, 24, "BACK", COLOR.BLANCO)
+					Font.ftPrint(CONTROL.fontARCA, (640//2), 297+CONTROL.Y_FIX_PAL, 8, 640, 24, string.sub(OPCIONES.OPL_ELF, scroll_opl), COLOR.BLANCO)
+					if Pads.check(PAD, PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
+						if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then Sound.playADPCM(1, S_EJECUTAR) end
+						marcar_directorio(true, selec_disp)
+						guardar_directorio_elf(true)
+						CONTROL.JOYSTICK_ON = true
+						JOYSTICK_LIMITE = control_FPS(1)
+						pregunta = false
+					elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) and CONTROL.JOYSTICK_ON == false then
+						if OPCIONES.SOUND_ON == 1 and S_MOVER ~= nil then Sound.playADPCM(1, S_MOVER) end
+						if (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+							selec_disp = cambiar_valor(selec_disp, 1, 3, 1, false)
+						elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
+							selec_disp = cambiar_valor(selec_disp, 1, 3, 1, true)
+						end
+						CONTROL.JOYSTICK_ON = true
+						JOYSTICK_LIMITE = control_FPS(1)
+					elseif Pads.check(PAD, PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
+						if OPCIONES.SOUND_ON == 1 and S_CANCELAR ~= nil then Sound.playADPCM(1, S_CANCELAR) end
+						CONTROL.JOYSTICK_ON = true
+						JOYSTICK_LIMITE = control_FPS(1)
+						pregunta = false
+					end
+					color = {Color.new(50, 50, 50), Color.new(50, 50, 50), Color.new(50, 50, 50)}
+					color[selec_disp] = Color.new(128, 128, 128)
+					refrescar(false)
+				end
 
 			-- Configurar fuente de texto. ----------------------------------------------
 			elseif selector == 22 then
@@ -2102,7 +2176,7 @@ function menu_config()
 			elseif selector == 27 then
 				if selec_dir ~= 0 then
 					buscar_directorio(nil)
-					marcar_directorio()
+					marcar_directorio(false, 0)
 					selec_dir = OPCIONES.SALIDA_RETROLANCHER_ON
 					lista_config[27] = OPCIONES.SALIDA_RETROLANCHER
 					lista_texto_config[27] = OPCIONES.SALIDA_RETROLANCHER
@@ -2185,11 +2259,11 @@ function menu_config()
 				OPCIONES.LIMITADOR_RAM_ON = lista_config[25]
 				if doesFileExist(OPCIONES.SALIDA_RETROLANCHER) and string.lower(string.sub(OPCIONES.SALIDA_RETROLANCHER, -4)) == ".elf" then
 					OPCIONES.SALIDA_RETROLANCHER_ON = selec_dir
-					guardar_directorio_elf()
+					guardar_directorio_elf(false)
 				else
 					OPCIONES.SALIDA_RETROLANCHER_ON = 0
 					OPCIONES.SALIDA_RETROLANCHER = "PS2 SYSTEM MENU"
-					guardar_directorio_elf()
+					guardar_directorio_elf(false)
 				end
 				OPCIONES.APPS_MENU_FULL_PATH = lista_config[28]
 				OPCIONES.SOUND_ON = lista_config[29]
@@ -2215,7 +2289,7 @@ function menu_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 2 then
 					CONTROL.IMG_ANCHO = 195; CONTROL.IMG_X = 250; CONTROL.IMG_ALTO = 110; CONTROL.IMG_Y = 193;
 					CONTROL.IMG_ANCHO_2 = 195; CONTROL.IMG_X_2 = 250; CONTROL.IMG_ALTO_2 = 110; CONTROL.IMG_Y_2 = 193;
@@ -2232,7 +2306,7 @@ function menu_config()
 					CONTROL.CUSTOM_FLOW = true; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 3 then
 					CONTROL.IMG_ANCHO = 48; CONTROL.IMG_X = 250; CONTROL.IMG_ALTO = 92; CONTROL.IMG_Y = 193;
 					CONTROL.IMG_ANCHO_2 = 340; CONTROL.IMG_X_2 = 250; CONTROL.IMG_ALTO_2 = 92; CONTROL.IMG_Y_2 = 193;
@@ -2249,7 +2323,7 @@ function menu_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 4 then
 					CONTROL.IMG_ANCHO = 333; CONTROL.IMG_X = 295; CONTROL.IMG_ALTO = 92; CONTROL.IMG_Y = 228;
 					CONTROL.IMG_ANCHO_2 = 333; CONTROL.IMG_X_2 = 295; CONTROL.IMG_ALTO_2 = 92; CONTROL.IMG_Y_2 = 228;
@@ -2266,7 +2340,7 @@ function menu_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 5 then
 					CONTROL.IMG_ANCHO = 12; CONTROL.IMG_X = 295; CONTROL.IMG_ALTO = 20; CONTROL.IMG_Y = 228;
 					CONTROL.IMG_ANCHO_2 = 332; CONTROL.IMG_X_2 = 295; CONTROL.IMG_ALTO_2 = 20; CONTROL.IMG_Y_2 = 228;
@@ -2283,7 +2357,7 @@ function menu_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 6 then
 					CONTROL.IMG_ANCHO = 345; CONTROL.IMG_X = 270; CONTROL.IMG_ALTO = 10; CONTROL.IMG_Y = 208;
 					CONTROL.IMG_ANCHO_2 = 345; CONTROL.IMG_X_2 = 270; CONTROL.IMG_ALTO_2 = 230; CONTROL.IMG_Y_2 = 208;
@@ -2300,7 +2374,7 @@ function menu_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 7 then
 					cargar_style(false)
 				end
@@ -2567,7 +2641,7 @@ function menu_config()
 					Graphics.drawRect(x_recta, espacio_linea-3+(y_recta_fix), 293-7, 25, COLOR.NEGRO_T)
 					Font.ftPrint(CONTROL.fontARCA, x_name, espacio_linea+(y_recta_fix), 0, 0, 8, "".. lista_texto_config[estado], CAMBIOS_EMUS.COLOR_EMU)
 					Font.ftPrint(CONTROL.fontARCA, x_act, espacio_linea+(y_recta_fix), 0, 0, 8, "".. acti, CAMBIOS_EMUS.COLOR_EMU)
-					if estado <= 18 then
+					if estado <= 18 or estado == 21 then
 						Graphics.drawScaleImage(PAD_IMG.SELECT_S, x_img, espacio_linea+(y_recta_fix), 20, 20)
 					end
 				else
@@ -2761,7 +2835,7 @@ function crear_listas(identidad, lista)
 			return lista
 		end
 
-	-- Búsquedas para Play Station 1. ---------------------------------------------------
+	-- Búsquedas para PlayStation 1. ----------------------------------------------------
 	elseif identidad == 13 then
 		-- Realizar búsqueda. -----------------------------------------------------------
 		local buscar = System.listDirectory(device .."/POPS")
@@ -2784,7 +2858,7 @@ function crear_listas(identidad, lista)
 			return lista
 		end
 
-	-- Búsquedas para Play Station 2. ---------------------------------------------------
+	-- Búsquedas para PlayStation 2. ----------------------------------------------------
 	elseif identidad == 14 then
 		-- Lista de directorios. --------------------------------------------------------
 		local buscar_directorio = {actual.."/Roms/ISOs PlayStation 2", device .."/DVD", device .."/CD", "cdfs:"}
@@ -2826,13 +2900,153 @@ function crear_listas(identidad, lista)
 	end
 end
 
+--- Obtener parámetros para lanzar juegos con OPL. --------------------------------------
+function id_opl(directorio_iso, game_name)
+	local id_name = nil
+	if string.match(game_name, "%a+_%d+.%d+%.") then
+		id_name = string.upper(string.sub(game_name, 1, 11))
+	elseif string.lower(string.sub(game_name, -4)) == ".iso" then
+		local iso_r = System.openFile(directorio_iso .. game_name, FREAD)
+		System.seekFile(iso_r, 0, SET)
+		local temp_dir_r = System.readFile(iso_r, 1500000)
+		System.closeFile(iso_r)
+		local start_n, end_n = string.find(temp_dir_r,"%a%a%a%a_%d%d%d.%d%d")
+		if start_n ~= nil then
+			id_name = string.upper(string.sub(temp_dir_r, start_n, end_n))
+		end
+	end
+	local nombre_iso = string.sub(game_name, 1, -4) .."iso"
+	return nombre_iso, id_name
+end
+
+--- Mostrar selector de aplicaciones alternativas. --------------------------------------
+function alt_run(identidad)
+	local actual = System.currentDirectory()
+	local default_text = {"PicoDrive/Retroarch v1.19.1", " ", " ", "FCEultra/Retroarch v1.19.1", "Gambatte/Retroarch v1.20.0", "Gambatte/Retroarch v1.20.0", "gpSP/Retroarch v1.20.0", " ", " ", " ", "Snes9x 2002/Retroarch v1.20.0", "wLaunchELF ISR v4.43x", " ", "Neutrino v1.6.1"}
+	local alt_text = {"PicoDrive/Retroarch v1.15.0", " ", " ", "QuickNES/Retroarch v1.19.0", "TGB Dual/Retroarch v1.19.1", "TGB Dual/Retroarch v1.19.1", "TempGBA v1.45.5", " ", " ", " ", "SNESticle v0.3.4", "Enceladus", " ", "OPL"}
+	local mens_text = {"SELECT APPLICATION", "SELECT OPL VERSION"}
+	local run = nil
+	local pregunta = true
+	local selec_alt = 1
+	local color = {Color.new(128, 128, 128), Color.new(128, 128, 128)}
+	if identidad == 14 and doesFileExist(OPCIONES.OPL_ELF) == false then pregunta, run = false, false end
+	CONTROL.JOYSTICK_ON = true
+	JOYSTICK_LIMITE = control_FPS(1)-26
+	while pregunta do
+		capturar(JOYSTICK_LIMITE)
+		RGB()
+		dibujar_fondos()
+		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
+			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+		end
+		Graphics.drawRect(0, 160+CONTROL.Y_FIX_PAL, 640, 116, Color.new(128, 128, 128))
+		Graphics.drawRect(0, 162+CONTROL.Y_FIX_PAL, 640, 112, Color.new(0, 0, 0))
+		Font.ftPrint(CONTROL.fontARCA, (640//2), (162+8)+CONTROL.Y_FIX_PAL, 8, 640, 88, mens_text[1], COLOR.BLANCO)
+		Font.ftPrint(CONTROL.fontARCA, (640//2), 195+CONTROL.Y_FIX_PAL, 8, 640, 24, default_text[identidad], color[1])
+		Font.ftPrint(CONTROL.fontARCA, (640//2), 219+CONTROL.Y_FIX_PAL, 8, 640, 24, alt_text[identidad], color[2])
+		Graphics.drawScaleImage(PAD_IMG.CROSS, 250-30, 246+CONTROL.Y_FIX_PAL, 20, 20)
+		Font.ftPrint(CONTROL.fontARCA, 250, 246+CONTROL.Y_FIX_PAL, 0, 640, 24, "RUN", COLOR.BLANCO)
+		Graphics.drawScaleImage(PAD_IMG.TRIANGLE, 374-30, 246+CONTROL.Y_FIX_PAL, 20, 20)
+		Font.ftPrint(CONTROL.fontARCA, 374, 246+CONTROL.Y_FIX_PAL, 0, 640, 24, "BACK", COLOR.BLANCO)
+		if Pads.check(PAD, PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then Sound.playADPCM(1, S_EJECUTAR) end
+			if selec_alt == 2 then run = true else run = false end
+			CONTROL.JOYSTICK_ON = true
+			JOYSTICK_LIMITE = control_FPS(1)
+			pregunta = false
+		elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and S_MOVER ~= nil then Sound.playADPCM(1, S_MOVER) end
+			if (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+				selec_alt = cambiar_valor(selec_alt, 1, 2, 1, false)
+			elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
+				selec_alt = cambiar_valor(selec_alt, 1, 2, 1, true)
+			end
+			CONTROL.JOYSTICK_ON = true
+			JOYSTICK_LIMITE = control_FPS(1)
+		elseif (Pads.check(PAD, PAD_TRIANGLE) or Pads.check(PAD, PAD_CIRCLE)) and CONTROL.JOYSTICK_ON == false then
+			if OPCIONES.SOUND_ON == 1 and S_CANCELAR ~= nil then Sound.playADPCM(1, S_CANCELAR) end
+			CONTROL.JOYSTICK_ON = true
+			JOYSTICK_LIMITE = control_FPS(1)
+			run = nil
+			pregunta = false
+		end
+		color = {Color.new(50, 50, 50), Color.new(50, 50, 50)}
+		color[selec_alt] = Color.new(128, 128, 128)
+		refrescar(false)
+	end
+
+	-- Buscar y seleccionar versiones de OPL. -------------------------------------------
+	if run == true and identidad == 14 then
+		local buscar_versiones_opl = System.listDirectory(actual .."/System/RetroarchPS2/Sony PlayStation 2/OPL")
+		local encontrados = {}
+		local minimo_opl, externo = 2, false
+		if buscar_versiones_opl ~= nil then
+			if salida_texto_dir(OPCIONES.OPL_ELF, false) ~= actual .."/System/RetroarchPS2/Sony PlayStation 2/OPL/" and #buscar_versiones_opl >= 1 then
+				table.insert(encontrados, salida_texto_dir(OPCIONES.OPL_ELF.. " (SET BY USER)", true))
+				minimo_opl, externo = 1, true
+			end
+			for contador = 1, #buscar_versiones_opl do
+				if buscar_versiones_opl[contador].directory == false and string.lower(string.sub(buscar_versiones_opl[contador].name, -4)) == ".elf" then
+					table.insert(encontrados, buscar_versiones_opl[contador].name)
+				end
+			end
+		end
+		local selec_opl = 1
+		if #encontrados >= minimo_opl then
+			local pregunta = true
+			CONTROL.JOYSTICK_ON = true
+			JOYSTICK_LIMITE = control_FPS(1)-26
+			while pregunta do
+				capturar(JOYSTICK_LIMITE)
+				RGB()
+				dibujar_fondos()
+				if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
+					Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+				end
+				Graphics.drawRect(0, 160+CONTROL.Y_FIX_PAL, 640, 92, Color.new(128, 128, 128))
+				Graphics.drawRect(0, 162+CONTROL.Y_FIX_PAL, 640, 88, Color.new(0, 0, 0))
+				Font.ftPrint(CONTROL.fontARCA, (640//2), (162+8)+CONTROL.Y_FIX_PAL, 8, 640, 88, mens_text[2], COLOR.BLANCO)
+				Font.ftPrint(CONTROL.fontARCA, (640//2), 195+CONTROL.Y_FIX_PAL, 8, 640, 24, encontrados[selec_opl], COLOR.BLANCO)
+				Graphics.drawScaleImage(PAD_IMG.CROSS, 250-30, 222+CONTROL.Y_FIX_PAL, 20, 20)
+				Font.ftPrint(CONTROL.fontARCA, 250, 222+CONTROL.Y_FIX_PAL, 0, 640, 24, "RUN", COLOR.BLANCO)
+				Graphics.drawScaleImage(PAD_IMG.TRIANGLE, 374-30, 222+CONTROL.Y_FIX_PAL, 20, 20)
+				Font.ftPrint(CONTROL.fontARCA, 374, 222+CONTROL.Y_FIX_PAL, 0, 640, 24, "BACK", COLOR.BLANCO)
+				if Pads.check(PAD, PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
+					if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then Sound.playADPCM(1, S_EJECUTAR) end
+					if ((selec_opl ~= 1 and externo == true) or externo == false) then
+						OPCIONES.OPL_ELF = actual .."/System/RetroarchPS2/Sony PlayStation 2/OPL/".. encontrados[selec_opl]
+					end
+					pregunta = false
+				elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) and CONTROL.JOYSTICK_ON == false then
+					if OPCIONES.SOUND_ON == 1 and S_MOVER ~= nil then Sound.playADPCM(1, S_MOVER) end
+					if (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+						selec_opl = cambiar_valor(selec_opl, 1, #encontrados, 1, false)
+					elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
+						selec_opl = cambiar_valor(selec_opl, 1, #encontrados, 1, true)
+					end
+					CONTROL.JOYSTICK_ON = true
+					JOYSTICK_LIMITE = control_FPS(1)
+				elseif (Pads.check(PAD, PAD_TRIANGLE) or Pads.check(PAD, PAD_CIRCLE)) and CONTROL.JOYSTICK_ON == false then
+					if OPCIONES.SOUND_ON == 1 and S_CANCELAR ~= nil then Sound.playADPCM(1, S_CANCELAR) end
+					CONTROL.JOYSTICK_ON = true
+					JOYSTICK_LIMITE = control_FPS(1)
+					run = nil
+					pregunta = false
+				end
+			refrescar(false)
+			end
+		end
+	end
+	return run
+end
+
 --- Verifica los juegos y aplicaciones necesarias para cada sistema. --------------------
 function existe(identidad, nombre_juego, alternativo)
 	local actual = System.currentDirectory()
 	local device = salida_texto_dir(actual, nil)
 
 	-- Comprobar la existencia de archivos necesarios. ----------------------------------
-	if identidad <= 11 then
+	if identidad <= 11 and alternativo ~= nil then
 		-- Lista de sistemas. -----------------------------------------------------------
 		local dir_sistemas = {"Sega Megadrive", "Sega Master System", "Sega Game Gear", "Nintendo Famicom", "Nintendo Game Boy", "Nintendo Game Boy Color", "Nintendo Game Boy Advance", "Atari 2600", "Sega SG-1000", "Neo Geo Pocket", "Nintendo Super Famicom"}
 
@@ -2840,11 +3054,12 @@ function existe(identidad, nombre_juego, alternativo)
 		local name_cores = {"picodrive_libretro_ps2.elf", "picodrive_libretro_ps2.elf", "picodrive_libretro_ps2.elf", "fceumm_libretro_ps2.elf", "gambatte_libretro_ps2.elf", "gambatte_libretro_ps2.elf", "gpsp_libretro_ps2.elf", "stella2014_libretro_ps2.elf", "picodrive_libretro_ps2.elf", "race_libretro_ps2.elf", "snes9x2002_libretro_ps2.elf"}
 
 		-- Lista de aplicaciones alternativas. ------------------------------------------
-		local name_cores_alt = {"picodrive_libretro_ps2_alt.elf", " ", " ", "quicknes_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "TempGBA.elf", " ", " ", " ", " "}
+		local name_cores_alt = {"picodrive_libretro_ps2_alt.elf", " ", " ", "quicknes_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "TempGBA.elf", " ", " ", " ", "SNESticle.elf"}
 
 		-- Corrección en directorios alternativos. --------------------------------------
 		local dir_especiales = "cores"
 		if identidad == 7 and alternativo == true then dir_especiales = "TempGBA" end
+		if identidad == 11 and alternativo == true then dir_especiales = "SNESticle" end
 		if doesFileExist(actual .."/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores[identidad]) and alternativo == false then
 			return true
 		elseif doesFileExist(actual .."/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores_alt[identidad]) and alternativo == true then
@@ -2854,7 +3069,7 @@ function existe(identidad, nombre_juego, alternativo)
 		end
 
 	-- Comprobar la existencia de archivos necesarios (APPS). ---------------------------
-	elseif identidad == 12 then
+	elseif identidad == 12 and alternativo ~= nil then
 		if doesFileExist(LISTAS.DIR_FULL_APP[LISTAS.INDICE]) and doesFileExist(actual .."/System/RetroarchPS2/APPS/WLE.elf") and alternativo == false then
 			return true
 		elseif doesFileExist(LISTAS.DIR_FULL_APP[LISTAS.INDICE]) then
@@ -2863,21 +3078,28 @@ function existe(identidad, nombre_juego, alternativo)
 			return false
 		end
 
-	-- Comprobar la existencia de archivos necesarios (Play Station 1). -----------------
-	elseif identidad == 13 then
+	-- Comprobar la existencia de archivos necesarios (PlayStation 1). ------------------
+	elseif identidad == 13 and alternativo ~= nil then
 		if doesFileExist(device .."/POPS/".. nombre_juego) and doesFileExist(device .."/POPS/POPS_IOX.PAK") and doesFileExist(device .."/POPS/IOPRP252.IMG") then
 			return true
 		else
 			return false
 		end
 
-	-- Comprobar la existencia de archivos necesarios (Play Station 2). -----------------
-	elseif identidad == 14 then
-		if doesFileExist(actual .."/Roms/ISOs PlayStation 2/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") then
+	-- Comprobar la existencia de archivos necesarios (PlayStation 2). ------------------
+	elseif identidad == 14 and alternativo ~= nil then
+		local elf_lauch = actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf"
+		if alternativo == true then
+			elf_lauch = OPCIONES.OPL_ELF
+		end
+		if doesFileExist(actual .."/Roms/ISOs PlayStation 2/".. nombre_juego) and doesFileExist(elf_lauch) then
+			OPCIONES.OPL_DIR = "RETRO"
 			return true
-		elseif doesFileExist(device .."/DVD/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") and OPCIONES.DIR_EXTRAS_ON == 1 then
+		elseif doesFileExist(device .."/DVD/".. nombre_juego) and doesFileExist(elf_lauch) and OPCIONES.DIR_EXTRAS_ON == 1 then
+			OPCIONES.OPL_DIR = "DVD"
 			return true
-		elseif doesFileExist(device .."/CD/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf") and OPCIONES.DIR_EXTRAS_ON == 1 then
+		elseif doesFileExist(device .."/CD/".. nombre_juego) and doesFileExist(elf_lauch) and OPCIONES.DIR_EXTRAS_ON == 1 then
+			OPCIONES.OPL_DIR = "CD"
 			return true
 		elseif doesFileExist("cdfs:/".. string.sub(nombre_juego, 1, 11)) then
 			return true
@@ -2889,7 +3111,7 @@ function existe(identidad, nombre_juego, alternativo)
 	end
 end
 
---- Ejecuta las ISO de Play Station 2. --------------------------------------------------
+--- Ejecuta las ISO de PlayStation 2. ---------------------------------------------------
 function ejecutar_iso(nombre)
 	local actual = System.currentDirectory()
 	local device = salida_texto_dir(actual, nil)
@@ -3007,13 +3229,13 @@ function ejecutar_iso(nombre)
 		-- Lanzar el juego. -------------------------------------------------------------
 		local directorio_iso = name_device[selector_device] .. dir_iso[selector_dir]
 		if modos == nil and vmc == nil then
-			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf", 0, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
+			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf", 0, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
 		elseif modos == nil and vmc ~= nil then
-			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf", 0, vmc, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
+			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf", 0, vmc, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
 		elseif modos ~= nil and vmc == nil then
-			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf", 0, modos, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
+			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf", 0, modos, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
 		elseif modos ~= nil and vmc ~= nil then
-			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/neutrino.elf", 0, vmc, modos, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
+			System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf", 0, vmc, modos, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
 		end
 
 	-- Devuelve las configuraciones encontradas al menú de configuración de PS2. --------
@@ -3036,11 +3258,12 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		local name_cores = {"picodrive_libretro_ps2.elf", "picodrive_libretro_ps2.elf", "picodrive_libretro_ps2.elf", "fceumm_libretro_ps2.elf", "gambatte_libretro_ps2.elf", "gambatte_libretro_ps2.elf", "gpsp_libretro_ps2.elf", "stella2014_libretro_ps2.elf", "picodrive_libretro_ps2.elf", "race_libretro_ps2.elf", "snes9x2002_libretro_ps2.elf"}
 
 		-- Lista de aplicaciones alternativas. ------------------------------------------
-		local name_cores_alt = {"picodrive_libretro_ps2_alt.elf", " ", " ", "quicknes_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "TempGBA.elf", " ", " ", " ", " "}
+		local name_cores_alt = {"picodrive_libretro_ps2_alt.elf", " ", " ", "quicknes_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "tgbdual_libretro_ps2.elf", "TempGBA.elf", " ", " ", " ", "SNESticle.elf"}
 
 		-- Corrección en directorios alternativos. --------------------------------------
 		local dir_especiales = "cores"
 		if identidad == 7 and alternativo == true then dir_especiales = "TempGBA" end
+		if identidad == 11 and alternativo == true then dir_especiales = "SNESticle" end
 
 		-- Ejecutar juego. --------------------------------------------------------------
 		guardar()
@@ -3060,7 +3283,7 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 			System.loadELF(LISTAS.DIR_FULL_APP[LISTAS.INDICE], 0, salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE], false))
 		end
 
-	-- Ejecutar sistema de Play Station 1. ----------------------------------------------
+	-- Ejecutar sistema de PlayStation 1. -----------------------------------------------
 	elseif identidad == 13 then
 		guardar()
 		if doesFileExist(device .."/POPS/XX.".. string.sub(nombre_juego, 1, -5) ..".ELF") then
@@ -3074,13 +3297,22 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 			System.loadELF(device .."/POPS/XX.".. string.sub(nombre_juego, 1, -5) ..".ELF", 0, device .."/POPS/", "--nr")
 		end
 
-	-- Ejecutar sistema de Play Station 2. ----------------------------------------------
+	-- Ejecutar sistema de PlayStation 2. -----------------------------------------------
 	elseif identidad == 14 then
 		guardar()
-		if string.lower(string.sub(nombre_juego, -4)) == ".elf" then
-			System.loadELF("cdfs:/".. string.sub(nombre_juego, 1, 11), 0, "cdfs:/")
+		if OPCIONES.OPL_DIR ~= "RETRO" and alternativo == true then
+			local nombre_iso, id_name = id_opl(device .."/".. OPCIONES.OPL_DIR .."/", nombre_juego)
+			if id_name ~= nil then
+				System.loadELF(OPCIONES.OPL_ELF, 0, nombre_iso, id_name, OPCIONES.OPL_DIR, "bdm")
+			else
+				ejecutar_juego(14, nombre_juego, false)
+			end
 		else
-			ejecutar_iso(nombre_juego)
+			if string.lower(string.sub(nombre_juego, -4)) == ".elf" then
+				System.loadELF("cdfs:/".. string.sub(nombre_juego, 1, 11), 0, "cdfs:/")
+			else
+				ejecutar_iso(nombre_juego)
+			end
 		end
 	end
 end
@@ -3187,9 +3419,22 @@ function guardar()
 end
 
 --- Carga el directorio de salida seleccionado. -----------------------------------------
-function cargar_directorio_elf()
+function cargar_directorio_elf(tipo)
 	local actual = System.currentDirectory()
-	if doesFileExist(actual .."/System/Config/Path_file.cfg") then
+	if doesFileExist(actual .."/System/Config/Path_OPL.cfg") and tipo == true then
+		local carga_de_dir = System.openFile(actual .."/System/Config/Path_OPL.cfg", FREAD)
+		System.seekFile(carga_de_dir, 0, SET)
+		local size = System.sizeFile(carga_de_dir)
+		local temp_dir = System.readFile(carga_de_dir, size)
+		if doesFileExist(temp_dir) then
+			OPCIONES.OPL_ELF = temp_dir
+			return true
+		else
+			OPCIONES.OPL_ELF = actual .."/System/RetroarchPS2/Sony PlayStation 2/OPL/OPNPS2LD.ELF"
+			return false
+		end
+		System.closeFile(carga_de_dir)
+	elseif doesFileExist(actual .."/System/Config/Path_file.cfg") and tipo == false then
 		local carga_de_dir = System.openFile(actual .."/System/Config/Path_file.cfg", FREAD)
 		System.seekFile(carga_de_dir, 0, SET)
 		local size = System.sizeFile(carga_de_dir)
@@ -3204,22 +3449,27 @@ function cargar_directorio_elf()
 			return false
 		end
 		System.closeFile(carga_de_dir)
-	else
-		guardar_directorio_elf()
-		cargar_directorio_elf()
+	elseif tipo == false then
+		guardar_directorio_elf(false)
+		cargar_directorio_elf(false)
 	end
 end
 
 --- Guardar el directorio de salida seleccionado. ---------------------------------------
-function guardar_directorio_elf()
+function guardar_directorio_elf(tipo)
 	local actual = System.currentDirectory()
-	local dir = ("".. OPCIONES.SALIDA_RETROLANCHER .."")
-	if doesFileExist(actual .."/System/Config/Path_file.cfg") then
-		System.removeFile(actual .."/System/Config/Path_file.cfg")
+	local dir = OPCIONES.SALIDA_RETROLANCHER
+	local archivo = actual .."/System/Config/Path_file.cfg"
+	if tipo == true then
+		dir = OPCIONES.OPL_ELF
+		archivo = actual .."/System/Config/Path_OPL.cfg"
 	end
-	local carga_de_dir = System.openFile("System/Config/Path_file.cfg", FCREATE)
-	System.writeFile(carga_de_dir, dir, string.len(dir))
-	System.closeFile(carga_de_dir)
+	if doesFileExist(archivo) then
+		System.removeFile(archivo)
+	end
+	local guarda_dir = System.openFile(archivo, FCREATE)
+	System.writeFile(guarda_dir, dir, string.len(dir))
+	System.closeFile(guarda_dir)
 end
 
 --- Guardar opciones. -------------------------------------------------------------------
@@ -3291,7 +3541,7 @@ function cargar_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 2 then
 					CONTROL.IMG_ANCHO = 195; CONTROL.IMG_X = 250; CONTROL.IMG_ALTO = 110; CONTROL.IMG_Y = 193;
 					CONTROL.IMG_ANCHO_2 = 195; CONTROL.IMG_X_2 = 250; CONTROL.IMG_ALTO_2 = 110; CONTROL.IMG_Y_2 = 193;
@@ -3308,7 +3558,7 @@ function cargar_config()
 					CONTROL.CUSTOM_FLOW = true; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 3 then
 					CONTROL.IMG_ANCHO = 48; CONTROL.IMG_X = 250; CONTROL.IMG_ALTO = 92; CONTROL.IMG_Y = 193;
 					CONTROL.IMG_ANCHO_2 = 340; CONTROL.IMG_X_2 = 250; CONTROL.IMG_ALTO_2 = 92; CONTROL.IMG_Y_2 = 193;
@@ -3325,7 +3575,7 @@ function cargar_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 4 then
 					CONTROL.IMG_ANCHO = 333; CONTROL.IMG_X = 295; CONTROL.IMG_ALTO = 92; CONTROL.IMG_Y = 228;
 					CONTROL.IMG_ANCHO_2 = 333; CONTROL.IMG_X_2 = 295; CONTROL.IMG_ALTO_2 = 92; CONTROL.IMG_Y_2 = 228;
@@ -3342,7 +3592,7 @@ function cargar_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 5 then
 					CONTROL.IMG_ANCHO = 12; CONTROL.IMG_X = 295; CONTROL.IMG_ALTO = 20; CONTROL.IMG_Y = 228;
 					CONTROL.IMG_ANCHO_2 = 332; CONTROL.IMG_X_2 = 295; CONTROL.IMG_ALTO_2 = 20; CONTROL.IMG_Y_2 = 228;
@@ -3359,7 +3609,7 @@ function cargar_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 6 then
 					CONTROL.IMG_ANCHO = 345; CONTROL.IMG_X = 270; CONTROL.IMG_ALTO = 10; CONTROL.IMG_Y = 208;
 					CONTROL.IMG_ANCHO_2 = 345; CONTROL.IMG_X_2 = 270; CONTROL.IMG_ALTO_2 = 230; CONTROL.IMG_Y_2 = 208;
@@ -3376,7 +3626,7 @@ function cargar_config()
 					CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 					CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 					CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-					CONTROL.CUSTOM_BUTTON_SEL = true;
+					CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 				elseif CONTROL.ESTILO == 7 then
 					cargar_style(false)
 				end
@@ -3452,7 +3702,7 @@ function cargar_config()
 				OPCIONES.LIMITADOR_RAM_ON = lista_config2[24]
 			end
 			if lista_config2[25] <= 3 and lista_config2[25] >= 0 then
-				if lista_config2[25] >= 1 and cargar_directorio_elf() == true then
+				if lista_config2[25] >= 1 and cargar_directorio_elf(false) == true then
 					OPCIONES.SALIDA_RETROLANCHER_ON = lista_config2[25]
 				else
 					OPCIONES.SALIDA_RETROLANCHER_ON = 0
@@ -3618,6 +3868,7 @@ function cargar_config()
 		OPCIONES.SCROLL_MIN = 24
 		guardar_opciones()
 	end
+	cargar_directorio_elf(true)
 	pantalla_reiniciar_conf(LISTAS.FONDO, 40, false, 21)
 	recargar_todas()
 	pantalla_reiniciar_conf(LISTAS.FONDO, 60, false, 21)
@@ -4108,6 +4359,9 @@ function reiniciar_conf(limpiar, indi_rest)
 		if doesFileExist(actual .."/System/Respaldo/System.cfg") then
 			System.copyFile(actual .."/System/Respaldo/System.cfg", actual .."/System/Config/System.cfg")
 		end
+		if doesFileExist(actual .."/System/Respaldo/Path_OPL.cfg") then
+			System.copyFile(actual .."/System/Respaldo/Path_OPL.cfg", actual .."/System/Config/Path_OPL.cfg")
+		end
 	end
 
 	-- Restaura variables. --------------------------------------------------------------
@@ -4116,7 +4370,8 @@ function reiniciar_conf(limpiar, indi_rest)
 		guardar_opciones()
 		pantalla_reiniciar_conf(FONDO_LOAD, 75, false, indi_rest)
 		cargar_config()
-		cargar_directorio_elf()
+		cargar_directorio_elf(false)
+		cargar_directorio_elf(true)
 	end
 	Graphics.freeImage(FONDO_LOAD)
 end
@@ -4134,20 +4389,24 @@ function creditos()
 	Graphics.drawScaleImage(LOADING_LOAD, 0, 0, res_x, res_y)
 	refrescar(false)
 	local ENCELADUS = Graphics.loadImage("System/Medios/Credits/ENCELADUS.png")
-	local POPSTARTER = Graphics.loadImage("System/Medios/Credits/POPSTARTER.png")
 	local RETROARCH = Graphics.loadImage("System/Medios/Credits/RETROARCH.png")
 	local GPSP = Graphics.loadImage("System/Medios/Credits/GPSP.png")
-	local RETROLAUNCHER = Graphics.loadImage("System/Medios/Credits/RETROLAUNCHER.png")
+	local POPSTARTER = Graphics.loadImage("System/Medios/Credits/POPSTARTER.png")
 	local NEUTRINO = Graphics.loadImage("System/Medios/Credits/NEUTRINO.png")
 	local WLAUNCHELF = Graphics.loadImage("System/Medios/Credits/WLAUNCHELF_ISR.png")
+	local OPL = Graphics.loadImage("System/Medios/Credits/OPL.png")
+	local SNESTICLE = Graphics.loadImage("System/Medios/Credits/SNESTATION.png")
 	local SPAGHETTICODE = Graphics.loadImage("System/Medios/Credits/SPAGHETTICODE.png")
-	local CREDITOS_IMG = {ENCELADUS, RETROARCH, GPSP, POPSTARTER, NEUTRINO, WLAUNCHELF, SPAGHETTICODE, RETROLAUNCHER, RETROLAUNCHER}
+	local RETROLAUNCHER = Graphics.loadImage("System/Medios/Credits/RETROLAUNCHER.png")
+	local CREDITOS_IMG = {ENCELADUS, RETROARCH, GPSP, POPSTARTER, NEUTRINO, WLAUNCHELF, OPL, SNESTICLE, SPAGHETTICODE, RETROLAUNCHER, RETROLAUNCHER}
 	local CREDITOS_TXT = {"Enceladus is an enhanced Lua environment for\ncreating homebrew software for the PS2.\nDanielSant0s X: https://x.com/danadsees\n\nProject Link:\nhttps://github.com/DanielSant0s/Enceladus\nLicense: Distributed under GNU GPL-3.0 License.";
 	"Retroarch port created by RetroArch contributor\nfjtrujy (Francisco J. Trujillo).\nfjtrujy X: https://x.com/fjtrujy\n\nRetroarch Link:\nhttps://www.retroarch.com\n\nLicenses: There is software behind RetroArch\nthat is protected by Non-Commercial licenses.\nIt is important to respect the wishes of the\ndevelopers and people behind the respective\nprojects.\nhttps://docs.libretro.com/development/licenses/";
 	"TempGBA (GpSP) is a GBA emulator ported to PS2\nby developer belek666.\n\nbelek666 GitHub: https://github.com/belek666\n\nGpSP - PS2 link: https://www.psx-place.com/\nresources/gpsp-by-belek666.687/";
 	"POPStarter is a launcher which lets you play\nyour PS1 games in combination with PS1 emulator\nfor PS2.\n\nPOPStarter v13 was created by developer krHACKen.\nPOPStarter Link: https://\nwww.psx-place.com/threads/popstarter.19139/";
 	"Neutrino is a small, fast and modular PS2 device\nemulator that maximizes compatibility and\nperformance. Neutrino was created by developer\nMaximus32 (Rick Gaiser).\n\nNeutrino Link:\nhttps://github.com/rickgaiser/neutrino\n\nLicense: Academic Free License \"AFL\" v. 3.0";
 	"wLaunchELF ISR is an open source file manager\nand executable launcher for the PS2 console.\nwLaunchELF 4.43x_ISR was created by developer\nisrapps (Matías Israelson) and is a wLaunchELF\nmod.\n\nisrapps (Matías Israelson):\nhttps://israpps.github.io\nwLaunchELF 4.43x_ISR Project Link:\nhttps://github.com/israpps/wLaunchELF_ISR\n\nwLaunchELF Project Link:\nhttps://github.com/ps2homebrew/wLaunchELF\nLicense: Academic Free License \"AFL\" v. 2.0\nwLaunchELF / project by AKuHAK and SP193.\nuLaunchELF / project by E P and dlanor.\nLaunchELF / project by Mirakichi.\nAnd to all the developers who contributed to uLE.";
+	"OPL is a 100% open source game and application\nloader for PS2 and PS3 devices, created by\nIfcaro and jimmikaelkael in conjunction with a\nhuge community of developers who are constantly\nimproving it.\n\nOPL Project Link:\n https://github.com/ps2homebrew/Open-PS2-Loader\n\nLicense:\nCopyright 2013, Ifcaro & jimmikaelkael Licensed\nunder Academic Free License version 3.0.";
+	"SNESticle is a SNES emulator that was ported\nby its creator, Icer Addis (Sardu), to several\nplatforms, including PS2.\nSource code: https://github.com/iaddis/SNESticle\nLicense: MIT License Copyright 2022 Icer Addis\n\nRadShell is a command line client for PS2\ncreated by developer RadAd, that allows the\nautomation of basic tasks within PS2.\n\nBDM Assault is a PS2 homebrew project created\nby israpps (Matias Israelson) that aims to\nbring USB EXFAT support to older closed-source\nhomebrew applications that can load external\nUSB controllers.\nProject: https://github.com/israpps/BDMAssault";
 	"Thanks to public education for the support \nduring my technical training.\nSpaghetticode / LC - Mendoza - Argentina / 2024";
 	"Original background created by < e s c p > Art\nLicense: This Image is licensed under the\nCreative Commons Zero v1.0 Universal.\nFree images by https://www.artapixel.com\n\nFont \"Public Pixel\" Designed by GGBotNet.\nGGBotNet X: https://twitter.com/ggbotnet\nPublic Pixel Link: https://www.ggbot.net/fonts/\nLicense: This Font Software is licensed under\nthe Creative Commons Zero v1.0 Universal.\nCC0 1.0 Link: https://\ncreativecommons.org/publicdomain/zero/1.0/\n";
 	"A special thank you to the entire \"PSX-PLACE\"\ncommunity for providing support and visibility\nto the program.\nWe also thank all YouTube channels along with\ntheir communities for spreading and improving\nRETROLauncher with their supportive messages\nand constructive feedback.\n\nThanks for using RETROLauncher.     Boon Tobias"}
@@ -4157,11 +4416,11 @@ function creditos()
 	local cambio_t = true
 	local pasaje = false
 	local estado = 1
-	local lista_pos_imgY = {-73, -140, -140, -40, -93, -179, -80, -110, -110}
-	local lista_pos_imgX = {10, 0, 0, 10, 10, 10, -10, 0, 0}
-	local lista_pos_tex = {309+res_y_tex, 185+res_y_tex, 240+res_y_tex, 310+res_y_tex, 260+res_y_tex, 109+res_y_tex, 360+res_y_tex, 210+res_y_tex, 234+res_y_tex}
-	local lista_pos_img_x = {620, 640, 640, 620, 620, 620, 660, 640, 640}
-	local lista_pos_img_y = {460+res_y_tex, 480+res_y_tex, 480+res_y_tex, 460+res_y_tex, 460+res_y_tex, 460+res_y_tex, 500+res_y_tex, 480+res_y_tex, 480+res_y_tex}
+	local lista_pos_imgY = {-73, -140, -140, -40, -93, -179, -110, 5, -80, -110, -110}
+	local lista_pos_imgX = {10, 0, 0, 10, 10, 10, 0, 2, -10, 0, 0}
+	local lista_pos_tex = {309+res_y_tex, 185+res_y_tex, 240+res_y_tex, 310+res_y_tex, 260+res_y_tex, 109+res_y_tex, 190+res_y_tex, 148+res_y_tex, 360+res_y_tex, 210+res_y_tex, 234+res_y_tex}
+	local lista_pos_img_x = {620, 640, 640, 620, 620, 640, 640, 616, 660, 640, 640}
+	local lista_pos_img_y = {460+res_y_tex, 480+res_y_tex, 480+res_y_tex, 460+res_y_tex, 460+res_y_tex, 460+res_y_tex, 444+res_y_tex, 376+res_y_tex, 500+res_y_tex, 480+res_y_tex, 480+res_y_tex}
 	local autocambio = 0
 	local mostrar_sob = false
 	local TheLastLive = true
@@ -4194,9 +4453,9 @@ function creditos()
 				cambio_t = true
 				cambio = false
 			end
-		if estado == 8 and color_img == 0 and color_tex == 128 then
+		if estado == 10 and color_img == 0 and color_tex == 128 then
 			mostrar_sob = true
-		elseif estado == 9 and color_img == 0 and color_tex == 0 then
+		elseif estado == 11 and color_img == 0 and color_tex == 0 then
 			mostrar_sob = false
 		end
 
@@ -4233,6 +4492,8 @@ function creditos()
 	Graphics.freeImage(POPSTARTER)
 	Graphics.freeImage(NEUTRINO)
 	Graphics.freeImage(WLAUNCHELF)
+	Graphics.freeImage(SNESTICLE)
+	Graphics.freeImage(OPL)
 	Graphics.freeImage(RETROARCH)
 	Graphics.freeImage(GPSP)
 	Graphics.freeImage(RETROLAUNCHER)
@@ -4245,17 +4506,23 @@ end
 function dibujar_demo(selector_elementos, elementos_pos_new, elementos_tam_new, cambio_tama_pos, fijar, largo_lista, estado_elementos_new)
 	-- Vista previa del arte relacionado con cover flow. --------------------------------
 	if estado_elementos_new[4] == true then
-		Graphics.drawRect(elementos_pos_new[7]-5, elementos_pos_new[8]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[7]+10, elementos_tam_new[8]+10, COLOR.NEGRO_T)
-		Graphics.drawRect((CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7]))-5, elementos_pos_new[8]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[7]+10, elementos_tam_new[8]+10, COLOR.NEGRO_T)
+		if CONTROL.CUSTOM_BACK == true then
+			Graphics.drawRect(elementos_pos_new[7]-5, elementos_pos_new[8]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[7]+10, elementos_tam_new[8]+10, COLOR.NEGRO_T)
+			Graphics.drawRect((CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7]))-5, elementos_pos_new[8]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[7]+10, elementos_tam_new[8]+10, COLOR.NEGRO_T)
+		end
 		if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 			Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, elementos_pos_new[7], elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8])
-			Graphics.drawRect(elementos_pos_new[7], elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			if CONTROL.CUSTOM_BACK == true then
+				Graphics.drawRect(elementos_pos_new[7], elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			end
 		else
 			Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, elementos_pos_new[7], elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8], CAMBIOS_EMUS.COLOR_EMU_BACK)
 		end
 		if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 			Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, (CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7])), elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8])
-			Graphics.drawRect((CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7])), elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			if CONTROL.CUSTOM_BACK == true then
+				Graphics.drawRect((CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7])), elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			end
 		else
 			Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, (CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7])), elementos_pos_new[8]+CONTROL.Y_FIX_PAL, elementos_tam_new[7], elementos_tam_new[8], CAMBIOS_EMUS.COLOR_EMU_BACK)
 		end
@@ -4263,10 +4530,14 @@ function dibujar_demo(selector_elementos, elementos_pos_new, elementos_tam_new, 
 
 	-- Vista previa del arte extra. -----------------------------------------------------
 	if estado_elementos_new[3] == true then
-		Graphics.drawRect(elementos_pos_new[5]-5, elementos_pos_new[6]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[5]+10, elementos_tam_new[6]+10, COLOR.NEGRO_T)
+		if CONTROL.CUSTOM_BACK == true then
+			Graphics.drawRect(elementos_pos_new[5]-5, elementos_pos_new[6]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[5]+10, elementos_tam_new[6]+10, COLOR.NEGRO_T)
+		end
 		if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 			Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, elementos_pos_new[5], elementos_pos_new[6]+CONTROL.Y_FIX_PAL, elementos_tam_new[5], elementos_tam_new[6])
-			Graphics.drawRect(elementos_pos_new[5], elementos_pos_new[6]+CONTROL.Y_FIX_PAL, elementos_tam_new[5], elementos_tam_new[6], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			if CONTROL.CUSTOM_BACK == true then
+				Graphics.drawRect(elementos_pos_new[5], elementos_pos_new[6]+CONTROL.Y_FIX_PAL, elementos_tam_new[5], elementos_tam_new[6], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			end
 		else
 			Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, elementos_pos_new[5], elementos_pos_new[6]+CONTROL.Y_FIX_PAL, elementos_tam_new[5], elementos_tam_new[6], CAMBIOS_EMUS.COLOR_EMU_BACK)
 		end
@@ -4369,10 +4640,14 @@ function dibujar_demo(selector_elementos, elementos_pos_new, elementos_tam_new, 
 
 	-- Vista previa de portadas / capturas / fondos. ------------------------------------
 	if estado_elementos_new[2] == true then
-		Graphics.drawRect(elementos_pos_new[3]-5, elementos_pos_new[4]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[3]+10, elementos_tam_new[4]+10, COLOR.NEGRO_T)
+		if CONTROL.CUSTOM_BACK == true then
+			Graphics.drawRect(elementos_pos_new[3]-5, elementos_pos_new[4]-5+CONTROL.Y_FIX_PAL, elementos_tam_new[3]+10, elementos_tam_new[4]+10, COLOR.NEGRO_T)
+		end
 		if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 			Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, elementos_pos_new[3], elementos_pos_new[4]+CONTROL.Y_FIX_PAL, elementos_tam_new[3], elementos_tam_new[4])
-			Graphics.drawRect(elementos_pos_new[3], elementos_pos_new[4]+CONTROL.Y_FIX_PAL, elementos_tam_new[3], elementos_tam_new[4], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			if CONTROL.CUSTOM_BACK == true then
+				Graphics.drawRect(elementos_pos_new[3], elementos_pos_new[4]+CONTROL.Y_FIX_PAL, elementos_tam_new[3], elementos_tam_new[4], CAMBIOS_EMUS.COLOR_EMU_BACK)
+			end
 		else
 			Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, elementos_pos_new[3], elementos_pos_new[4]+CONTROL.Y_FIX_PAL, elementos_tam_new[3], elementos_tam_new[4], CAMBIOS_EMUS.COLOR_EMU_BACK)
 		end
@@ -4763,6 +5038,8 @@ function editor_tema()
 			Graphics.drawRect((CONTROL.ANCHO//2)+2, 2, 316, CONTROL.ALTO_F-4, Color.new(20, 20, 20))
 			Font.ftPrint(FONT_CNF, (CONTROL.ANCHO//2)+160, 12+CONTROL.Y_FIX_PAL, 8, 320, 21, "-ACTIVATE ELEMENTS-", Color.new(128, 128, 128))
 			local espacio_linea = 12+((0)*21)+CONTROL.Y_FIX_PAL
+			local art_shadow = "ON"
+			if CONTROL.CUSTOM_BACK == false then art_shadow = "OFF" end
 			for elementos = 1, 13 do
 				espacio_linea = 12+((elementos)*21)+CONTROL.Y_FIX_PAL
 				local estado_on = "OFF"
@@ -4775,6 +5052,10 @@ function editor_tema()
 				else
 					Font.ftPrint(FONT_CNF, (CONTROL.ANCHO//2)+13, espacio_linea, 0, 320, 21, nombres_opciones[elementos], Color.new(70, 70, 70))
 					Font.ftPrint(FONT_CNF, CONTROL.ANCHO-52, espacio_linea, 0, 320, 21, estado_on, Color.new(70, 70, 70))
+				end
+				if elementos == 2 then
+					Graphics.drawScaleImage(PAD_IMG.R1, CONTROL.ANCHO-240, espacio_linea-3, 25, 25)
+					Font.ftPrint(FONT_CNF, CONTROL.ANCHO-210, espacio_linea, 0, 320, 21, "SHADOW ".. art_shadow, Color.new(30, 30, 30))
 				end
 			end
 			Font.ftPrint(FONT_CNF, (CONTROL.ANCHO//2)+160, 304+CONTROL.Y_FIX_PAL, 8, 320, 21, "-EXTRA OPTIONS-", Color.new(128, 128, 128))
@@ -4816,6 +5097,13 @@ function editor_tema()
 					selector_submenu = cambiar_valor(selector_submenu, 1, #nombres_opciones, 1, true)
 				end
 				if OPCIONES.SOUND_ON == 1 and S_MOVER ~= nil then Sound.playADPCM(1, S_MOVER) end
+				CONTROL.JOYSTICK_ON = true
+				JOYSTICK_LIMITE = control_FPS(1)
+
+			-- Activa y desactiva las sombras tras el arte. -----------------------------
+			elseif Pads.check(PAD, PAD_R1) and estado_elementos_new[2] == true and selector_submenu == 2 and CONTROL.JOYSTICK_ON == false then
+				if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then Sound.playADPCM(1, S_EJECUTAR) end
+				if CONTROL.CUSTOM_BACK == true then CONTROL.CUSTOM_BACK = false else CONTROL.CUSTOM_BACK = true end
 				CONTROL.JOYSTICK_ON = true
 				JOYSTICK_LIMITE = control_FPS(1)
 
@@ -4883,6 +5171,7 @@ function editor_tema()
 						end
 						largo_lista = LISTAS.ELEMENTOS_LIST
 						CONTROL.CUSTOM_ANIM, CONTROL.ANIM_VELOCIDAD = anterior_anim, anterior_anim_vel
+						CONTROL.CUSTOM_BACK = true
 					end
 
 				-- Guardar configuración. -----------------------------------------------
@@ -4987,7 +5276,8 @@ function cargar_style(fix_pal)
 		for linea in string.gmatch(temp2, "%d+") do
 			table.insert(lista_style, tonumber(linea))
 		end
-		if lista_style ~= nil and #lista_style == 56 then
+		if #lista_style == 56 then table.insert(lista_style, 1) end
+		if lista_style ~= nil and #lista_style == 57 then
 			CONTROL.IMG_ANCHO = lista_style[1]; CONTROL.IMG_X = lista_style[2];
 			CONTROL.IMG_ALTO = lista_style[3]; CONTROL.IMG_Y = lista_style[4];
 			CONTROL.IMG_ANCHO_2 = lista_style[5]; CONTROL.IMG_X_2 = lista_style[6];
@@ -5032,6 +5322,7 @@ function cargar_style(fix_pal)
 			if lista_style[54] == 1 then CONTROL.CUSTOM_BUTTON_STA = true else CONTROL.CUSTOM_BUTTON_STA = false end
 			if lista_style[55] == 1 then CONTROL.CUSTOM_BUTTON_SEL = true else CONTROL.CUSTOM_BUTTON_SEL = false end
 			LISTAS.ELEMENTOS_LIST = lista_style[56];
+			if lista_style[57] == 1 then CONTROL.CUSTOM_BACK = true else CONTROL.CUSTOM_BACK = false end
 		else
 			CONTROL.IMG_ANCHO = 358; CONTROL.IMG_X = 250; CONTROL.IMG_ALTO = 92; CONTROL.IMG_Y = 193;
 			CONTROL.IMG_ANCHO_2 = 358; CONTROL.IMG_X_2 = 250; CONTROL.IMG_ALTO_2 = 92; CONTROL.IMG_Y_2 = 193;
@@ -5048,7 +5339,7 @@ function cargar_style(fix_pal)
 			CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 			CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 			CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-			CONTROL.CUSTOM_BUTTON_SEL = true;
+			CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 			LISTAS.ELEMENTOS_LIST = 11;
 		end
 		System.closeFile(carga_de_style)
@@ -5068,7 +5359,7 @@ function cargar_style(fix_pal)
 		CONTROL.CUSTOM_FLOW = false; CONTROL.CUSTOM_LOGO = true; CONTROL.CUSTOM_BUTTON_X = true;
 		CONTROL.CUSTOM_BUTTON_T = true; CONTROL.CUSTOM_BUTTON_S = true; CONTROL.CUSTOM_BUTTON_L1 = true;
 		CONTROL.CUSTOM_BUTTON_R1 = true; CONTROL.CUSTOM_BUTTON_R3 = true; CONTROL.CUSTOM_BUTTON_STA = true;
-		CONTROL.CUSTOM_BUTTON_SEL = true;
+		CONTROL.CUSTOM_BUTTON_SEL = true; CONTROL.CUSTOM_BACK = true;
 		LISTAS.ELEMENTOS_LIST = 11;
 	end
 	if fix_pal == true then
@@ -5145,9 +5436,10 @@ function guardar_style(estado_elementos_new, elementos_pos_new, elementos_tam_ne
 				table.insert(estado_binario, "0")
 			end
 		end
-
+		if CONTROL.CUSTOM_BACK == true then table.insert(estado_binario, "1") else table.insert(estado_binario, "0") end
+		
 		-- Crear archivo de configuración para el estilo personalizado. -----------------
-		local style_conf_final = ("".. elementos_pos_new[3] .." ".. elementos_tam_new[3] .." ".. elementos_pos_new[4] .." ".. elementos_tam_new[4] .." ".. elementos_pos_new[5] .." ".. elementos_tam_new[5] .." ".. elementos_pos_new[6] .." ".. elementos_tam_new[6] .." ".. elementos_pos_new[1] .." ".. elementos_tam_new[1] .." ".. elementos_pos_new[2] .." ".. elementos_tam_new[2] .." ".. elementos_pos_new[9] .." ".. elementos_tam_new[9] .." ".. elementos_pos_new[10] .." ".. elementos_tam_new[10] .." ".. elementos_pos_new[7] .." ".. elementos_tam_new[7] .." ".. elementos_pos_new[8] .." ".. elementos_tam_new[8] .." ".. (CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7])) .." ".. elementos_tam_new[7] .." ".. elementos_pos_new[8] .." ".. elementos_tam_new[8] .." ".. elementos_pos_new[11] .." ".. elementos_pos_new[12] .." ".. elementos_pos_new[13] .." ".. elementos_pos_new[14] .." ".. elementos_pos_new[15] .." ".. elementos_pos_new[16] .." ".. elementos_pos_new[17] .." ".. elementos_pos_new[18] .." ".. elementos_pos_new[19] .." ".. elementos_pos_new[18] .." ".. elementos_pos_new[21] .." ".. elementos_pos_new[22] .." ".. elementos_pos_new[23] .." ".. elementos_pos_new[24] .." ".. elementos_pos_new[25] .." ".. elementos_pos_new[26] .." ".. CONTROL.CUSTOM_ANIM .." ".. CONTROL.ANIM_VELOCIDAD .." ".. estado_binario[1] .." ".. estado_binario[2] .." ".. estado_binario[3] .." ".. estado_binario[4] .." ".. estado_binario[5] .." ".. estado_binario[6] .." ".. estado_binario[7] .." ".. estado_binario[8] .." ".. estado_binario[9] .." ".. estado_binario[10] .." ".. estado_binario[11] .." ".. estado_binario[12] .." ".. estado_binario[13] .." ".. largo_lista-1 .."                                                                                                    ")
+		local style_conf_final = ("".. elementos_pos_new[3] .." ".. elementos_tam_new[3] .." ".. elementos_pos_new[4] .." ".. elementos_tam_new[4] .." ".. elementos_pos_new[5] .." ".. elementos_tam_new[5] .." ".. elementos_pos_new[6] .." ".. elementos_tam_new[6] .." ".. elementos_pos_new[1] .." ".. elementos_tam_new[1] .." ".. elementos_pos_new[2] .." ".. elementos_tam_new[2] .." ".. elementos_pos_new[9] .." ".. elementos_tam_new[9] .." ".. elementos_pos_new[10] .." ".. elementos_tam_new[10] .." ".. elementos_pos_new[7] .." ".. elementos_tam_new[7] .." ".. elementos_pos_new[8] .." ".. elementos_tam_new[8] .." ".. (CONTROL.ANCHO-(elementos_pos_new[7]+elementos_tam_new[7])) .." ".. elementos_tam_new[7] .." ".. elementos_pos_new[8] .." ".. elementos_tam_new[8] .." ".. elementos_pos_new[11] .." ".. elementos_pos_new[12] .." ".. elementos_pos_new[13] .." ".. elementos_pos_new[14] .." ".. elementos_pos_new[15] .." ".. elementos_pos_new[16] .." ".. elementos_pos_new[17] .." ".. elementos_pos_new[18] .." ".. elementos_pos_new[19] .." ".. elementos_pos_new[18] .." ".. elementos_pos_new[21] .." ".. elementos_pos_new[22] .." ".. elementos_pos_new[23] .." ".. elementos_pos_new[24] .." ".. elementos_pos_new[25] .." ".. elementos_pos_new[26] .." ".. CONTROL.CUSTOM_ANIM .." ".. CONTROL.ANIM_VELOCIDAD .." ".. estado_binario[1] .." ".. estado_binario[2] .." ".. estado_binario[3] .." ".. estado_binario[4] .." ".. estado_binario[5] .." ".. estado_binario[6] .." ".. estado_binario[7] .." ".. estado_binario[8] .." ".. estado_binario[9] .." ".. estado_binario[10] .." ".. estado_binario[11] .." ".. estado_binario[12] .." ".. estado_binario[13] .." ".. largo_lista-1 .." ".. estado_binario[14] .."                                                                                                    ")
 
 		-- Guardar archivo nuevo y crear respaldo del anterior. -------------------------
 		if doesFileExist(actual .."/System/Config/style.cfg") then

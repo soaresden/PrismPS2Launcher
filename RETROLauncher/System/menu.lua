@@ -9,8 +9,10 @@ function dibujar_covers()
 	if LISTAS.SCREENSHOT_FULL == false and #LISTAS.ROMS >= 1 and LISTAS.ROMS ~= nil then
 		-- Dibujar artes extras (Cover Flow). -------------------------------------------
 		if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
-			Graphics.drawRect(CONTROL.FLOW_ANCHO-5, CONTROL.FLOW_ALTO-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
-			Graphics.drawRect(CONTROL.FLOW_ANCHO_2-5, CONTROL.FLOW_ALTO_2-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+			if CONTROL.CUSTOM_BACK == true then
+				Graphics.drawRect(CONTROL.FLOW_ANCHO-5, CONTROL.FLOW_ALTO-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
+				Graphics.drawRect(CONTROL.FLOW_ANCHO_2-5, CONTROL.FLOW_ALTO_2-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+			end
 			if LISTAS.COVER_ART2 ~= nil and LISTAS.EXISTE_COV2 == true then
 				Graphics.drawScaleImage(LISTAS.COVER_ART2, CONTROL.FLOW_ANCHO+LISTAS.COV_1_FIX, CONTROL.FLOW_ALTO+LISTAS.COV_1_FIX_Y, LISTAS.COV_1_X, LISTAS.COV_1_Y)
 			else
@@ -19,7 +21,9 @@ function dibujar_covers()
 				else
 					if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, CONTROL.FLOW_ANCHO, CONTROL.FLOW_ALTO, CONTROL.FLOW_X, CONTROL.FLOW_Y)
-						Graphics.drawRect(CONTROL.FLOW_ANCHO, CONTROL.FLOW_ALTO, CONTROL.FLOW_X, CONTROL.FLOW_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						if CONTROL.CUSTOM_BACK == true then
+							Graphics.drawRect(CONTROL.FLOW_ANCHO, CONTROL.FLOW_ALTO, CONTROL.FLOW_X, CONTROL.FLOW_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						end
 					else
 						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, CONTROL.FLOW_ANCHO, CONTROL.FLOW_ALTO, CONTROL.FLOW_X, CONTROL.FLOW_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
 					end
@@ -33,7 +37,9 @@ function dibujar_covers()
 				else
 					if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, CONTROL.FLOW_ANCHO_2, CONTROL.FLOW_ALTO_2, CONTROL.FLOW_X_2, CONTROL.FLOW_Y_2)
-						Graphics.drawRect(CONTROL.FLOW_ANCHO_2, CONTROL.FLOW_ALTO_2, CONTROL.FLOW_X_2, CONTROL.FLOW_Y_2, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						if CONTROL.CUSTOM_BACK == true then
+							Graphics.drawRect(CONTROL.FLOW_ANCHO_2, CONTROL.FLOW_ALTO_2, CONTROL.FLOW_X_2, CONTROL.FLOW_Y_2, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						end
 					else
 						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, CONTROL.FLOW_ANCHO_2, CONTROL.FLOW_ALTO_2, CONTROL.FLOW_X_2, CONTROL.FLOW_Y_2, CAMBIOS_EMUS.COLOR_EMU_BACK)
 					end
@@ -43,7 +49,9 @@ function dibujar_covers()
 
 		-- Dibujar arte extra. ----------------------------------------------------------
 		if (CONTROL.ESTILO == 3 or CONTROL.ESTILO == 5 or CONTROL.ESTILO == 6 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_ART2 == true then
-			Graphics.drawRect(CONTROL.IMG_ANCHO_2-5, CONTROL.IMG_ALTO_2-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
+			if CONTROL.CUSTOM_BACK == true then
+				Graphics.drawRect(CONTROL.IMG_ANCHO_2-5, CONTROL.IMG_ALTO_2-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
+			end
 			if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
 				Graphics.drawScaleImage(LISTAS.SCREENSHOT, CONTROL.IMG_ANCHO_2+LISTAS.SCR_FIX_ART2, CONTROL.IMG_ALTO_2+LISTAS.SCR_FIX_Y_ART2, LISTAS.SCR_ART2_X, LISTAS.SCR_ART2_Y)
 			else
@@ -52,7 +60,9 @@ function dibujar_covers()
 				else
 					if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 						Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, CONTROL.IMG_ANCHO_2, CONTROL.IMG_ALTO_2, CONTROL.IMG_X_2, CONTROL.IMG_Y_2)
-						Graphics.drawRect(CONTROL.IMG_ANCHO_2, CONTROL.IMG_ALTO_2, CONTROL.IMG_X_2, CONTROL.IMG_Y_2, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						if CONTROL.CUSTOM_BACK == true then
+							Graphics.drawRect(CONTROL.IMG_ANCHO_2, CONTROL.IMG_ALTO_2, CONTROL.IMG_X_2, CONTROL.IMG_Y_2, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						end
 					else
 						Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, CONTROL.IMG_ANCHO_2, CONTROL.IMG_ALTO_2, CONTROL.IMG_X_2, CONTROL.IMG_Y_2, CAMBIOS_EMUS.COLOR_EMU_BACK)
 					end
@@ -95,16 +105,22 @@ function dibujar_covers()
 			if LISTAS.SCREENSHOT_ON == true then
 				if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
 					local Right_X, Right_Y, Right_XY = zoom(LISTAS.ART_ZOOM, LISTAS.SCR_X, LISTAS.SCR_Y)
-					Graphics.drawRect(CONTROL.IMG_ANCHO-5-(Right_XY//2)-(Right_X//2), CONTROL.IMG_ALTO-5-(Right_Y//2), CONTROL.IMG_X+10+Right_XY, CONTROL.IMG_Y+10+Right_Y, COLOR.NEGRO_T)
+					if CONTROL.CUSTOM_BACK == true then
+						Graphics.drawRect(CONTROL.IMG_ANCHO-5-(Right_XY//2)-(Right_X//2), CONTROL.IMG_ALTO-5-(Right_Y//2), CONTROL.IMG_X+10+Right_XY, CONTROL.IMG_Y+10+Right_Y, COLOR.NEGRO_T)
+					end
 					Graphics.drawScaleImage(LISTAS.SCREENSHOT, CONTROL.IMG_ANCHO+LISTAS.SCR_FIX-(Right_XY//2)-(Right_X//2), CONTROL.IMG_ALTO+LISTAS.SCR_FIX_Y-(Right_Y//2), LISTAS.SCR_X+Right_XY, LISTAS.SCR_Y+Right_Y)
 				else
-					Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+					if CONTROL.CUSTOM_BACK == true then
+						Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+					end
 					if LISTAS.MOSTRAR <= LISTAS.ART_LIMITE then
 						Font.ftPrint(CONTROL.fontARCA, CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2), CONTROL.IMG_ALTO+(CONTROL.IMG_Y//2)-20, 8, CONTROL.IMG_X, CONTROL.IMG_Y, "-LOADING ART-", COLOR.BLANCO)
 					else
 						if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 							Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y)
-							Graphics.drawRect(CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
+							if CONTROL.CUSTOM_BACK == true then
+								Graphics.drawRect(CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
+							end
 						else
 							Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
 						end
@@ -113,16 +129,22 @@ function dibujar_covers()
 			else
 				if LISTAS.COVER_ART ~= nil and LISTAS.EXISTE_COV == true then
 					local Right_X, Right_Y, Right_XY = zoom(LISTAS.ART_ZOOM, LISTAS.COV_X, LISTAS.COV_Y)
-					Graphics.drawRect(CONTROL.IMG_ANCHO-5-(Right_XY//2)-(Right_X//2), CONTROL.IMG_ALTO-5-(Right_Y//2), CONTROL.IMG_X+10+Right_XY, CONTROL.IMG_Y+10+Right_Y, COLOR.NEGRO_T)
+					if CONTROL.CUSTOM_BACK == true then
+						Graphics.drawRect(CONTROL.IMG_ANCHO-5-(Right_XY//2)-(Right_X//2), CONTROL.IMG_ALTO-5-(Right_Y//2), CONTROL.IMG_X+10+Right_XY, CONTROL.IMG_Y+10+Right_Y, COLOR.NEGRO_T)
+					end
 					Graphics.drawScaleImage(LISTAS.COVER_ART, CONTROL.IMG_ANCHO+LISTAS.COV_FIX-(Right_XY//2)-(Right_X//2), CONTROL.IMG_ALTO+LISTAS.COV_FIX_Y-(Right_Y//2), LISTAS.COV_X+Right_XY, LISTAS.COV_Y+Right_Y)
 				else
-					Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+					if CONTROL.CUSTOM_BACK == true then
+						Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+					end
 					if LISTAS.MOSTRAR <= LISTAS.ART_LIMITE then
 						Font.ftPrint(CONTROL.fontARCA, CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2), CONTROL.IMG_ALTO+(CONTROL.IMG_Y//2)-20, 8, CONTROL.IMG_X, CONTROL.IMG_Y, "-LOADING ART-", COLOR.BLANCO)
 					else
 						if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 							Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y)
-							Graphics.drawRect(CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
+							if CONTROL.CUSTOM_BACK == true then
+								Graphics.drawRect(CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
+							end
 						else
 							Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, CAMBIOS_EMUS.COLOR_EMU_BACK)
 						end
@@ -195,21 +217,26 @@ end
 
 --- Dibujar listas vacías. --------------------------------------------------------------
 function empty_list()
-	if CONTROL.ESTILO == 3 and OPCIONES.GUI_LIMPIA_ON == 1 and CONTROL.CUSTOM_LIST == true then
-		Graphics.drawRect(CONTROL.LISTA_ANCHO-3, CONTROL.LISTA_ALTO-3, CONTROL.LISTA_X+236+6, CONTROL.LISTA_Y+6, COLOR.NEGRO_T)
-	elseif CONTROL.ESTILO ~= 2 and CONTROL.CUSTOM_LIST == true then
-		Graphics.drawRect(CONTROL.LISTA_ANCHO-3, CONTROL.LISTA_ALTO-3, CONTROL.LISTA_X+6, CONTROL.LISTA_Y+6, COLOR.NEGRO_T)
-	end
-	if CONTROL.CUSTOM_ART1 == true then
-		Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
-		Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
-	end
-	if (CONTROL.ESTILO == 3 or CONTROL.ESTILO == 5 or CONTROL.ESTILO == 6 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_ART2 == true then
-		Graphics.drawRect(CONTROL.IMG_ANCHO_2-5, CONTROL.IMG_ALTO_2-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
-	end
-	if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
-		Graphics.drawRect(CONTROL.FLOW_ANCHO-5, CONTROL.FLOW_ALTO-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
-		Graphics.drawRect(CONTROL.FLOW_ANCHO_2-5, CONTROL.FLOW_ALTO_2-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+	if CONTROL.CUSTOM_BACK == true then
+		if CONTROL.ESTILO == 3 and OPCIONES.GUI_LIMPIA_ON == 1 and CONTROL.CUSTOM_LIST == true then
+			Graphics.drawRect(CONTROL.LISTA_ANCHO-3, CONTROL.LISTA_ALTO-3, CONTROL.LISTA_X+236+6, CONTROL.LISTA_Y+6, COLOR.NEGRO_T)
+		elseif CONTROL.ESTILO ~= 2 and CONTROL.CUSTOM_LIST == true then
+			Graphics.drawRect(CONTROL.LISTA_ANCHO-3, CONTROL.LISTA_ALTO-3, CONTROL.LISTA_X+6, CONTROL.LISTA_Y+6, COLOR.NEGRO_T)
+		end
+		if CONTROL.CUSTOM_ART1 == true then
+			Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+			Graphics.drawRect(CONTROL.IMG_ANCHO-5, CONTROL.IMG_ALTO-5, CONTROL.IMG_X+10, CONTROL.IMG_Y+10, COLOR.NEGRO_T)
+		end
+		if (CONTROL.ESTILO == 3 or CONTROL.ESTILO == 5 or CONTROL.ESTILO == 6 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_ART2 == true then
+			Graphics.drawRect(CONTROL.IMG_ANCHO_2-5, CONTROL.IMG_ALTO_2-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
+			Graphics.drawRect(CONTROL.IMG_ANCHO_2-5, CONTROL.IMG_ALTO_2-5, CONTROL.IMG_X_2+10, CONTROL.IMG_Y_2+10, COLOR.NEGRO_T)
+		end
+		if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
+			Graphics.drawRect(CONTROL.FLOW_ANCHO-5, CONTROL.FLOW_ALTO-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
+			Graphics.drawRect(CONTROL.FLOW_ANCHO_2-5, CONTROL.FLOW_ALTO_2-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+			Graphics.drawRect(CONTROL.FLOW_ANCHO-5, CONTROL.FLOW_ALTO-5, CONTROL.FLOW_X+10, CONTROL.FLOW_Y+10, COLOR.NEGRO_T)
+			Graphics.drawRect(CONTROL.FLOW_ANCHO_2-5, CONTROL.FLOW_ALTO_2-5, CONTROL.FLOW_X_2+10, CONTROL.FLOW_Y_2+10, COLOR.NEGRO_T)
+		end
 	end
 	if (CONTROL.ESTILO == 2 or CONTROL.CUSTOM_LIST == false) and CONTROL.CUSTOM_ART1 == true then
 		Font.ftPrint(CONTROL.fontARCA, CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2), CONTROL.IMG_ALTO+(CONTROL.IMG_Y//2)-44, 8, CONTROL.IMG_X, CONTROL.IMG_Y, "NO GAMES FOUND", COLOR.BLANCO)
@@ -284,15 +311,15 @@ end
 function run_game()
 	if OPCIONES.SOUND_ON == 1 and S_EJECUTAR ~= nil then Sound.playADPCM(1, S_EJECUTAR) end
 	local alt = false
-	if Pads.check(PAD, PAD_CIRCLE) and (LISTAS.IDENTIDAD == 1 or (LISTAS.IDENTIDAD >= 4 and LISTAS.IDENTIDAD <= 7) or LISTAS.IDENTIDAD == 12) then
-		alt = true
+	if LISTAS.IDENTIDAD == 14 or ((Pads.check(PAD, PAD_CROSS) and Pads.check(PAD, PAD_CIRCLE)) and (LISTAS.IDENTIDAD == 1 or (LISTAS.IDENTIDAD >= 4 and LISTAS.IDENTIDAD <= 7) or LISTAS.IDENTIDAD == 11 or LISTAS.IDENTIDAD == 12)) then
+		alt = alt_run(LISTAS.IDENTIDAD)
 	end
 
 	-- Verificar archivos. --------------------------------------------------------------
 	local verificar = existe(LISTAS.IDENTIDAD, LISTAS.ROMS[LISTAS.INDICE], alt)
 	if verificar == true then
 		ejecutar_juego(LISTAS.IDENTIDAD, LISTAS.ROMS[LISTAS.INDICE], alt)
-	else
+	elseif verificar == false and alt ~= nil then
 		if OPCIONES.SOUND_ON == 1 and S_ERROR ~= nil then Sound.playADPCM(3, S_ERROR) end
 		error_run()
 		CONTROL.JOYSTICK_ON = true
@@ -669,17 +696,23 @@ function dibujar()
 		if LISTAS.SCREENSHOT_ON == true and #LISTAS.ROMS >= 1 and LISTAS.ROMS ~= nil then
 			if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
 				local Right_X, Right_Y, Right_XY = zoom(LISTAS.ART_ZOOM, LISTAS.EX_FIX_S, LISTAS.EX_FIX_S_Y)
-				Graphics.drawRect(35-(Right_XY//2)-(Right_X//2), 5-(Right_Y//2)+CONTROL.Y_FIX_PAL, 570+Right_XY, 410+Right_Y, COLOR.NEGRO_T)
+				if CONTROL.CUSTOM_BACK == true then
+					Graphics.drawRect(35-(Right_XY//2)-(Right_X//2), 5-(Right_Y//2)+CONTROL.Y_FIX_PAL, 570+Right_XY, 410+Right_Y, COLOR.NEGRO_T)
+				end
 				Graphics.drawScaleImage(LISTAS.SCREENSHOT, (60+(520-LISTAS.EX_FIX_S)//2)-(Right_XY//2)-(Right_X//2), 15+((390-LISTAS.EX_FIX_S_Y)//2)-(Right_Y//2)+CONTROL.Y_FIX_PAL, (LISTAS.EX_FIX_S+Right_XY), (LISTAS.EX_FIX_S_Y+Right_Y))
 				if Right_X ~= 0 or Right_Y ~= 0 then mostar_extras = true end
 			else
-				Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+				if CONTROL.CUSTOM_BACK == true then
+					Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+				end
 				if LISTAS.MOSTRAR <= LISTAS.ART_LIMITE then
 					Font.ftPrint(CONTROL.fontARCA, 35+(570//2), (5+(410//2)-20)+CONTROL.Y_FIX_PAL, 8, 570, 410, "-LOADING ART-", COLOR.BLANCO)
 				else
 					if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 						Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, 45, 15+CONTROL.Y_FIX_PAL, 550, 390)
-						Graphics.drawRect(45, 15+CONTROL.Y_FIX_PAL, 550, 390, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						if CONTROL.CUSTOM_BACK == true then
+							Graphics.drawRect(45, 15+CONTROL.Y_FIX_PAL, 550, 390, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						end
 					else
 						Graphics.drawScaleImage(LISTAS.SCREENSHOT_DEFAULT, 45, 15+CONTROL.Y_FIX_PAL, 550, 390, CAMBIOS_EMUS.COLOR_EMU_BACK)
 					end
@@ -688,17 +721,23 @@ function dibujar()
 		elseif #LISTAS.ROMS >= 1 and LISTAS.ROMS ~= nil then
 			if LISTAS.COVER_ART ~= nil and LISTAS.EXISTE_COV == true then
 				local Right_X, Right_Y, Right_XY = zoom(LISTAS.ART_ZOOM, LISTAS.EX_FIX_C, LISTAS.EX_FIX_C_Y)
-				Graphics.drawRect(35-(Right_XY//2)-(Right_X//2), 5-(Right_Y//2)+CONTROL.Y_FIX_PAL, 570+Right_XY, 410+Right_Y, COLOR.NEGRO_T)
+				if CONTROL.CUSTOM_BACK == true then
+					Graphics.drawRect(35-(Right_XY//2)-(Right_X//2), 5-(Right_Y//2)+CONTROL.Y_FIX_PAL, 570+Right_XY, 410+Right_Y, COLOR.NEGRO_T)
+				end
 				Graphics.drawScaleImage(LISTAS.COVER_ART, (60+(520-LISTAS.EX_FIX_C)//2)-(Right_XY//2)-(Right_X//2), 15+((390-LISTAS.EX_FIX_C_Y)//2)-(Right_Y//2)+CONTROL.Y_FIX_PAL, (LISTAS.EX_FIX_C+Right_XY), (LISTAS.EX_FIX_C_Y+Right_Y))
 				if Right_X ~= 0 or Right_Y ~= 0 then mostar_extras = true end
 			else
-				Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+				if CONTROL.CUSTOM_BACK == true then
+					Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+				end
 				if LISTAS.MOSTRAR <= LISTAS.ART_LIMITE then
 					Font.ftPrint(CONTROL.fontARCA, 35+(570//2), (5+(410//2)-20)+CONTROL.Y_FIX_PAL, 8, 570, 410, "-LOADING ART-", COLOR.BLANCO)
 				else
 					if OPCIONES.FONDO_RGB_FIJO_ON == 1 and CAMBIOS_EMUS.TRAS ~= 0 then
 						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, 45, 15+CONTROL.Y_FIX_PAL, 550, 390)
-						Graphics.drawRect(45, 15+CONTROL.Y_FIX_PAL, 550, 390, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						if CONTROL.CUSTOM_BACK == true then
+							Graphics.drawRect(45, 15+CONTROL.Y_FIX_PAL, 550, 390, CAMBIOS_EMUS.COLOR_EMU_BACK)
+						end
 					else
 						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, 45, 15+CONTROL.Y_FIX_PAL, 550, 390, CAMBIOS_EMUS.COLOR_EMU_BACK)
 					end
@@ -738,8 +777,10 @@ function dibujar()
 				end
 			end
 			if #LISTAS.ROMS <= 0 or LISTAS.ROMS == nil then
-				Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
-				Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+				if CONTROL.CUSTOM_BACK == true then
+					Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+					Graphics.drawRect(35, 5+CONTROL.Y_FIX_PAL, 570, 410, COLOR.NEGRO_T)
+				end
 				Font.ftPrint(CONTROL.fontARCA, 35+(570//2), (5+(410//2)-50)+CONTROL.Y_FIX_PAL, 8, 570, 410, "NO GAMES FOUND", COLOR.BLANCO)
 			end
 		end
@@ -836,6 +877,8 @@ function dibujar()
 	--Font.ftPrint(CONTROL.fontARCA, 15, 0, 0, 0, 8, "RAM: ".. System.getFreeMemory(), COLOR.BLANCO)
 	--Font.ftPrint(CONTROL.fontARCA, 15, 20, 0, 0, 8, "VRAM: ".. Screen.getFreeVRAM(), COLOR.BLANCO)
 	--Font.ftPrint(CONTROL.fontARCA, 535, 0, 0, 0, 8, "FPS: ".. CONTROL.FPS, COLOR.BLANCO)
+	--devs = System.listDevices()
+	--for contador = 1, #devs, 1 do Font.ftPrint(CONTROL.fontARCA, 0, 10+((contador)*24), 0, 0, 8, devs[contador].name ..":", COLOR.BLANCO) end
 	-------------------------------------------------------------------------------------
 end
 --[[------------------SPAGHETTICODE-------------------]]--
