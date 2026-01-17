@@ -20,7 +20,7 @@ Requirements for Sprites:
 		GameBoyColor_01000_4x4.png      - for Nintendo Game Boy Color
 		GameBoyAdvance_01000_4x4.png    - for Nintendo Game Boy Advance
 		Atari2600_01000_4x4.png         - for Atari 2600
-		AtariLynk_01000_4x4.png         - for Atari Lynk
+		AtariLynx_01000_4x4.png         - for Atari Lynx
 		SegaSG1000_01000_4x4.png        - for SEGA SG-1000
 		NeoGeoPocket_01000_4x4.png      - for Neo Geo Pocket
 		SuperFamicom_01000_4x4.png      - for Nintendo Super Famicom

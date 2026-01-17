@@ -117,7 +117,7 @@ function barra_de_progreso(estado, indi_rest, pal, LOADING)
 	Graphics.drawScaleImage(FONDO_LOAD, -5, 0, res_x+5, res_y, Color.new(0, 80, 120))
 	Graphics.drawScaleImage(LOADING_LOAD, 0, 0, res_x, res_y)
 	Graphics.drawRect(-5, 278-3+res_y_tex, 650, 25, Color.new(0, 0, 0))
-	local lista_indi_rest = {"Atari 2600"; "Atari Lynk"; "Neo Geo Pocket"; "Nintendo Famicom"; "Nintendo Game Boy";
+	local lista_indi_rest = {"Atari 2600"; "Atari Lynx"; "Neo Geo Pocket"; "Nintendo Famicom"; "Nintendo Game Boy";
 	"Nintendo Game Boy Advance"; "Nintendo Game Boy Color"; "Nintendo Super Famicom"; "Sega Game Gear";
 	"Sega Master System"; "Sega Megadrive"; "Sega SG-1000"}
 	if pal == false then
@@ -142,7 +142,7 @@ function relocation_dir()
 	confirmar()
 
 	-- Líneas de directorios. -----------------------------------------------------------
-	local directorios_ori = {"Atari 2600/"; "Atari Lynk/"; "Neo Geo Pocket/"; "Nintendo Famicom/"; "Nintendo Game Boy/"; "Nintendo Game Boy Advance/";
+	local directorios_ori = {"Atari 2600/"; "Atari Lynx/"; "Neo Geo Pocket/"; "Nintendo Famicom/"; "Nintendo Game Boy/"; "Nintendo Game Boy Advance/";
 	"Nintendo Game Boy Color/"; "Nintendo Super Famicom/"; "Sega Game Gear/"; "Sega Master System/"; "Sega Megadrive/"; "Sega SG-1000/"}
 
 	-- Líneas de video. -----------------------------------------------------------------

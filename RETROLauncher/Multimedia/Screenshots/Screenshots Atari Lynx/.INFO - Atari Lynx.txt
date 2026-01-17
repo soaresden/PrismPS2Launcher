@@ -1,4 +1,4 @@
-Here are the screenshots for Atari Lynk.
+Here are the screenshots for Atari Lynx.
 RETROLauncher will search in the root of this directory.
 
 Requirements for screenshots:
@@ -12,7 +12,7 @@ Requirements for screenshots:
 	* The lighter the image, the smoother the system will run.
 	* The image must be in the directory corresponding to the ROM emulator.
 	Example:
-		ROM/APPS: "mass:/RETROLauncher/Roms/Roms Atari Lynk/Example.lnx"
-		Screenshots: "mass:/RETROLauncher/Multimedia/Screenshots/Screenshots Atari Lynk/Example.png" - Will display the image.
+		ROM/APPS: "mass:/RETROLauncher/Roms/Roms Atari Lynx/Example.lnx"
+		Screenshots: "mass:/RETROLauncher/Multimedia/Screenshots/Screenshots Atari Lynx/Example.png" - Will display the image.
 
 Supported extensions: .png

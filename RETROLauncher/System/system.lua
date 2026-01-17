@@ -102,7 +102,7 @@ LOGOS = {
 	GAMEBOYCOLOR = Graphics.loadImage(verif_img("System/Medios/Logos/GameBoyColor.png"));
 	GAMEBOYADVANCE = Graphics.loadImage(verif_img("System/Medios/Logos/GameBoyAdvance.png"));
 	ATARI2600 = Graphics.loadImage(verif_img("System/Medios/Logos/Atari2600.png"));
-	ATARILYNK = Graphics.loadImage(verif_img("System/Medios/Logos/AtariLynk.png"));
+	ATARILYNX = Graphics.loadImage(verif_img("System/Medios/Logos/AtariLynx.png"));
 	SEGASG1000 = Graphics.loadImage(verif_img("System/Medios/Logos/SegaSG1000.png"));
 	NEOGEOPOCKET = Graphics.loadImage(verif_img("System/Medios/Logos/NeoGeoPocket.png"));
 	SUPERFAMICOM = Graphics.loadImage(verif_img("System/Medios/Logos/SuperFamicom.png"));
@@ -136,7 +136,7 @@ SPRITES = {
 	GAMEBOYCOLOR = nil;
 	GAMEBOYADVANCE = nil;
 	ATARI2600 = nil;
-	ATARILYNK = nil;
+	ATARILYNX = nil;
 	SEGASG1000 = nil;
 	NEOGEOPOCKET = nil;
 	SUPERFAMICOM = nil;
@@ -144,7 +144,7 @@ SPRITES = {
 	PLAYSTATION = nil;
 	PLAYSTATION2 = nil;
 	SPRITE_SYS = {"MEGADRIVE"; "MASTERSYSTEM"; "GAMEGEAR"; "FAMICOM"; "GAMEBOY"; "GAMEBOYCOLOR";
-				"GAMEBOYADVANCE"; "ATARI2600"; "ATARILYNK"; "SEGASG1000"; "NEOGEOPOCKET";
+				"GAMEBOYADVANCE"; "ATARI2600"; "ATARILYNX"; "SEGASG1000"; "NEOGEOPOCKET";
 				"SUPERFAMICOM"; "APPS"; "PLAYSTATION"; "PLAYSTATION2"};
 	HEIGHT_Y = {45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45};
 	WIDTH_X = {40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40};
@@ -268,7 +268,7 @@ SISTEMAS = {
 	GAMEBOYCOLOR_ON = 1;
 	GAMEBOYADVANCE_ON = 1;
 	ATARI2600_ON = 1;
-	ATARILYNK_ON = 1;
+	ATARILYNX_ON = 1;
 	SEGASG1000_ON = 1;
 	NEOGEOPOCKET_ON = 1;
 	SUPERFAMICOM_ON = 1;

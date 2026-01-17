@@ -177,7 +177,7 @@ function cargar_art()
 
 	-- Generar ubicaciones para la búsqueda. --------------------------------------------
 	local sistemas_nombre = {"Sega Megadrive"; "Sega Master System"; "Sega Game Gear"; "Nintendo Famicom"; "Nintendo Game Boy";
-	"Nintendo Game Boy Color"; "Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynk"; "Sega SG-1000"; "Neo Geo Pocket";
+	"Nintendo Game Boy Color"; "Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynx"; "Sega SG-1000"; "Neo Geo Pocket";
 	"Nintendo Super Famicom"; "APPS"; "PlayStation"; "PlayStation 2";};
 	if LISTAS.MOSTRAR == 1 and (LISTAS.IDENTIDAD >= 1 and LISTAS.IDENTIDAD <= 15) then
 		if OPCIONES.APPS_MENU_FULL_PATH == 1 and LISTAS.IDENTIDAD == 12 then
@@ -437,7 +437,7 @@ end
 function desactivados(lado)
 	local buscar = true
 	local sistemas_on = {SISTEMAS.MEGADRIVE_ON; SISTEMAS.MASTERSYSTEM_ON; SISTEMAS.GAMEGEAR_ON; SISTEMAS.FAMICOM_ON; SISTEMAS.GAMEBOY_ON;
-	SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNK_ON; SISTEMAS.SEGASG1000_ON;
+	SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNX_ON; SISTEMAS.SEGASG1000_ON;
 	SISTEMAS.NEOGEOPOCKET_ON; SISTEMAS.SUPERFAMICOM_ON; SISTEMAS.APPS_ON; SISTEMAS.PLAYSTATION_ON; SISTEMAS.PLAYSTATION2_ON;};
 	if OPCIONES.LIBERAR_LISTAS == 1 then
 		PRE_CARGADAS[LISTAS.IDENTIDAD] = {}
@@ -878,7 +878,7 @@ function color_emu(identidad, act_rgb_fondo, act_color_fondo)
 		MAX = 64; MIN = 42; RGB = 2; ACTUAL = 42;
 		BLANCO_1 = 128; BLANCO_2 = 128; BLANCO_3 = 128;
 
-	-- Colores para Atari Lynk. ---------------------------------------------------------
+	-- Colores para Atari Lynx. ---------------------------------------------------------
 	elseif identidad == 9 and act_rgb_fondo == 1 and act_color_fondo == 0 then
 		EMU_1 = 128; EMU_2 = 128; EMU_3 = 58;
 		R = 128; G = 128; B = 74;
@@ -1009,7 +1009,7 @@ function cargar_logo(identidad)
 	elseif identidad == 8 then
 		LISTAS.LOGO = LOGOS.ATARI2600
 	elseif identidad == 9 then
-		LISTAS.LOGO = LOGOS.ATARILYNK
+		LISTAS.LOGO = LOGOS.ATARILYNX
 	elseif identidad == 10 then
 		LISTAS.LOGO = LOGOS.SEGASG1000
 	elseif identidad == 11 then
@@ -3802,7 +3802,7 @@ end
 function recargar_todas()
 	local crea = {}
 	local sistemas_on = {SISTEMAS.MEGADRIVE_ON; SISTEMAS.MASTERSYSTEM_ON; SISTEMAS.GAMEGEAR_ON; SISTEMAS.FAMICOM_ON; SISTEMAS.GAMEBOY_ON;
-	SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNK_ON; SISTEMAS.SEGASG1000_ON; SISTEMAS.NEOGEOPOCKET_ON;
+	SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNX_ON; SISTEMAS.SEGASG1000_ON; SISTEMAS.NEOGEOPOCKET_ON;
 	SISTEMAS.SUPERFAMICOM_ON; SISTEMAS.APPS_ON; SISTEMAS.PLAYSTATION_ON; SISTEMAS.PLAYSTATION2_ON;};
 	for contador = 1, 15, 1 do
 		local nueva = {}
@@ -4100,7 +4100,7 @@ function menu_config()
 	-- Guardar configuraciones previas. -------------------------------------------------
 	local anterior_conf = {OPCIONES.RGB_ON; OPCIONES.FONDO_RGB_ON; OPCIONES.FONDO_RGB_FIJO_ON; OPCIONES.R; OPCIONES.G; OPCIONES.B;
 	CONTROL.ESTILO; SISTEMAS.MEGADRIVE_ON; SISTEMAS.MASTERSYSTEM_ON; SISTEMAS.GAMEGEAR_ON; SISTEMAS.FAMICOM_ON; SISTEMAS.GAMEBOY_ON;
-	SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNK_ON; SISTEMAS.SEGASG1000_ON;
+	SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNX_ON; SISTEMAS.SEGASG1000_ON;
 	SISTEMAS.NEOGEOPOCKET_ON; SISTEMAS.SUPERFAMICOM_ON; SISTEMAS.APPS_ON; SISTEMAS.PLAYSTATION_ON; SISTEMAS.PLAYSTATION2_ON;
 	OPCIONES.CAMBIO_FUENTE_ON; OPCIONES.CAMBIO_FONDO_ON; OPCIONES.GUI_LIMPIA_ON; OPCIONES.LIMITADOR_RAM_ON; OPCIONES.SALIDA_RETROLANCHER_ON;
 	OPCIONES.SALIDA_RETROLANCHER; OPCIONES.APPS_MENU_FULL_PATH; OPCIONES.SOUND_ON; OPCIONES.SOUND_VOLUME; OPCIONES.SCREENSHOT_BACK_ON;
@@ -4111,14 +4111,14 @@ function menu_config()
 	color_emu(LISTAS.IDENTIDAD, OPCIONES.FONDO_RGB_ON, OPCIONES.FONDO_RGB_FIJO_ON)
 	local lista_config = {OPCIONES.RGB_ON; OPCIONES.FONDO_RGB_ON; OPCIONES.FONDO_RGB_FIJO_ON; OPCIONES.R; OPCIONES.G;
 	OPCIONES.B; CONTROL.ESTILO; SISTEMAS.MEGADRIVE_ON; SISTEMAS.MASTERSYSTEM_ON; SISTEMAS.GAMEGEAR_ON; SISTEMAS.FAMICOM_ON;
-	SISTEMAS.GAMEBOY_ON; SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNK_ON;
+	SISTEMAS.GAMEBOY_ON; SISTEMAS.GAMEBOYCOLOR_ON; SISTEMAS.GAMEBOYADVANCE_ON; SISTEMAS.ATARI2600_ON; SISTEMAS.ATARILYNX_ON;
 	SISTEMAS.SEGASG1000_ON; SISTEMAS.NEOGEOPOCKET_ON; SISTEMAS.SUPERFAMICOM_ON; SISTEMAS.APPS_ON; SISTEMAS.PLAYSTATION_ON;
 	SISTEMAS.PLAYSTATION2_ON; OPCIONES.CAMBIO_FUENTE_ON; OPCIONES.CAMBIO_FONDO_ON; OPCIONES.GUI_LIMPIA_ON; OPCIONES.LIMITADOR_RAM_ON;
 	OPCIONES.SALIDA_RETROLANCHER_ON; OPCIONES.SALIDA_RETROLANCHER; OPCIONES.APPS_MENU_FULL_PATH; OPCIONES.SOUND_ON;
 	OPCIONES.SOUND_VOLUME; OPCIONES.SCREENSHOT_BACK_ON; OPCIONES.VIDEO_MODE; OPCIONES.VIBRATION_ON; OPCIONES.DIR_EXTRAS_ON; 0; 0; 0;};
 	local lista_texto_config = {TEXT_M_CON[1]; TEXT_M_CON[2]; TEXT_M_CON[3]; TEXT_M_CON[4]; TEXT_M_CON[5]; TEXT_M_CON[6];
 	TEXT_M_CON[7]; "Megadrive"; "Master System"; "Game Gear"; "Famicom"; "Game Boy"; "Game Boy Color"; "Game Boy Advance";
-	"Atari 2600"; "Atari Lynk"; "SEGA SG-1000"; "Neo Geo Pocket"; "Super Famicom"; "APPS"; "PlayStation"; "PlayStation 2";
+	"Atari 2600"; "Atari Lynx"; "SEGA SG-1000"; "Neo Geo Pocket"; "Super Famicom"; "APPS"; "PlayStation"; "PlayStation 2";
 	TEXT_M_CON[8]; TEXT_M_CON[9]; TEXT_M_CON[10]; TEXT_M_CON[11]; TEXT_M_CON[12]; TEXT_M_CON[13]; TEXT_M_CON[14]; TEXT_M_CON[15];
 	TEXT_M_CON[16]; TEXT_M_CON[17]; TEXT_M_CON[18]; TEXT_M_CON[19]; TEXT_M_CON[20]; "Language: English"; TEXT_M_CON[21]; TEXT_M_CON[22];};
 	local noob, conf_numero, clean, reinicio, indi_rest_RL, selector, cambio_realizado, page = true, true, false, false, 0, 1, false, TEXT_M_CON[24]
@@ -4337,7 +4337,7 @@ function menu_config()
 				local selec, sistemas, pregunta, text_info = 1, LISTAS.IDENTIDAD, true, " "
 				local lista_resp = {TEXT_M_CON[41], TEXT_GEN[4]}
 				local nombres_sist = {"Megadrive"; "Master System"; "Game Gear"; "Famicom"; "Game Boy"; "Game Boy Color";
-					"Game Boy Advance"; "Atari 2600"; "Atari Lynk"; "Sega SG-1000"; "NeoGeo Pocket"; "Super Famicom"; "APPS";
+					"Game Boy Advance"; "Atari 2600"; "Atari Lynx"; "Sega SG-1000"; "NeoGeo Pocket"; "Super Famicom"; "APPS";
 					"PlayStation"; "PlayStation 2";};
 				local nombres_conf = {TEXT_M_CON[107] ..":"; TEXT_M_CON[108] .." \"".. nombres_sist[sistemas] .."\""; TEXT_M_CON[109] ..":";
 					TEXT_M_CON[110] ..":"; TEXT_M_CON[111] ..":"; TEXT_M_CON[112] ..":"; TEXT_M_CON[113] ..":"; TEXT_M_CON[77] ..":";
@@ -4476,7 +4476,7 @@ function menu_config()
 						local actual = System.currentDirectory()
 						local list_sprites, presente, prev_name = System.listDirectory(actual .."/System/Medios/Sprites"), false, " "
 						local comparar = {"Megadrive_"; "MasterSystem_"; "GameGear_"; "Famicom_"; "GameBoy_"; "GameBoyColor_"; "GameBoyAdvance_";
-						"Atari2600_"; "AtariLynk_"; "SegaSG1000_"; "NeoGeoPocket_"; "SuperFamicom_"; "Apps_"; "PlayStation_"; "PlayStation2_";}
+						"Atari2600_"; "AtariLynx_"; "SegaSG1000_"; "NeoGeoPocket_"; "SuperFamicom_"; "Apps_"; "PlayStation_"; "PlayStation2_";}
 						local new_name = comparar[valores_actual[2]] .. cha_res(nil, valores_actual[3]) .. cha_res(nil, valores_actual[4]) ..
 						cha_res(nil, valores_actual[5]) .. cha_res(nil, valores_actual[6]) .. cha_res(nil, valores_actual[7]) .."_"..
 						cha_res(nil, valores_actual[8]) .."x".. cha_res(nil, valores_actual[9]) ..".png"
@@ -4531,7 +4531,7 @@ function menu_config()
 				Pads.rumble(0, 0, 0)
 				local lista_indi_rest_RL = {11, 10, 9, 4, 5, 7, 6, 1, 2, 12, 3, 8}
 				local lista_indi_rest = {"Sega Megadrive"; "Sega Master System"; "Sega Game Gear"; "Nintendo Famicom"; "Nintendo Game Boy";
-				"Nintendo Game Boy Color"; "Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynk"; "Sega SG-1000"; "Neo Geo Pocket";
+				"Nintendo Game Boy Color"; "Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynx"; "Sega SG-1000"; "Neo Geo Pocket";
 				"Nintendo Super Famicom";};
 				while pregunta do
 					capturar(JOYSTICK_LIMITE)
@@ -5480,8 +5480,8 @@ function menu_config()
 			if SISTEMAS.ATARI2600_ON == 0 then
 				PRE_CARGADAS[8] = {}
 			end
-			SISTEMAS.ATARILYNK_ON = lista_config[16]
-			if SISTEMAS.ATARILYNK_ON == 0 then
+			SISTEMAS.ATARILYNX_ON = lista_config[16]
+			if SISTEMAS.ATARILYNX_ON == 0 then
 				PRE_CARGADAS[9] = {}
 			end
 			SISTEMAS.SEGASG1000_ON = lista_config[17]
@@ -5938,7 +5938,7 @@ function crear_listas(identidad, lista)
 	if identidad <= 12 then
 		-- Lista de sistemas. -----------------------------------------------------------
 		local dir_sistemas = {"Sega Megadrive"; "Sega Master System"; "Sega Game Gear"; "Nintendo Famicom"; "Nintendo Game Boy";
-		"Nintendo Game Boy Color"; "Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynk"; "Sega SG-1000"; "Neo Geo Pocket"; "Nintendo Super Famicom";};
+		"Nintendo Game Boy Color"; "Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynx"; "Sega SG-1000"; "Neo Geo Pocket"; "Nintendo Super Famicom";};
 
 		-- Lista de extensiones. --------------------------------------------------------
 		local name_exten = {{".zip", ".bin", ".gen", ".smd", ".md"}; {".zip", ".sms"}; {".zip", ".gg"};
@@ -6263,7 +6263,7 @@ function existe(identidad, nombre_juego, alternativo)
 	if identidad <= 12 and alternativo ~= nil then
 		-- Lista de sistemas. -----------------------------------------------------------
 		local dir_sistemas = {"Sega Megadrive"; "Sega Master System"; "Sega Game Gear"; "Nintendo Famicom"; "Nintendo Game Boy"; "Nintendo Game Boy Color";
-		"Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynk"; "Sega SG-1000"; "Neo Geo Pocket"; "Nintendo Super Famicom";};
+		"Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynx"; "Sega SG-1000"; "Neo Geo Pocket"; "Nintendo Super Famicom";};
 
 		-- Lista de aplicaciones. -------------------------------------------------------
 		local name_cores = {"picodrive_libretro_ps2.elf"; "picodrive_libretro_ps2.elf"; "picodrive_libretro_ps2.elf"; "fceumm_libretro_ps2.elf";
@@ -6483,7 +6483,7 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 	if identidad <= 12 then
 		-- Lista de sistemas. -----------------------------------------------------------
 		local dir_sistemas = {"Sega Megadrive"; "Sega Master System"; "Sega Game Gear"; "Nintendo Famicom"; "Nintendo Game Boy"; "Nintendo Game Boy Color";
-		"Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynk"; "Sega SG-1000"; "Neo Geo Pocket"; "Nintendo Super Famicom";};
+		"Nintendo Game Boy Advance"; "Atari 2600"; "Atari Lynx"; "Sega SG-1000"; "Neo Geo Pocket"; "Nintendo Super Famicom";};
 
 		-- Lista de aplicaciones. -------------------------------------------------------
 		local name_cores = {"picodrive_libretro_ps2.elf"; "picodrive_libretro_ps2.elf"; "picodrive_libretro_ps2.elf"; "fceumm_libretro_ps2.elf";
@@ -6716,7 +6716,7 @@ function pantalla_reiniciar_conf(FONDO, estado, limpiar, indi_rest)
 	end
 	Graphics.drawScaleImage(LISTAS.LOADING, 0, 0, res_x, res_y)
 	Graphics.drawRect(-5, 278-3+res_y_tex, 650, 25, COLOR.NEGRO)
-	local lista_indi_rest = {"Atari 2600"; "Atari Lynk"; "Neo Geo Pocket"; "Nintendo Famicom"; "Nintendo Game Boy"; "Nintendo Game Boy Advance";
+	local lista_indi_rest = {"Atari 2600"; "Atari Lynx"; "Neo Geo Pocket"; "Nintendo Famicom"; "Nintendo Game Boy"; "Nintendo Game Boy Advance";
 	"Nintendo Game Boy Color"; "Nintendo Super Famicom"; "Sega Game Gear"; "Sega Master System"; "Sega Megadrive"; "Sega SG-1000";};
 	if limpiar == true then
 		Font.ftPrint(CONTROL.fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "- ".. TEXT_M_CON[70] .." -", COLOR.BLANCO)
@@ -6817,7 +6817,7 @@ function guardar_opciones()
 	local config = ("".. OPCIONES.RGB_ON .." ".. OPCIONES.FONDO_RGB_ON .." ".. OPCIONES.FONDO_RGB_FIJO_ON .." ".. OPCIONES.R .." ".. OPCIONES.G ..
 	" ".. OPCIONES.B .." ".. CONTROL.ESTILO .." ".. SISTEMAS.MEGADRIVE_ON .." ".. SISTEMAS.MASTERSYSTEM_ON .." ".. SISTEMAS.GAMEGEAR_ON ..
 	" ".. SISTEMAS.FAMICOM_ON .." ".. SISTEMAS.GAMEBOY_ON .." ".. SISTEMAS.GAMEBOYCOLOR_ON .." ".. SISTEMAS.GAMEBOYADVANCE_ON ..
-	" ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.ATARILYNK_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON ..
+	" ".. SISTEMAS.ATARI2600_ON .." ".. SISTEMAS.ATARILYNX_ON .." ".. SISTEMAS.SEGASG1000_ON .." ".. SISTEMAS.NEOGEOPOCKET_ON ..
 	" ".. SISTEMAS.SUPERFAMICOM_ON .." ".. SISTEMAS.APPS_ON .." ".. SISTEMAS.PLAYSTATION_ON .." ".. OPCIONES.CAMBIO_FUENTE_ON ..
 	" ".. OPCIONES.CAMBIO_FONDO_ON .." ".. OPCIONES.GUI_LIMPIA_ON .." ".. OPCIONES.LIMITADOR_RAM_ON .." ".. OPCIONES.SALIDA_RETROLANCHER_ON ..
 	" ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON ..
@@ -6860,7 +6860,7 @@ function cargar_config()
 		SISTEMAS.GAMEBOYCOLOR_ON = 1
 		SISTEMAS.GAMEBOYADVANCE_ON = 1
 		SISTEMAS.ATARI2600_ON = 1
-		SISTEMAS.ATARILYNK_ON = 1
+		SISTEMAS.ATARILYNX_ON = 1
 		SISTEMAS.SEGASG1000_ON = 1
 		SISTEMAS.NEOGEOPOCKET_ON = 1
 		SISTEMAS.SUPERFAMICOM_ON = 0
@@ -6948,7 +6948,7 @@ function cargar_config()
 			SISTEMAS.GAMEBOYCOLOR_ON = activ_opt(SISTEMAS.GAMEBOYCOLOR_ON, lista_config2[13], 1, 0)
 			SISTEMAS.GAMEBOYADVANCE_ON = activ_opt(SISTEMAS.GAMEBOYADVANCE_ON, lista_config2[14], 1, 0)
 			SISTEMAS.ATARI2600_ON = activ_opt(SISTEMAS.ATARI2600_ON, lista_config2[15], 1, 0)
-			SISTEMAS.ATARILYNK_ON = activ_opt(SISTEMAS.ATARILYNK_ON, lista_config2[16], 1, 0)
+			SISTEMAS.ATARILYNX_ON = activ_opt(SISTEMAS.ATARILYNX_ON, lista_config2[16], 1, 0)
 			SISTEMAS.SEGASG1000_ON = activ_opt(SISTEMAS.SEGASG1000_ON, lista_config2[17], 1, 0)
 			SISTEMAS.NEOGEOPOCKET_ON = activ_opt(SISTEMAS.NEOGEOPOCKET_ON, lista_config2[18], 1, 0)
 			SISTEMAS.SUPERFAMICOM_ON = activ_opt(SISTEMAS.SUPERFAMICOM_ON, lista_config2[19], 1, 0)
@@ -7195,7 +7195,7 @@ function reiniciar_conf(limpiar, indi_rest)
 		SISTEMAS.GAMEBOYCOLOR_ON = 1
 		SISTEMAS.GAMEBOYADVANCE_ON = 1
 		SISTEMAS.ATARI2600_ON = 1
-		SISTEMAS.ATARILYNK_ON = 1
+		SISTEMAS.ATARILYNX_ON = 1
 		SISTEMAS.SEGASG1000_ON = 1
 		SISTEMAS.NEOGEOPOCKET_ON = 1
 		SISTEMAS.SUPERFAMICOM_ON = 0
@@ -7257,7 +7257,7 @@ function reiniciar_conf(limpiar, indi_rest)
 		end
 		pantalla_reiniciar_conf(FONDO_LOAD, 10, true, indi_rest)
 		if indi_rest == 0 or indi_rest == 2 then
-			limpiar_retroarch("Atari Lynk")
+			limpiar_retroarch("Atari Lynx")
 		end
 		pantalla_reiniciar_conf(FONDO_LOAD, 15, true, indi_rest)
 		if indi_rest == 0 or indi_rest == 3 then
@@ -7315,19 +7315,19 @@ function reiniciar_conf(limpiar, indi_rest)
 		end
 	end
 
-	-- Restaura Atari Lynk. -------------------------------------------------------------
+	-- Restaura Atari Lynx. -------------------------------------------------------------
 	if indi_rest == 0 or indi_rest == 20 or indi_rest == 2 then
-		directorios_faltantes("Atari Lynk", "Handy")
+		directorios_faltantes("Atari Lynx", "Handy")
 		pantalla_reiniciar_conf(FONDO_LOAD, 5, false, indi_rest)
-		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynk/retroarch/retroarch.cfg") then
-			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynk/retroarch/retroarch.cfg", actual .."/System/RetroarchPS2/Atari Lynk/retroarch/retroarch.cfg")
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynx/retroarch/retroarch.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynx/retroarch/retroarch.cfg", actual .."/System/RetroarchPS2/Atari Lynx/retroarch/retroarch.cfg")
 		end
 		pantalla_reiniciar_conf(FONDO_LOAD, 8, false, indi_rest)
-		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynk/retroarch/config/Handy/Handy.opt") then
-			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynk/retroarch/config/Handy/Handy.opt", actual .."/System/RetroarchPS2/Atari Lynk/retroarch/config/Handy/Handy.opt")
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynx/retroarch/config/Handy/Handy.opt") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynx/retroarch/config/Handy/Handy.opt", actual .."/System/RetroarchPS2/Atari Lynx/retroarch/config/Handy/Handy.opt")
 		end
-		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynk/retroarch/config/Handy/1-Vertical Configuration.cfg") then
-			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynk/retroarch/config/Handy/1-Vertical Configuration.cfg", actual .."/System/RetroarchPS2/Atari Lynk/retroarch/config/Handy/1-Vertical Configuration.cfg")
+		if doesFileExist(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynx/retroarch/config/Handy/1-Vertical Configuration.cfg") then
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/Atari Lynx/retroarch/config/Handy/1-Vertical Configuration.cfg", actual .."/System/RetroarchPS2/Atari Lynx/retroarch/config/Handy/1-Vertical Configuration.cfg")
 		end
 	end
 
@@ -7498,7 +7498,7 @@ function reiniciar_conf(limpiar, indi_rest)
 			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg", actual .."/System/RetroarchPS2/Atari 2600/retroarch/retroarch-salamander.cfg")
 		end
 		if indi_rest == 0 or indi_rest == 20 or indi_rest == 2 then
-			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg", actual .."/System/RetroarchPS2/Atari Lynk/retroarch/retroarch-salamander.cfg")
+			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg", actual .."/System/RetroarchPS2/Atari Lynx/retroarch/retroarch-salamander.cfg")
 		end
 		if indi_rest == 0 or indi_rest == 20 or indi_rest == 3 then
 			System.copyFile(actual .."/System/Respaldo/".. dir_mode_video .."/retroarch-salamander.cfg", actual .."/System/RetroarchPS2/Neo Geo Pocket/retroarch/retroarch-salamander.cfg")
@@ -7567,9 +7567,9 @@ function TEML(cargar_img)
 	local actual = System.currentDirectory()
 	local list_sprites = System.listDirectory(actual .."/System/Medios/Sprites")
 	local comparar = {"Megadrive_"; "MasterSystem_"; "GameGear_"; "Famicom_"; "GameBoy_"; "GameBoyColor_"; "GameBoyAdvance_";
-	"Atari2600_"; "AtariLynk_"; "SegaSG1000_"; "NeoGeoPocket_"; "SuperFamicom_"; "Apps_"; "PlayStation_"; "PlayStation2_";}
+	"Atari2600_"; "AtariLynx_"; "SegaSG1000_"; "NeoGeoPocket_"; "SuperFamicom_"; "Apps_"; "PlayStation_"; "PlayStation2_";}
 	local final = {"Megadrive_01000_4x4.png"; "MasterSystem_01000_4x4.png"; "GameGear_01000_4x4.png"; "Famicom_01000_4x4.png"; "GameBoy_01000_4x4.png";
-	"GameBoyColor_01000_4x4.png"; "GameBoyAdvance_01000_4x4.png"; "Atari2600_01000_4x4.png"; "AtariLynk_01000_4x4.png"; "SegaSG1000_01000_4x4.png";
+	"GameBoyColor_01000_4x4.png"; "GameBoyAdvance_01000_4x4.png"; "Atari2600_01000_4x4.png"; "AtariLynx_01000_4x4.png"; "SegaSG1000_01000_4x4.png";
 	"NeoGeoPocket_01000_4x4.png"; "SuperFamicom_01000_4x4.png"; "Apps_01000_4x4.png"; "PlayStation_01000_4x4.png"; "PlayStation2_01000_4x4.png";}
 	if list_sprites ~= nil then
 		for cont = 1, #comparar do
