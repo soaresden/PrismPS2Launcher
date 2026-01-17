@@ -1,7 +1,7 @@
 --[[------------------SPAGHETTICODE-------------------]]--
 --[[█▀█ ██▀ ▀█▀ █▀█ █▀█ █    ▄▄ ▄ ▄ ▄▄▄ ▄▄▄ █▄▄ ▄▄  ▄▄]]--
 --[[█▀▄ █▄▄  █  █▀▄ █▄█ █▄▄ ▀▄█ █▄█ █ █ █▄▄ █ █ ██▄ █ ]]--
---[[----------------------v1.0------------------------]]--
+--[[------------------- v1.0/rev2 --------------------]]--
 
 --- Intenta cargar módulos "IRX". -------------------------------------------------------
 function irx_load()
@@ -31,9 +31,7 @@ if true then
 		require("System/relocation")
 	end
 	if doesFileExist("System/Respaldo/PAL") == false and doesFileExist("System/Respaldo/NTSC") == false then
-		local mensaje = "Boinas Hijo"
 		local VMODE = System.openFile("System/Respaldo/NTSC", FCREATE)
-		System.writeFile(VMODE, mensaje, string.len(mensaje))
 		System.closeFile(VMODE)
 	elseif doesFileExist("System/Respaldo/PAL") then
 		Screen.setMode(PAL, 640, 512, CT24, INTERLACED, FIELD)
@@ -70,58 +68,152 @@ S_MOVER = verificar_sonidos(S_MOVER, "System/Medios/Sound/Menu/move.adp");
 S_EJECUTAR = verificar_sonidos(S_EJECUTAR, "System/Medios/Sound/Menu/run.adp");
 S_CANCELAR = verificar_sonidos(S_CANCELAR, "System/Medios/Sound/Menu/back.adp");
 S_NETX = verificar_sonidos(S_NETX, "System/Medios/Sound/Menu/next.adp");
-S_ERROR = verificar_sonidos(S_ERROR, "System/Medios/Sound/Menu/error.adp");
 S_MUSICA = verificar_sonidos(S_MUSICA, "System/Medios/Sound/Background/music.adp");
 
 --- Cargar variables y configuraciones. -------------------------------------------------
+require("System/language")
+lang_select()
 require("System/menu")
 require("System/funciones")
 
 -- Guarda las listas / últimos movimientos / límite de captura. -------------------------
 PRE_CARGADAS = {}
-LAST_MOVE = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+LAST_MOVE = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 JOYSTICK_LIMITE = 0
+
+--- Carga y verificación de imágenes. ---------------------------------------------------
+function verif_img(dir)
+	local actual = System.currentDirectory()
+	if doesFileExist(actual .."/".. dir) == false then
+		dir = "System/Medios/Default/ERROR.png"
+	end
+	return dir
+end
 
 -- Precargar logos. ---------------------------------------------------------------------
 LOGOS = {
-	DEFAULT = Graphics.loadImage("System/Medios/Logos/Default.png");
-	DEFAULT_DEMO = Graphics.loadImage("System/Medios/Logos/Default_DEMO.png");
-	MEGADRIVE = Graphics.loadImage("System/Medios/Logos/Megadrive.png");
-	MASTERSYSTEM = Graphics.loadImage("System/Medios/Logos/MasterSystem.png");
-	GAMEGEAR = Graphics.loadImage("System/Medios/Logos/GameGear.png");
-	FAMICOM = Graphics.loadImage("System/Medios/Logos/Famicom.png");
-	GAMEBOY = Graphics.loadImage("System/Medios/Logos/GameBoy.png");
-	GAMEBOYCOLOR = Graphics.loadImage("System/Medios/Logos/GameBoyColor.png");
-	GAMEBOYADVANCE = Graphics.loadImage("System/Medios/Logos/GameBoyAdvance.png");
-	ATARI2600 = Graphics.loadImage("System/Medios/Logos/Atari2600.png");
-	SEGASG1000 = Graphics.loadImage("System/Medios/Logos/SegaSG1000.png");
-	NEOGEOPOCKET = Graphics.loadImage("System/Medios/Logos/NeoGeoPocket.png");
-	SUPERFAMICOM = Graphics.loadImage("System/Medios/Logos/SuperFamicom.png");
-	APPS = Graphics.loadImage("System/Medios/Logos/Apps.png");
-	PLAYSTATION = Graphics.loadImage("System/Medios/Logos/PlayStation.png");
-	PLAYSTATION2 = Graphics.loadImage("System/Medios/Logos/PlayStation2.png");
+	DEFAULT = Graphics.loadImage(verif_img("System/Medios/Logos/Default.png"));
+	DEFAULT_DEMO = Graphics.loadImage(verif_img("System/Medios/Logos/Default_DEMO.png"));
+	MEGADRIVE = Graphics.loadImage(verif_img("System/Medios/Logos/Megadrive.png"));
+	MASTERSYSTEM = Graphics.loadImage(verif_img("System/Medios/Logos/MasterSystem.png"));
+	GAMEGEAR = Graphics.loadImage(verif_img("System/Medios/Logos/GameGear.png"));
+	FAMICOM = Graphics.loadImage(verif_img("System/Medios/Logos/Famicom.png"));
+	GAMEBOY = Graphics.loadImage(verif_img("System/Medios/Logos/GameBoy.png"));
+	GAMEBOYCOLOR = Graphics.loadImage(verif_img("System/Medios/Logos/GameBoyColor.png"));
+	GAMEBOYADVANCE = Graphics.loadImage(verif_img("System/Medios/Logos/GameBoyAdvance.png"));
+	ATARI2600 = Graphics.loadImage(verif_img("System/Medios/Logos/Atari2600.png"));
+	ATARILYNK = Graphics.loadImage(verif_img("System/Medios/Logos/AtariLynk.png"));
+	SEGASG1000 = Graphics.loadImage(verif_img("System/Medios/Logos/SegaSG1000.png"));
+	NEOGEOPOCKET = Graphics.loadImage(verif_img("System/Medios/Logos/NeoGeoPocket.png"));
+	SUPERFAMICOM = Graphics.loadImage(verif_img("System/Medios/Logos/SuperFamicom.png"));
+	APPS = Graphics.loadImage(verif_img("System/Medios/Logos/Apps.png"));
+	PLAYSTATION = Graphics.loadImage(verif_img("System/Medios/Logos/PlayStation.png"));
+	PLAYSTATION2 = Graphics.loadImage(verif_img("System/Medios/Logos/PlayStation2.png"));
 };
 
 -- Precargar imágenes de los pads. ------------------------------------------------------
 PAD_IMG = {
-	CIRCLE = Graphics.loadImage("System/Medios/Pads/circle.png");
-	CROSS = Graphics.loadImage("System/Medios/Pads/cross.png");
-	L1 = Graphics.loadImage("System/Medios/Pads/L1.png");
-	R1 = Graphics.loadImage("System/Medios/Pads/R1.png");
-	L2 = Graphics.loadImage("System/Medios/Pads/L2.png");
-	R2 = Graphics.loadImage("System/Medios/Pads/R2.png");
-	R3 = Graphics.loadImage("System/Medios/Pads/R3.png");
-	SELECT_S = Graphics.loadImage("System/Medios/Pads/select.png");
-	SQUARE = Graphics.loadImage("System/Medios/Pads/square.png");
-	TRIANGLE = Graphics.loadImage("System/Medios/Pads/triangle.png");
-	START = Graphics.loadImage("System/Medios/Pads/start.png");
+	CIRCLE = Graphics.loadImage(verif_img("System/Medios/Pads/circle.png"));
+	CROSS = Graphics.loadImage(verif_img("System/Medios/Pads/cross.png"));
+	L1 = Graphics.loadImage(verif_img("System/Medios/Pads/L1.png"));
+	R1 = Graphics.loadImage(verif_img("System/Medios/Pads/R1.png"));
+	L2 = Graphics.loadImage(verif_img("System/Medios/Pads/L2.png"));
+	R2 = Graphics.loadImage(verif_img("System/Medios/Pads/R2.png"));
+	R3 = Graphics.loadImage(verif_img("System/Medios/Pads/R3.png"));
+	SELECT_S = Graphics.loadImage(verif_img("System/Medios/Pads/select.png"));
+	SQUARE = Graphics.loadImage(verif_img("System/Medios/Pads/square.png"));
+	TRIANGLE = Graphics.loadImage(verif_img("System/Medios/Pads/triangle.png"));
+	START = Graphics.loadImage(verif_img("System/Medios/Pads/start.png"));
 };
+
+-- Precargar imágenes de los sprites. ---------------------------------------------------
+SPRITES = {
+	MEGADRIVE = nil;
+	MASTERSYSTEM = nil;
+	GAMEGEAR = nil;
+	FAMICOM = nil;
+	GAMEBOY = nil;
+	GAMEBOYCOLOR = nil;
+	GAMEBOYADVANCE = nil;
+	ATARI2600 = nil;
+	ATARILYNK = nil;
+	SEGASG1000 = nil;
+	NEOGEOPOCKET = nil;
+	SUPERFAMICOM = nil;
+	APPS = nil;
+	PLAYSTATION = nil;
+	PLAYSTATION2 = nil;
+	SPRITE_SYS = {"MEGADRIVE"; "MASTERSYSTEM"; "GAMEGEAR"; "FAMICOM"; "GAMEBOY"; "GAMEBOYCOLOR";
+				"GAMEBOYADVANCE"; "ATARI2600"; "ATARILYNK"; "SEGASG1000"; "NEOGEOPOCKET";
+				"SUPERFAMICOM"; "APPS"; "PLAYSTATION"; "PLAYSTATION2"};
+	HEIGHT_Y = {45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45};
+	WIDTH_X = {40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40};
+	N_COLUMNS = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+	N_ROWS = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+	X = 0;
+	Y = 0;
+	ANI_FRAME = 0;
+	FLIP = {0, 0};
+	FONDO_ANI = false;
+	FONDO_HEIGHT_Y = 640;
+	FONDO_WIDTH_X = 448;
+	FONDO_N_COLUMNS = 4;
+	FONDO_N_ROWS = 4;
+	FOND_X = 0;
+	FOND_Y = 0;
+	FONDO_ANI_FRAME = 0;
+	LAYER = false;
+	LAYER_TYPE = 0;
+	LAYER_SPEED = 1;
+	TRAN_TYPE = 0;
+	TRAN_LEVEL = 1;
+	TRAN_SPEED = 1;
+	TRAN = {128, 128, 128, 128};
+	TRAN_ALT = {false, false, false, false};
+	SPIN_TYPE = 0;
+	SPIN = 0;
+	SPIN_SPEED = 1;
+	LAYER_MULTI = 1;
+	BACK_X = 0;
+	BACK_Y = 0;
+	LAYER_X_1 = 0;
+	LAYER_X_2 = 0;
+	LAYER_X_3 = 0;
+	LAYER_X_4 = 0;
+	LAYER_Y_1 = 0;
+	LAYER_Y_2 = 0;
+	LAYER_Y_3 = 0;
+	LAYER_Y_4 = 0;
+	ALTERNATE = false;
+	ALTERNATE_R = false;
+	ALTERNATE_T = false;
+	ACTIVATE_ALTER_T = false;
+	ANG = {0.00, 3.14};
+	ZOOM = {0, false};
+	MOVE = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	AUTO_MOVE_SPRITE = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	MOVE_X = 0;
+	MOVE_Y = 0;
+	MOVE_ALT_X = false;
+	MOVE_ALT_Y = false;
+	SPIN_SPRITE_ON = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	SPIN_SPRITE = 0.00;
+	SPIN_SPRITE_ALT = false;
+	TRAN_SPRITE_ON = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	TRAN_SPRITE = 128;
+	TRAN_ALT_SPRITE = false;
+	ANG_SPRITE = 0.00;
+	ZOOM_SPRITE = {0, false};
+	SPEED_SPRITE = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+};
+TEML(true)
 
 -- Define colores básicos. --------------------------------------------------------------
 COLOR = {
 	BLANCO = Color.new(128, 128, 128);
 	BLANCO_LISTA = Color.new(128, 128, 128);
 	NEGRO = Color.new(0, 0, 0);
+	GRIS = Color.new(70, 70, 70);
 	NEGRO_T = Color.new(0, 0, 0, 85);
 	BLANCO_T = Color.new(128, 128, 128, 20);
 };
@@ -150,6 +242,8 @@ OPCIONES = {
 	SOUND_VOLUME = 65;
 	VIDEO_MODE = 0;
 	VIBRATION_ON = 0;
+	VIBRATION = false;
+	VIBRATION_MODE = nil;
 	DIR_EXTRAS_ON = 1;
 	PREGUNTAR_PS2 = false;
 	LIBERAR_LISTAS = 0;
@@ -159,6 +253,9 @@ OPCIONES = {
 	SCROLL_MIN = 24;
 	OPL_ELF = "mass:/RETROLauncher/System/RetroarchPS2/Sony PlayStation 2/OPL/OPNPS2LD.ELF";
 	OPL_DIR = "DVD";
+	SPRITE_ON = 0;
+	SEE_INDEX = 0;
+	COLOR_LISTA_B = 74;
 };
 
 -- Define el estado de los emuladores (Activado / Desactivado). -------------------------
@@ -171,6 +268,7 @@ SISTEMAS = {
 	GAMEBOYCOLOR_ON = 1;
 	GAMEBOYADVANCE_ON = 1;
 	ATARI2600_ON = 1;
+	ATARILYNK_ON = 1;
 	SEGASG1000_ON = 1;
 	NEOGEOPOCKET_ON = 1;
 	SUPERFAMICOM_ON = 1;
@@ -224,6 +322,8 @@ CONTROL = {
 	CUSTOM_BUTTON_STA = true;
 	CUSTOM_BUTTON_SEL = true;
 	CUSTOM_BACK = true;
+	SPRITE_ANCHO = 30; SPRITE_X = 80; SPRITE_ALTO = 30; SPRITE_Y = 100;
+	CUSTOM_SPRITE = false;
 	Font.ftInit();
 	fontARCA = Font.ftLoad("System/Medios/Font/PublicPixel.ttf");
 	fontABC = Font.ftLoad("System/Medios/Font/PublicPixel.ttf");
@@ -232,10 +332,10 @@ CONTROL = {
 
 -- Define las variables usadas para la ejecución de las listas. -------------------------
 LISTAS = {
-	FONDO = Graphics.loadImage("System/Medios/Default/FONDO.png");
-	LOADING = Graphics.loadImage("System/Medios/Default/LOADING.png");
-	COVER_DEFAULT = Graphics.loadImage("System/Medios/Default/COVER_DEFAULT.png");
-	SCREENSHOT_DEFAULT = Graphics.loadImage("System/Medios/Default/SCREENSHOT_DEFAULT.png");
+	FONDO = Graphics.loadImage(verif_img("System/Medios/Default/FONDO.png"));
+	LOADING = Graphics.loadImage(verif_img("System/Medios/Default/LOADING.png"));
+	COVER_DEFAULT = Graphics.loadImage(verif_img("System/Medios/Default/".. img_lang("COVER_DEFAULT", true) ..".png"));
+	SCREENSHOT_DEFAULT = Graphics.loadImage(verif_img("System/Medios/Default/".. img_lang("SCREENSHOT_DEFAULT", false) ..".png"));
 	LOGO = LOGOS.DEFAULT;
 	IDENTIDAD = 1;
 	INDICE = 1;

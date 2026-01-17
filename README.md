@@ -1,12 +1,12 @@
-Spaghetticode / LC - Mendoza - Argentina / 2024 - RETROLauncher
+Spaghetticode / LC - Mendoza - Argentina / 2026 - RETROLauncher
 
 --------------------------------------------------------------------------
 What is RETROLauncher?
 
 RETROLauncher is a launcher with a graphical environment for retro games, 
 created entirely in Lua under the Enceladus development environment, in 
-conjunction with Retroarch, POPStarter, Neutrino and wLaunchELF ISR for the 
-execution of the games/APPS.
+conjunction with Retroarch, POPStarter, Neutrino, wLaunchELF ISR and OPL 
+for the execution of the games/APPS.
 
 The main objective of creating this program is to provide a friendly, 
 attractive and customizable graphical environment to manage ROMS libraries 
@@ -90,6 +90,11 @@ and PS3 devices, created by Ifcaro and jimmikaelkael in conjunction with a huge
 community of developers who are constantly improving it.
  / Open PS2 Loader Project Link: https://github.com/ps2homebrew/Open-PS2-Loader
  / License: Copyright 2013, Ifcaro & jimmikaelkael Licensed under "AFL" v. 3.0.
+ 
+Hugopocked Fixes for POPStarter: These are corrections made by Hugopocked for the 
+POPStarter emulator that solve multiple problems presented in the emulation of 
+PS1 titles, providing the possibility of better emulation and execution of them.
+ / Hugopocked Fixes Link: https://www.psx-place.com/threads/hugopocked-fixes-for-popstarter.39750/
 
 Original background: 
  / https://www.artapixel.com/escp-art-midnight-sun-city-night-retrowave-cyberpunk.html
@@ -113,13 +118,12 @@ a simple and editable graphical environment to have collections of retro
 games on PS2, I made it for myself and I wasn't planning to publish it, 
 but I thought it would be good to share it in case someone somewhere 
 was looking for the same thing as me, something retro-focused on our 
-beloved PS2. At no time did I want to offend or disrespect the developers 
-behind the different applications used in this program, if I have done 
-so I apologize. I tried to compile as much information as possible to 
-give the credits correctly. I hope I haven't made a mistake, or that I've 
-overlooked something. If so, I apologize. 
+beloved PS2. At no point did I intend to offend or disrespect the 
+developers behind the various applications used in this program. I tried to
+compile as much information as possible to give proper credit. If I've 
+overlooked something or made a mistake, I apologize.
 
 RETROLauncher we all do it.
- 
+
 Thank you for using RETROLauncher / Boon Tobias.
 --------------------------------------------------------------------------

@@ -1,14 +1,26 @@
 --[[------------------SPAGHETTICODE-------------------]]--
 --[[█▀█ ██▀ ▀█▀ █▀█ █▀█ █    ▄▄ ▄ ▄ ▄▄▄ ▄▄▄ █▄▄ ▄▄  ▄▄]]--
 --[[█▀▄ █▄▄  █  █▀▄ █▄█ █▄▄ ▀▄█ █▄█ █ █ █▄▄ █ █ ██▄ █ ]]--
---[[----------------------v1.0------------------------]]--
+--[[------------------- v1.0/rev2 --------------------]]--
+
+--[[Líneas para la reubicación de RETROLauncher.]]--
+--- Carga y verificación de imágenes. ---------------------------------------------------
+function verif_img(dir)
+	local actual = System.currentDirectory()
+	if doesFileExist(actual .."/".. dir) == false then
+		dir = "System/Medios/Default/ERROR.png"
+	end
+	return dir
+end
 
 -- Cargar medios multimedia. ------------------------------------------------------------
 actual = System.currentDirectory();
 Font.ftInit();
 fontARCA = Font.ftLoad(actual .."/System/Medios/Font/PublicPixel.ttf");
-FONDO_LOAD = Graphics.loadImage(actual .."/System/Medios/Default/FONDO.png");
-LOADING_LOAD = Graphics.loadImage(actual .."/System/Medios/Default/LOADING.png");
+FONDO_LOAD = Graphics.loadImage(verif_img("System/Medios/Default/FONDO.png"));
+LOADING_LOAD = Graphics.loadImage(verif_img("System/Medios/Default/LOADING.png"));
+require("System/language")
+lang_select()
 
 --- Refrescar pantalla. -----------------------------------------------------------------
 function refrescar()
@@ -34,9 +46,9 @@ function puerto_usb()
 		while true do
 			Screen.clear(Color.new(0, 0, 0))
 			if string.sub(actual, 1, 6) == "mass1:" then
-				Font.ftPrint(fontARCA, 5, 140+res_y_tex, 0, 640, 448, "Warning\nThis program was created to run from the first\nport(USB) of PS2.\nPlease, reconnect the USB to the first port and\nrestart the program.", Color.new(128, 128, 128))
+				Font.ftPrint(fontARCA, 5, 140+res_y_tex, 0, 640, 448, TEXT_M_REL[1], Color.new(128, 128, 128))
 			elseif buscar ~= nil then
-				Font.ftPrint(fontARCA, 5, 140+res_y_tex, 0, 640, 448, "Warning\nUSB storage device detected on second port(USB)\nPlease, Disconnect the USB from the second port\nand restart the program.", Color.new(128, 128, 128))
+				Font.ftPrint(fontARCA, 5, 140+res_y_tex, 0, 640, 448, TEXT_M_REL[2], Color.new(128, 128, 128))
 			end
 			refrescar()
 		end
@@ -44,31 +56,43 @@ function puerto_usb()
 end
 puerto_usb()
 
+--- Dividir un texto por un carácter determinado. ---------------------------------------
+function sub_string(texto, c_divisor, l_resultado, tipo)
+	if tipo == true then
+		for linea in string.gmatch(texto, c_divisor) do
+			table.insert(l_resultado, tonumber(linea))
+		end
+	elseif tipo == false then
+		for linea in string.gmatch(texto, c_divisor) do
+			table.insert(l_resultado, tostring(linea))
+		end
+	end
+	return l_resultado
+end
+
 --- Confirmar reubicación. --------------------------------------------------------------
 function confirmar()
 	Font.ftSetPixelSize(fontARCA, 18, 18)
 	Screen.clear(Color.new(0, 0, 0))
-	local res_x, res_y_tex, res_y = 640, 0, 448
+	local SQUARE = Graphics.loadImage(verif_img("System/Medios/Pads/square.png"))
+	local CIRCLE = Graphics.loadImage(verif_img("System/Medios/Pads/circle.png"))
+	local res_x, res_y_tex, res_y, text_list = 640, 0, 448, sub_string(TEXT_M_REL[3], "[^\n]+", {}, false)
 	if doesFileExist(actual .."/System/Respaldo/PAL") then
 		res_x, res_y_tex, res_y = 640, 34, 512
 	end
 	Graphics.drawScaleImage(FONDO_LOAD, -5, 0, res_x+5, res_y, Color.new(0, 80, 120))
 	Graphics.drawScaleImage(LOADING_LOAD, 0, 0, res_x, res_y)
 	Graphics.drawRect(0, 0, res_x, res_y, Color.new(0, 0, 0, 80))
-	Graphics.drawRect(0, 200+res_y_tex, res_x, 198, Color.new(128, 128, 128))
-	Graphics.drawRect(0, 202+res_y_tex, res_x, 194, Color.new(0, 0, 0))
-	Font.ftPrint(fontARCA, (res_x//2), (202+8)+res_y_tex, 8, res_x, 25, "The current directory does not match", Color.new(128, 128, 128))
-	Font.ftPrint(fontARCA, (res_x//2), 230+res_y_tex, 8, res_x, 25, "your configuration.", Color.new(128, 128, 128))
-	Font.ftPrint(fontARCA, (res_x//2), 250+res_y_tex, 8, res_x, 25, "Do you want to relocate the", Color.new(128, 128, 128))
-	Font.ftPrint(fontARCA, (res_x//2), 270+res_y_tex, 8, res_x, 25, "configurations to this directory?", Color.new(128, 128, 128))
-	local SQUARE = Graphics.loadImage(actual .."/System/Medios/Pads/square.png")
-	local CIRCLE = Graphics.loadImage(actual .."/System/Medios/Pads/circle.png")
-	Graphics.drawScaleImage(SQUARE, 300-35, 298+res_y_tex, 20, 20)
-	Font.ftPrint(fontARCA, 290, 298+res_y_tex, 0, 160, 25, "RELOCATE", Color.new(128, 128, 128))
-	Graphics.drawScaleImage(CIRCLE, 300-35, 322+res_y_tex, 20, 20)
-	Font.ftPrint(fontARCA, 290, 322+res_y_tex, 0, 160, 25, "CANCEL", Color.new(128, 128, 128))
-	Font.ftPrint(fontARCA, (res_x//2), 350+res_y_tex, 8, res_x, 50, "WARNING !", Color.new(128, 128, 128))
-	Font.ftPrint(fontARCA, (res_x//2), 370+res_y_tex, 8, res_x, 50, "ALL RETROARCH OPTIONS WILL RESET", Color.new(128, 128, 128))
+	Graphics.drawRect(0, 200+res_y_tex, res_x, 200, Color.new(128, 128, 128))
+	Graphics.drawRect(0, 202+res_y_tex, res_x, 196, Color.new(0, 0, 0))
+	for texto = 1, #text_list do
+		local espacio_linea = ((190)+res_y_tex)+((texto)*24)
+		Font.ftPrint(fontARCA, (res_x//2), espacio_linea, 8, res_x, 25, text_list[texto], Color.new(128, 128, 128))
+	end
+	Graphics.drawScaleImage(SQUARE, 200-35, 366+res_y_tex, 20, 20)
+	Font.ftPrint(fontARCA, 190, 366+res_y_tex, 0, 160, 25, TEXT_M_REL[4], Color.new(128, 128, 128))
+	Graphics.drawScaleImage(CIRCLE, 380-35, 366+res_y_tex, 20, 20)
+	Font.ftPrint(fontARCA, 370, 366+res_y_tex, 0, 160, 25, TEXT_GEN[6], Color.new(128, 128, 128))
 	refrescar()
 	local pregunta = true
 	while pregunta do
@@ -93,17 +117,17 @@ function barra_de_progreso(estado, indi_rest, pal, LOADING)
 	Graphics.drawScaleImage(FONDO_LOAD, -5, 0, res_x+5, res_y, Color.new(0, 80, 120))
 	Graphics.drawScaleImage(LOADING_LOAD, 0, 0, res_x, res_y)
 	Graphics.drawRect(-5, 278-3+res_y_tex, 650, 25, Color.new(0, 0, 0))
-	local lista_indi_rest = {"Atari 2600"; "Neo Geo Pocket"; "Nintendo Famicom"; "Nintendo Game Boy";
+	local lista_indi_rest = {"Atari 2600"; "Atari Lynk"; "Neo Geo Pocket"; "Nintendo Famicom"; "Nintendo Game Boy";
 	"Nintendo Game Boy Advance"; "Nintendo Game Boy Color"; "Nintendo Super Famicom"; "Sega Game Gear";
 	"Sega Master System"; "Sega Megadrive"; "Sega SG-1000"}
 	if pal == false then
-		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING ".. lista_indi_rest[indi_rest] .."-", Color.new(128, 128, 128))
+		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-".. TEXT_M_REL[5] .." ".. lista_indi_rest[indi_rest] .."-", Color.new(128, 128, 128))
 	elseif pal == true then
-		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING ".. lista_indi_rest[indi_rest] .." PAL-", Color.new(128, 128, 128))
+		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-".. TEXT_M_REL[5] .." ".. lista_indi_rest[indi_rest] .." PAL-", Color.new(128, 128, 128))
 	elseif pal == nil and estado == 70 then
-		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING SNESticle-", Color.new(128, 128, 128))
+		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-".. TEXT_M_REL[5] .." SNESticle-", Color.new(128, 128, 128))
 	elseif pal == nil then
-		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-RELOCATING ALL SETTINGS-", Color.new(128, 128, 128))
+		Font.ftPrint(fontARCA, (640//2), 278+res_y_tex, 8, 640, 25, "-".. TEXT_M_REL[6] .."-", Color.new(128, 128, 128))
 	end
 	Font.ftPrint(fontARCA, (640//2), 304+res_y_tex, 8, 640, 25, "█████████████████████████", Color.new(128, 128, 128))
 	if estado ~= 0 then
@@ -118,15 +142,15 @@ function relocation_dir()
 	confirmar()
 
 	-- Líneas de directorios. -----------------------------------------------------------
-	local directorios_ori = {"Atari 2600/"; "Neo Geo Pocket/"; "Nintendo Famicom/"; "Nintendo Game Boy/"; "Nintendo Game Boy Advance/";
+	local directorios_ori = {"Atari 2600/"; "Atari Lynk/"; "Neo Geo Pocket/"; "Nintendo Famicom/"; "Nintendo Game Boy/"; "Nintendo Game Boy Advance/";
 	"Nintendo Game Boy Color/"; "Nintendo Super Famicom/"; "Sega Game Gear/"; "Sega Master System/"; "Sega Megadrive/"; "Sega SG-1000/"}
 
 	-- Líneas de video. -----------------------------------------------------------------
 	local video_scale = "3"
-	local video_scale_integer_overscale = {"true", "true", "true", "true", "true", "true", "false", "true", "false", "true", "true"}
+	local video_scale_integer_overscale = {"true", "true", "true", "true", "true", "true", "true", "false", "true", "false", "true", "true"}
 	local video_refresh_rate = "59.940063"
-	local aspect_ratio_index = {"12", "11", "11", "0", "11", "0", "11", "22", "12", "11", "12"}
-	local video_scale_integer = {"false", "true", "true", "true", "false", "true", "true", "true", "false", "true", "false"}
+	local aspect_ratio_index = {"12", "7", "11", "11", "0", "11", "0", "11", "22", "12", "11", "12"}
+	local video_scale_integer = {"false", "true", "true", "true", "true", "false", "true", "true", "true", "false", "true", "false"}
 	local current_resolution_id = "0"
 	local video_vsync = "true"
 	local vrr_runloop_enable = "false"
@@ -136,33 +160,36 @@ function relocation_dir()
 	local aspect_ratio_index_PAL = "12"
 	local video_scale_integer_PAL = "false"
 	local current_resolution_id_PAL = "1"
-	local video_vsync_PAL = {"true", "false", "true", "false", "true", "false", "false", "true", "true", "true", "true"}
+	local video_vsync_PAL = {"true", "true", "false", "true", "false", "true", "false", "false", "true", "true", "true", "true"}
 	local vrr_runloop_enable_PAL = "true"
 
 	-- Líneas de audio. -----------------------------------------------------------------
-	local audio_latency = {"64", "64", "64", "64", "128", "64", "128", "64", "64", "64", "64"}
-	local audio_out_rate = {"48000", "48000", "48000", "48000", "12000", "48000", "24000", "48000", "48000", "48000", "48000"}
-	local audio_rate_control = {"false", "false", "false", "false", "true", "false", "false", "false", "false", "true", "false"}
-	local audio_resampler = {"sinc", "sinc", "sinc", "sinc", "CC", "sinc", "sinc", "sinc", "sinc", "sinc", "sinc"}
+	local audio_latency = {"64", "64", "64", "64", "64", "128", "64", "128", "64", "64", "64", "64"}
+	local audio_out_rate = {"48000", "48000", "48000", "48000", "48000", "12000", "48000", "24000", "48000", "48000", "48000", "48000"}
+	local audio_rate_control = {"false", "false", "false", "false", "false", "true", "false", "false", "false", "false", "true", "false"}
+	local audio_resampler = {"sinc", "sinc", "sinc", "sinc", "sinc", "CC", "sinc", "sinc", "sinc", "sinc", "sinc", "sinc"}
 
 	-- Líneas de configuración de controles. --------------------------------------------
-	local input_max_users = {"2", "1", "4", "2", "1", "2", "4", "2", "4", "4", "4"}
-	local input_sensors_enable = {"true", "true", "true", "true", "false", "true", "true", "true", "true", "true", "true"}
-	local remap = {"config/remaps", "config/remaps", "remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps"}
+	local input_max_users = {"2", "1", "1", "4", "2", "1", "2", "4", "2", "4", "4", "4"}
+	local input_sensors_enable = {"true", "true", "true", "true", "true", "false", "true", "true", "true", "true", "true", "true"}
+	local remap = {"config/remaps", "config/remaps", "config/remaps", "remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps", "config/remaps"}
 
 	-- Líneas de configuración de notificaciones. ---------------------------------------
-	local notification_show_when_menu_is_alive = {"true", "true", "true", "false", "false", "false", "true", "true", "true", "true", "true"}
-	local rgui_menu_color_theme = {"2", "10", "14", "4", "6", "3", "9", "10", "5", "35", "23"}
+	local notification_show_when_menu_is_alive = {"true", "true", "true", "true", "false", "false", "false", "true", "true", "true", "true", "true"}
+	local notification_show_config_override_load = {"false", "false", "false", "false", "false", "false", "false", "false", "false", "false", "false", "false"}
+	local rgui_menu_color_theme = {"2", "11", "10", "14", "4", "6", "3", "9", "10", "5", "35", "23"}
 
 	-- Líneas de Save State. ------------------------------------------------------------
-	local core_info_savestate_bypass = {"true", "false", "true", "true", "true", "true", "true", "true", "true", "true", "true"}
+	local core_info_savestate_bypass = {"true", "true", "true", "true", "true", "true", "true", "true", "true", "true", "true", "true"}
+	local auto_overrides_enable = {"false", "true", "false", "false", "false", "false", "false", "false", "false", "false", "false", "false"}
+	local quick_menu_show_save_game_overrides = {"false", "true", "false", "false", "false", "false", "false", "false", "false", "false", "false", "false"}
 
 	-- Líneas de interfaz de usuario. ---------------------------------------------------
 	local settings_show_user_interface = "true"
 
 	-- Crear archivos NTSC. -------------------------------------------------------------
 	for sistema = 1, #directorios_ori do
-		barra_de_progreso(6*(sistema+1), sistema, false, LOADING_LOAD)
+		barra_de_progreso(6*(sistema), sistema, false, LOADING_LOAD)
 		if sistema == 1 then
 			directorios_ori[1] = "Atari 2600"
 		end
@@ -209,7 +236,7 @@ function relocation_dir()
 		"audio_resampler_quality = \"1\"";
 		"audio_sync = \"true\"";
 		"audio_volume = \"0.000000\"";
-		"auto_overrides_enable = \"false\"";
+		"auto_overrides_enable = \"".. auto_overrides_enable[sistema] .."\"";
 		"auto_remaps_enable = \"true\"";
 		"auto_screenshot_filename = \"true\"";
 		"auto_shaders_enable = \"true\"";
@@ -1241,7 +1268,7 @@ function relocation_dir()
 		"midi_volume = \"100\"";
 		"notification_show_autoconfig = \"false\"";
 		"notification_show_cheats_applied = \"false\"";
-		"notification_show_config_override_load = \"false\"";
+		"notification_show_config_override_load = \"".. notification_show_config_override_load[sistema] .."\"";
 		"notification_show_disk_control = \"false\"";
 		"notification_show_fast_forward = \"true\"";
 		"notification_show_patch_applied = \"true\"";
@@ -1288,7 +1315,7 @@ function relocation_dir()
 		"quick_menu_show_resume_content = \"true\"";
 		"quick_menu_show_save_content_dir_overrides = \"false\"";
 		"quick_menu_show_save_core_overrides = \"false\"";
-		"quick_menu_show_save_game_overrides = \"false\"";
+		"quick_menu_show_save_game_overrides = \"".. quick_menu_show_save_game_overrides[sistema] .."\"";
 		"quick_menu_show_save_load_state = \"true\"";
 		"quick_menu_show_savestate_submenu = \"true\"";
 		"quick_menu_show_set_core_association = \"false\"";
@@ -1513,7 +1540,7 @@ function relocation_dir()
 
 	-- Crear archivos PAL. --------------------------------------------------------------
 	for sistema = 1, #directorios_ori do
-		barra_de_progreso(6*(sistema+1), sistema, true, LOADING_LOAD)
+		barra_de_progreso(6*(sistema), sistema, true, LOADING_LOAD)
 		if sistema == 1 then
 			directorios_ori[1] = "Atari 2600"
 		end
@@ -1560,7 +1587,7 @@ function relocation_dir()
 		"audio_resampler_quality = \"1\"";
 		"audio_sync = \"true\"";
 		"audio_volume = \"0.000000\"";
-		"auto_overrides_enable = \"false\"";
+		"auto_overrides_enable = \"".. auto_overrides_enable[sistema] .."\"";
 		"auto_remaps_enable = \"true\"";
 		"auto_screenshot_filename = \"true\"";
 		"auto_shaders_enable = \"true\"";
@@ -2592,7 +2619,7 @@ function relocation_dir()
 		"midi_volume = \"100\"";
 		"notification_show_autoconfig = \"false\"";
 		"notification_show_cheats_applied = \"false\"";
-		"notification_show_config_override_load = \"false\"";
+		"notification_show_config_override_load = \"".. notification_show_config_override_load[sistema] .."\"";
 		"notification_show_disk_control = \"false\"";
 		"notification_show_fast_forward = \"true\"";
 		"notification_show_patch_applied = \"true\"";
@@ -2639,7 +2666,7 @@ function relocation_dir()
 		"quick_menu_show_resume_content = \"true\"";
 		"quick_menu_show_save_content_dir_overrides = \"false\"";
 		"quick_menu_show_save_core_overrides = \"false\"";
-		"quick_menu_show_save_game_overrides = \"false\"";
+		"quick_menu_show_save_game_overrides = \"".. quick_menu_show_save_game_overrides[sistema] .."\"";
 		"quick_menu_show_save_load_state = \"true\"";
 		"quick_menu_show_savestate_submenu = \"true\"";
 		"quick_menu_show_set_core_association = \"false\"";
@@ -2863,9 +2890,9 @@ function relocation_dir()
 			System.copyFile(actual .."/System/Respaldo/RetroarchPS2_PAL/".. directorios_ori[sistema] .."retroarch/retroarch.cfg", actual .."/System/RetroarchPS2/".. directorios_ori[sistema] .."retroarch/retroarch.cfg")
 		end
 	end
-	
+
 	-- Edita los directorios de SNESticle. ----------------------------------------------
-	barra_de_progreso(70, sistema, nil, LOADING_LOAD)
+	barra_de_progreso(7, sistema, nil, LOADING_LOAD)
 	local dirfinal = actual .."/Roms/Roms Nintendo Super Famicom/";
 	if string.len(dirfinal) <= 165 then
 		System.copyFile(actual .."/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/RETRO", actual .."/System/RetroarchPS2/Nintendo Super Famicom/SNESticle/SNESticle")
@@ -2878,7 +2905,7 @@ function relocation_dir()
 	end
 
 	-- Crear archivos de retorno a RETROLauncher. ---------------------------------------
-	barra_de_progreso(75, sistema, nil, LOADING_LOAD)
+	barra_de_progreso(50, sistema, nil, LOADING_LOAD)
 	local salamander_def = "libretro_path = \"".. actual .."/RETROLauncher.elf\""
 	if doesFileExist(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg") then
 		System.removeFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg")
@@ -2887,11 +2914,52 @@ function relocation_dir()
 	System.writeFile(salamander, salamander_def, string.len(salamander_def))
 	System.closeFile(salamander)
 	for sistema = 1, #directorios_ori do
-		barra_de_progreso(6*(sistema+1), sistema, nil, LOADING_LOAD)
+		barra_de_progreso(6*(sistema), sistema, nil, LOADING_LOAD)
 		System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg", actual .."/System/RetroarchPS2/".. directorios_ori[sistema] .."retroarch/retroarch-salamander.cfg")
 	end
 	System.copyFile(actual .."/System/Respaldo/RetroarchPS2/retroarch-salamander.cfg", actual .."/System/Respaldo/RetroarchPS2_PAL/retroarch-salamander.cfg")
 
+	-- Configurar el modo de video dentro de RETROLauncher. -----------------------------
+	barra_de_progreso(74, sistema, nil, LOADING_LOAD)
+	local set_config = nil
+	if doesFileExist(actual .."/System/Config/System.cfg") then
+		set_config = actual .."/System/Config/System.cfg"
+	elseif doesFileExist(actual .."/System/Respaldo/System.cfg") then
+		System.copyFile(actual .."/System/Respaldo/System.cfg", "System/Config/System.cfg")
+		set_config = actual .."/System/Config/System.cfg"
+	end
+	if set_config ~= nil then
+		local carga_de_config2 = System.openFile(set_config, FREAD)
+		System.seekFile(carga_de_config2, 0, SET)
+		local size_config2 = System.sizeFile(carga_de_config2)
+		local temp2 = System.readFile(carga_de_config2, size_config2)
+		System.closeFile(carga_de_config2)
+		local lista_config = {}
+		lista_config = sub_string(temp2, "%d+", lista_config, true)
+		if lista_config ~= nil and #lista_config == 42 then
+			if lista_config[31] <= 1 and lista_config[31] >= 0 then
+				if doesFileExist(actual .."/System/Respaldo/PAL") then
+					lista_config[31] = 1
+				else
+					lista_config[31] = 0
+				end
+			end
+			local config_final = ""
+			for linea = 1, #lista_config do
+				if linea == #lista_config then
+					config_final = config_final .. tostring(lista_config[linea]) .."                                                                                                    "
+				else
+					config_final = config_final .. tostring(lista_config[linea]) .." "
+				end
+			end
+			local carga_de_opciones = System.openFile("System/Config/System.cfg", FRDWR)
+			System.writeFile(carga_de_opciones, config_final, string.len(config_final))
+			System.closeFile(carga_de_opciones)
+		end
+	end
+
+	-- Limpiar variables y reiniciar RETROLauncher. -------------------------------------
+	barra_de_progreso(75, sistema, nil, LOADING_LOAD)
 	System.sleep(2)
 	Graphics.freeImage(FONDO_LOAD)
 	Graphics.freeImage(LOADING_LOAD)

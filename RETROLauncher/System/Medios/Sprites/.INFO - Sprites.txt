@@ -1,0 +1,73 @@
+Here are the Sprites for the different systems.
+RETROLauncher will search in the root of this directory.
+
+Requirements for Sprites:
+	* It must be an image in .png format
+	* The image must have a transparency mask otherwise it will not be displayed.
+	* The resolution can vary for each image, as long as it is less than 640x480, although it is 
+	  recommended to use resolutions lower than 240x240.
+	* It is recommended to use 8-bit PNG images with 256 colors.
+	* The name of the images must be the same as the different systems.
+		Example:
+		If the systems is called "Neo Geo Pocket" the image must be called "NeoGeoPocket_01000_4x4.png".
+
+	Lists of image names and their respective systems:
+		Megadrive_01000_4x4.png         - for SEGA Megadrive
+		MasterSystem_01000_4x4.png      - for SEGA Master System
+		GameGear_01000_4x4.png          - for SEGA Game Gear
+		Famicom_01000_4x4.png           - for Nintendo Famicom
+		GameBoy_01000_4x4.png           - for Nintendo Game Boy
+		GameBoyColor_01000_4x4.png      - for Nintendo Game Boy Color
+		GameBoyAdvance_01000_4x4.png    - for Nintendo Game Boy Advance
+		Atari2600_01000_4x4.png         - for Atari 2600
+		AtariLynk_01000_4x4.png         - for Atari Lynk
+		SegaSG1000_01000_4x4.png        - for SEGA SG-1000
+		NeoGeoPocket_01000_4x4.png      - for Neo Geo Pocket
+		SuperFamicom_01000_4x4.png      - for Nintendo Super Famicom
+		Apps_01000_4x4.png              - for APPS
+		PlayStation_01000_4x4.png       - for SONY PlayStation 1
+		PlayStation2_01000_4x4.png      - for SONY PlayStation 2
+
+		"_01000" These 5 digits correspond to the sprite's configuration and determine its behavior.
+		"_01000" is the default configuration.
+
+		"_4x4" Corresponds to the number of columns and rows that make up the sprite.
+		"_1x1" is the default configuration.
+
+	* Each image must include the naming convention "_#####_#x#.png" at the end of its name. 
+	  This naming convention is mandatory, and the program may crash if it is not included.
+
+		"_#####" consists of five alphanumeric characters that determine the sprite's behavior (case-sensitive).
+		The first number corresponds to the type of animation the sprite will execute.
+		The second number determines the animation speed.
+		The third number corresponds to the sprite's transparency.
+		The fourth number allows you to configure the sprite's rotation.
+		The fifth and final number determines how the sprite will be mirrored.
+			Example:
+			If we want the sprite to move horizontally across the screen at a medium speed and for 
+			its reflection to automatically change according to the direction of movement, the configuration 
+			should be similar to this: "Megadrive_94001_4x4.png"
+
+		"_#x#" consists of two numbers from 1 to 9 that indicate the number of animations the sprite will have.
+		These last two digits must be separated by a character; the character "x" is used for clarity, but other 
+		characters are acceptable.
+		The first number corresponds to the number of columns the animation contains, while the 
+		second corresponds to the number of rows it contains.
+			Example: 
+			If your image contains 8 animations spread across 4 columns and 2 rows, the image name 
+			should be: "Megadrive_01000_4x2.png".
+
+	* The underscore "_" is required after the name and before the animation settings, as well as after the 
+	  animation settings and before the row/column settings.
+			Example: 
+			"Megadrive   _       01000        _         4x2         .png"
+			"system name _ animation settings _ row/column settings .png"
+
+	* Configurations can be made manually using a table of values as a guide, but the recommended method is to 
+	  enter the default name and then configure the sprites from the RETROLauncher menu. This menu allows you 
+	  to configure sprites for all systems, as well as view the animations in real time.
+	  After applying the configuration, the program will rename the sprite with the established settings.
+
+	* Very large images will affect program performance and startup times.
+
+Supported extensions: .png
