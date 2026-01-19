@@ -1932,12 +1932,14 @@ function fondo_sprites(img, pos_x, pos_y, esc_x, esc_y, angulo, color, def_color
 					else
 						SPRITES.TRAN[n_capa], SPRITES.TRAN_ALT[n_capa] = maxi, false
 					end
-				elseif SPRITES.TRAN_ALT[n_capa] == false then
+				elseif SPRITES.TRAN_ALT[n_capa] == false and SPRITES.TRAN[n_capa] <= maxi then
 					if SPRITES.TRAN[n_capa] >= mini+n_vel_t then
 						SPRITES.TRAN[n_capa] = SPRITES.TRAN[n_capa]-n_vel_t
 					else
 						SPRITES.TRAN[n_capa], SPRITES.TRAN_ALT[n_capa] = mini, true
 					end
+				elseif SPRITES.TRAN_ALT[n_capa] == false and SPRITES.TRAN[n_capa] > maxi then
+					SPRITES.TRAN[n_capa] = maxi
 				end
 				if alterna == true and SPRITES.ACTIVATE_ALTER_T == true then
 					if SPRITES.TRAN_TYPE >= 16 and SPRITES.TRAN_TYPE <= 20 then
