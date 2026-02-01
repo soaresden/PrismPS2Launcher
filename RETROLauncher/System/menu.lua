@@ -59,6 +59,21 @@ function dibujar_covers()
 			else
 				dibujar_arte(LISTAS.COVER_ART, LISTAS.EXISTE_COV, LISTAS.COVER_DEFAULT, CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, LISTAS.COV_X, LISTAS.COV_Y, LISTAS.COV_FIX, LISTAS.COV_FIX_Y, true)
 			end
+			if LISTAS.IDENTIDAD == 15 and Pads.check(PAD, PAD_CIRCLE) then
+				local medio = "[USB]"
+				local ext_t = string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4))
+				if ext_t == ".mx4" then
+					medio = "[MX4SIO]"
+				elseif ext_t == ".hdd" then
+					medio = "[HDD]"
+				elseif ext_t == ".mmc" then
+					medio = "[MMCE]"
+				elseif ext_t == ".udp" then
+					medio = "[UDPBD]"
+				end
+				Graphics.drawRect((CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2))-50, (CONTROL.IMG_ALTO+CONTROL.IMG_Y)-20, 100, 22, COLOR.NEGRO)
+				Font.ftPrint(CONTROL.fontARCA, (CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2)), (CONTROL.IMG_ALTO+CONTROL.IMG_Y)-18, 8, (CONTROL.IMG_ANCHO+CONTROL.IMG_X), 28, medio, COLOR.BLANCO_LISTA)
+			end
 		end
 
 		-- Dibujar sprite. --------------------------------------------------------------

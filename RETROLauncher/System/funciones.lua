@@ -3326,7 +3326,7 @@ function menu_neutrino(nombre_iso)
 
 	-- Buscar archivos de configuración del juego (Neutrino). ---------------------------
 	OPCIONES.PREGUNTAR_PS2 = true
-	local VMCD, MODE, GSM = ejecutar_iso(nombre_iso)
+	local VMCD, MODE, GSM, SOPORTE = ejecutar_iso(nombre_iso)
 	OPCIONES.PREGUNTAR_PS2 = false
 
 	-- Cargar configuración de "VMC" (Neutrino). ----------------------------------------
@@ -3339,6 +3339,8 @@ function menu_neutrino(nombre_iso)
 		tipo = 3
 	elseif string.lower(string.sub(nombre_iso, -4)) == ".mmc" then
 		tipo = 4
+	elseif string.lower(string.sub(nombre_iso, -4)) == ".udp" then
+		tipo = 5
 	end
 	local VMC_encontradas = buscar_VMC(tipo)
 	local selector_VMC = 1
@@ -3402,6 +3404,17 @@ function menu_neutrino(nombre_iso)
 		end
 	end
 
+	-- Cargar soporte de medios (Neutrino). ---------------------------------------------
+	local sopor_m = 1
+	local sopor_m_text = {" ", "+NET", "+HDD"}
+	if SOPORTE ~= nil then
+		if string.match(SOPORTE, "-net") then
+			sopor_m = 2
+		elseif string.match(SOPORTE, "-hdd") then
+			sopor_m = 3
+		end
+	end
+
 	-- Nombres de las opciones del menú y sus estados (Neutrino). -----------------------
 	local menus_nombres = {TEXT_M_PS2[2]; TEXT_M_PS2[3]; "-".. TEXT_M_PS2[4] .."-"; TEXT_M_PS2[5]; TEXT_M_PS2[6]; TEXT_M_PS2[7]; TEXT_M_PS2[8];
 	TEXT_M_PS2[9]; TEXT_M_PS2[10]; "-".. TEXT_M_PS2[11] .."-"; TEXT_M_PS2[12] ..":"; TEXT_M_PS2[13] ..":"; TEXT_M_PS2[14] ..":";};
@@ -3425,6 +3438,10 @@ function menu_neutrino(nombre_iso)
 		if mode_menu == true and dir_iso ~= nil then
 			Graphics.drawScaleImage(PAD_IMG.R1, (CONTROL.ANCHO//2)+(240//2)+(138-35), 70-5+CONTROL.Y_FIX_PAL, 34, 28)
 			Font.ftPrint(CONTROL.fontARCA, (CONTROL.ANCHO//2)+(240//2)+(138+3), 70+CONTROL.Y_FIX_PAL, 0, 0, 25, TEXT_M_PS2[16], COLOR.BLANCO)
+		end
+		if string.lower(string.sub(nombre_iso, -4)) == ".hdd" or string.lower(string.sub(nombre_iso, -4)) == ".udp" then
+			Graphics.drawScaleImage(PAD_IMG.L1, (47-35), 70-5+CONTROL.Y_FIX_PAL, 34, 28)
+			Font.ftPrint(CONTROL.fontARCA, (47+3), 70+CONTROL.Y_FIX_PAL, 0, 0, 25, sopor_m_text[sopor_m], COLOR.BLANCO)
 		end
 		if OPCIONES.GUI_LIMPIA_ON == 0 then
 			dibujar_indicador(515, 422, TEXT_GEN[6], PAD_IMG.TRIANGLE, 20, 20, 5, true)
@@ -3545,6 +3562,18 @@ function menu_neutrino(nombre_iso)
 			end
 			JOYSTICK_LIMITE = control_FPS(1)
 
+		-- Cambiar configuración de soporte para medios (Neutrino). ---------------------
+		elseif Pads.check(PAD, PAD_L1) and (string.lower(string.sub(nombre_iso, -4)) == ".hdd" or string.lower(string.sub(nombre_iso, -4)) == ".udp") and CONTROL.JOYSTICK_ON == false then
+			repro_sfx(S_EJECUTAR, 1, false, nil)
+			if string.lower(string.sub(nombre_iso, -4)) == ".hdd" and sopor_m == 1 then 
+				sopor_m = 2
+			elseif string.lower(string.sub(nombre_iso, -4)) == ".udp" and sopor_m == 1 then 
+				sopor_m = 3
+			elseif sopor_m ~= 1 then
+				sopor_m = 1
+			end
+			JOYSTICK_LIMITE = control_FPS(1)
+
 		-- Guardar configuraciones (Neutrino). ------------------------------------------
 		elseif Pads.check(PAD, PAD_START) and CONTROL.JOYSTICK_ON == false then
 			repro_sfx(S_EJECUTAR, 1, false, nil)
@@ -3556,7 +3585,7 @@ function menu_neutrino(nombre_iso)
 			if doesFileExist(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_iso, 1, -5) ..".cfg") then
 				System.removeFile(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_iso, 1, -5) ..".cfg")
 			end
-			local ps2_config_final = {"nil", "nil", "nil"}
+			local ps2_config_final = {"nil", "nil", "nil", "nil"}
 
 			-- Borrar las configuraciones de versiones previas (Neutrino). --------------
 			local conf_del = {".vmcd", ".mode", ".mgsm"}
@@ -3622,10 +3651,17 @@ function menu_neutrino(nombre_iso)
 				ps2_config_final[3] = gsm_on
 			end
 
+			-- Generar configuración de soporte para medios (Neutrino). -----------------
+			if sopor_m >= 2 and sopor_m <= 3 then
+				ps2_config_final[4] = tostring(sopor_m-1)
+			else
+				ps2_config_final[4] = "nil"
+			end
+
 			-- Crear el archivo de configuración del juego (Neutrino). ------------------
-			if not (ps2_config_final[1] == "nil" and ps2_config_final[2] == "nil" and ps2_config_final[3] == "nil") then
+			if not (ps2_config_final[1] == "nil" and ps2_config_final[2] == "nil" and ps2_config_final[3] == "nil" and ps2_config_final[4] == "nil") then
 				local config_ps2 = System.openFile(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_iso, 1, -5) ..".cfg", FCREATE)
-				local ps2_data = ps2_config_final[1] .."\r\n".. ps2_config_final[2] .."\r\n".. ps2_config_final[3]
+				local ps2_data = ps2_config_final[1] .."\r\n".. ps2_config_final[2] .."\r\n".. ps2_config_final[3] .."\r\n".. ps2_config_final[4]
 				System.writeFile(config_ps2, ps2_data, string.len(ps2_data))
 				System.closeFile(config_ps2)
 			end
@@ -3665,6 +3701,8 @@ function buscar_VMC(tipo)
 		exten = ".hdd"
 	elseif tipo == 4 then
 		exten = ".mmc"
+	elseif tipo == 5 then
+		exten = ".udp"
 	end
 	local actual = System.currentDirectory()
 	local device = salida_texto_dir(actual, nil)
@@ -6100,7 +6138,7 @@ function crear_listas(identidad, lista)
 				if buscar ~= nil then
 					for contador = 1, #buscar do
 						local ps2_name = string.lower(string.sub(buscar[contador].name, -4))
-						if buscar[contador].directory == false and (buscar_ps2 ~= 4 and ps2_name == ".iso") or ((buscar_ps2 == 2 or buscar_ps2 == 3) and ps2_name == ".mx4" or ps2_name == ".hdd" or ps2_name == ".mmc") or (buscar_ps2 == 4 and string.match(buscar[contador].name, "%a+_%d+.%d+") == buscar[contador].name) then
+						if buscar[contador].directory == false and (buscar_ps2 ~= 4 and ps2_name == ".iso") or ((buscar_ps2 == 2 or buscar_ps2 == 3) and ps2_name == ".mx4" or ps2_name == ".hdd" or ps2_name == ".mmc" or ps2_name == ".udp") or (buscar_ps2 == 4 and string.match(buscar[contador].name, "%a+_%d+.%d+") == buscar[contador].name) then
 							if buscar_ps2 == 4 then
 								table.insert(encontrados, buscar[contador].name ..".".. obtener_nombre_DVD(buscar[contador].name, true))
 							else
@@ -6341,7 +6379,7 @@ end
 function load_ps2_cfg(nombre_juego)
 	local actual = System.currentDirectory()
 	local device = salida_texto_dir(actual, nil)
-	local vmc, modos, GSM, lista_config = "nil", "nil", "nil", {}
+	local vmc, modos, GSM, soporte, lista_config = "nil", "nil", "nil", "nil", {}
 	if doesFileExist(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_juego, 1, -5) ..".cfg") then
 		local carga_cfg = System.openFile(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_juego, 1, -5) ..".cfg", FREAD)
 		System.seekFile(carga_cfg, 0, SET)
@@ -6349,8 +6387,8 @@ function load_ps2_cfg(nombre_juego)
 		local temp = System.readFile(carga_cfg, size_config)
 		System.closeFile(carga_cfg)
 		lista_config = sub_string(temp, "[^\r\n]+", lista_config, false)
-		local lista_comparar_config = {"-mc%d=.+", "-gc=%d+", "-gsm=.+"}
-		if lista_config ~= nil and (#lista_config >= 1 and #lista_config <= 3) then
+		local lista_comparar_config = {"-mc%d=.+", "-gc=%d+", "-gsm=.+", "%d"}
+		if lista_config ~= nil and (#lista_config >= 1 and #lista_config <= 4) then
 			for cont = 1, #lista_comparar_config do
 				local presente = false
 				for cont2 = 1, #lista_config do
@@ -6364,13 +6402,13 @@ function load_ps2_cfg(nombre_juego)
 				end
 			end
 		else
-			lista_config = {vmc, modos, GSM}
+			lista_config = {vmc, modos, GSM, soporte}
 		end
-		if lista_config[1] == "nil" and lista_config[2] == "nil" and lista_config[3] == "nil" then
+		if lista_config[1] == "nil" and lista_config[2] == "nil" and lista_config[3] == "nil" and lista_config[4] == "nil" then
 			System.removeFile(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_juego, 1, -5) ..".cfg")
 		end
 	else
-		lista_config = {vmc, modos, GSM}
+		lista_config = {vmc, modos, GSM, soporte}
 	end
 	return lista_config
 end
@@ -6381,6 +6419,7 @@ function ejecutar_iso(nombre)
 	local device = salida_texto_dir(actual, nil)
 	-- Cargar configuraciones de PS2. ---------------------------------------------------
 	local ps2_config = load_ps2_cfg(nombre)
+	local vmc, modos, GSM, soporte = nil, nil, nil, nil
 
 	-- Cargar configuraciones de "VMC". -------------------------------------------------
 	if string.match(ps2_config[1], "-mc%d=.+") then
@@ -6401,6 +6440,15 @@ function ejecutar_iso(nombre)
 		GSM = ps2_config[3]
 	else
 		GSM = nil
+	end
+
+	-- Cargar soporte de medios. --------------------------------------------------------
+	if string.match(ps2_config[4], "1") then
+		soporte = "-net"
+	elseif string.match(ps2_config[4], "2") then
+		soporte = "-hdd"
+	else
+		soporte = nil
 	end
 
 	-- Preparar comandos para ejecutar el juego. ----------------------------------------
@@ -6429,7 +6477,7 @@ function ejecutar_iso(nombre)
 		-- Definir el medio desde donde se lanzará el juego. ----------------------------
 		local nombre_final = nombre
 		local selector_bsd = 1
-		local name_bsd = {"usb", "mx4sio", "ata", "mmce"}
+		local name_bsd = {"usb", "mx4sio", "ata", "mmce", "udpbd"}
 		if string.lower(string.sub(nombre, -4)) == ".mx4" then
 			nombre_final = string.sub(nombre, 1, -5) ..".iso"
 			selector_bsd = 2
@@ -6440,6 +6488,15 @@ function ejecutar_iso(nombre)
 			nombre_final = string.sub(nombre, 1, -5) ..".iso"
 			selector_bsd = 4
 			selector_device = 3
+		elseif string.lower(string.sub(nombre, -4)) == ".udp" then
+			nombre_final = string.sub(nombre, 1, -5) ..".iso"
+			selector_bsd = 5
+		end
+		if selector_bsd ~= 1 and vmc ~= nil then
+			vmc = string.sub(vmc, 1, -5) .. ".bin"
+		end
+		if (soporte == "-net" and selector_bsd == 3) or (soporte == "-hdd" and selector_bsd == 5) then
+			name_bsd[selector_bsd] = name_bsd[selector_bsd] .. soporte
 		end
 
 		-- Lanzar el juego. -------------------------------------------------------------
@@ -6472,7 +6529,7 @@ function ejecutar_iso(nombre)
 
 	-- Devuelve las configuraciones encontradas al menú de configuración de PS2. --------
 	elseif OPCIONES.PREGUNTAR_PS2 == true then
-		return vmc, modos, GSM
+		return vmc, modos, GSM, soporte
 	end
 end
 
