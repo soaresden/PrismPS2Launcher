@@ -6422,30 +6422,30 @@ function ejecutar_iso(nombre)
 	local vmc, modos, GSM, soporte = nil, nil, nil, nil
 
 	-- Cargar configuraciones de "VMC". -------------------------------------------------
-	if string.match(ps2_config[1], "-mc%d=.+") then
+	if ps2_config[1] ~= nil and string.match(ps2_config[1], "-mc%d=.+") then
 		vmc = ps2_config[1]
 	else
 		vmc = nil
 	end
 
 	-- Cargar modos de compatibilidad. --------------------------------------------------
-	if string.match(ps2_config[2], "-gc=%d+") then
+	if ps2_config[2] ~= nil and string.match(ps2_config[2], "-gc=%d+") then
 		modos = ps2_config[2]
 	else
 		modos = nil
 	end
 
 	-- Cargar configuraciones de "GSM". -------------------------------------------------
-	if string.match(ps2_config[3], "-gsm=.+") then
+	if ps2_config[3] ~= nil and string.match(ps2_config[3], "-gsm=.+") then
 		GSM = ps2_config[3]
 	else
 		GSM = nil
 	end
 
 	-- Cargar soporte de medios. --------------------------------------------------------
-	if string.match(ps2_config[4], "1") then
+	if ps2_config[4] ~= nil and string.match(ps2_config[4], "1") then
 		soporte = "-net"
-	elseif string.match(ps2_config[4], "2") then
+	elseif ps2_config[4] ~= nil and string.match(ps2_config[4], "2") then
 		soporte = "-hdd"
 	else
 		soporte = nil
