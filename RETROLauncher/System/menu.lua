@@ -232,7 +232,7 @@ end
 function run_game()
 	repro_sfx(S_EJECUTAR, 1, false, nil)
 	local alt = false
-	if ((Pads.check(PAD, PAD_CROSS) and Pads.check(PAD, PAD_CIRCLE)) and (LISTAS.IDENTIDAD == 1 or (LISTAS.IDENTIDAD >= 4 and LISTAS.IDENTIDAD <= 7) or LISTAS.IDENTIDAD == 12 or LISTAS.IDENTIDAD == 13 or LISTAS.IDENTIDAD == 15)) then
+	if (((Pads.check(PAD, PAD_CROSS) and Pads.check(PAD, PAD_CIRCLE)) or OPCIONES.RUN_DEFAULT == 1) and (LISTAS.IDENTIDAD == 1 or (LISTAS.IDENTIDAD >= 4 and LISTAS.IDENTIDAD <= 7) or LISTAS.IDENTIDAD == 12 or LISTAS.IDENTIDAD == 13 or LISTAS.IDENTIDAD == 15)) then
 		alt = alt_run(LISTAS.IDENTIDAD)
 	end
 
@@ -513,7 +513,7 @@ function dibujar()
 	-- Dibujar fondos. ------------------------------------------------------------------
 	dibujar_fondos()
 	if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-		Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+		Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, OPCIONES.SCREENSHOT_BACK_TR))
 	end
 
 	-- Dibujar listas y arte. -----------------------------------------------------------

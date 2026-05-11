@@ -2252,7 +2252,7 @@ function menu_pops(nombre_vcd)
 		if most_fondos == true then
 			dibujar_fondos()
 			if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-				Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+				Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, OPCIONES.SCREENSHOT_BACK_TR))
 			end
 		end
 		Graphics.drawScaleImage(LISTAS.LOGO, (CONTROL.ANCHO//2)-(240//2), 0+CONTROL.Y_FIX_PAL, 240, 72)
@@ -3058,7 +3058,7 @@ function opl_config(nombre_iso, ps2_menu, dir_iso)
 		-- Mostrar todo en pantalla (OPL). ----------------------------------------------
 		dibujar_fondos()
 		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, OPCIONES.SCREENSHOT_BACK_TR))
 		end
 		Graphics.drawScaleImage(LISTAS.LOGO, (CONTROL.ANCHO//2)-(240//2), 0+CONTROL.Y_FIX_PAL, 240, 72)
 		Graphics.drawRect(12, 67+CONTROL.Y_FIX_PAL, 615, 350, COLOR.NEGRO_T)
@@ -3382,25 +3382,27 @@ function menu_neutrino(nombre_iso)
 	end
 
 	-- Cargar modos de "GMS" (Neutrino). ------------------------------------------------
-	local gsm_modes = {0, 0, 0}
-	local gsm_text_field_mode = {TEXT_GEN[14], "480p/576p"}
-	local gsm_text_frame_mode = {TEXT_GEN[14], "240p/288p", "Line Doubling"}
+	local gsm_modes = {0, 0}
+	local gsm_text_force = {TEXT_GEN[14], "240p/288p", "480p/576p", "1080i x 1", "1080i x 2", "1080i x 3"}
 	local gsm_text_mode = {TEXT_GEN[14], "Field Flipping / 1", "Field Flipping / 2", "Field Flipping / 3"}
 	if GSM ~= nil then
-		if string.match(GSM, "=fp") == "=fp" then
+		if string.match(GSM, "=fp1") == "=fp1" then
 			gsm_modes[1] = 1
-		end
-		if string.match(GSM, ":fp1") == ":fp1" then
-			gsm_modes[2] = 1
-		elseif string.match(GSM, ":fp2") == ":fp2" then
-			gsm_modes[2] = 2
+		elseif string.match(GSM, "=fp2") == "=fp2" then
+			gsm_modes[1] = 2
+		elseif string.match(GSM, "=1080ix1") == "=1080ix1" then
+			gsm_modes[1] = 3
+		elseif string.match(GSM, "=1080ix2") == "=1080ix2" then
+			gsm_modes[1] = 4
+		elseif string.match(GSM, "=1080ix3") == "=1080ix3" then
+			gsm_modes[1] = 5
 		end
 		if string.match(GSM, ":1") == ":1" then
-			gsm_modes[3] = 1
+			gsm_modes[2] = 1
 		elseif string.match(GSM, ":2") == ":2" then
-			gsm_modes[3] = 2
+			gsm_modes[2] = 2
 		elseif string.match(GSM, ":3") == ":3" then
-			gsm_modes[3] = 3
+			gsm_modes[2] = 3
 		end
 	end
 
@@ -3417,8 +3419,8 @@ function menu_neutrino(nombre_iso)
 
 	-- Nombres de las opciones del menú y sus estados (Neutrino). -----------------------
 	local menus_nombres = {TEXT_M_PS2[2]; TEXT_M_PS2[3]; "-".. TEXT_M_PS2[4] .."-"; TEXT_M_PS2[5]; TEXT_M_PS2[6]; TEXT_M_PS2[7]; TEXT_M_PS2[8];
-	TEXT_M_PS2[9]; TEXT_M_PS2[10]; "-".. TEXT_M_PS2[11] .."-"; TEXT_M_PS2[12] ..":"; TEXT_M_PS2[13] ..":"; TEXT_M_PS2[14] ..":";};
-	local menus_valores = {encontrado_vmcd, selector_VMC, 0, modo_0, modo_1, modo_2, modo_3, modo_5, modo_7, 0, gsm_modes[1], gsm_modes[2], gsm_modes[3]}
+	TEXT_M_PS2[9]; TEXT_M_PS2[10]; "-".. TEXT_M_PS2[11] .."-"; TEXT_M_PS2[12] ..":"; TEXT_M_PS2[13] ..":";};
+	local menus_valores = {encontrado_vmcd, selector_VMC, 0, modo_0, modo_1, modo_2, modo_3, modo_5, modo_7, 0, gsm_modes[1], gsm_modes[2]}
 
 	-- Ejecutar y controlar menú de configuración PS2 (Neutrino). -----------------------
 	while ps2_menu do
@@ -3428,7 +3430,7 @@ function menu_neutrino(nombre_iso)
 		-- Mostrar todo en pantalla (Neutrino). -----------------------------------------
 		dibujar_fondos()
 		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, OPCIONES.SCREENSHOT_BACK_TR))
 		end
 		Graphics.drawScaleImage(LISTAS.LOGO, (CONTROL.ANCHO//2)-(240//2), 0+CONTROL.Y_FIX_PAL, 240, 72)
 		Graphics.drawRect(12, 67+CONTROL.Y_FIX_PAL, 615, 350, COLOR.NEGRO_T)
@@ -3456,11 +3458,9 @@ function menu_neutrino(nombre_iso)
 				acti = " "
 			end
 			if contador == 11 then
-				acti = gsm_text_field_mode[menus_valores[11]+1]
+				acti = gsm_text_force[menus_valores[11]+1]
 			elseif contador == 12 then
-				acti = gsm_text_frame_mode[menus_valores[12]+1]
-			elseif contador == 13 then
-				acti = gsm_text_mode[menus_valores[13]+1]
+				acti = gsm_text_mode[menus_valores[12]+1]
 			end
 			if contador >= 11 and contador <= 13 then
 				x_fix = 120
@@ -3510,26 +3510,22 @@ function menu_neutrino(nombre_iso)
 			JOYSTICK_LIMITE = control_FPS(kabal)
 
 		-- Controlar selector de "VMC" / "GSM" (Neutrino). -----------------------------
-		elseif ((Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90)) and CONTROL.JOYSTICK_ON == false and ((selector >= 11 and selector <= 13) or selector == 2) then
+		elseif ((Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90)) and CONTROL.JOYSTICK_ON == false and ((selector >= 11 and selector <= 12) or selector == 2) then
 			if selector == 2 and #VMC_encontradas >= 1 and menus_valores[1] == 1 and (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
 				selector_VMC = cambiar_valor(selector_VMC, 1, #VMC_encontradas, 1, true)
 			elseif selector == 2 and #VMC_encontradas >= 1 and menus_valores[1] == 1 and (Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
 				selector_VMC = cambiar_valor(selector_VMC, 1, #VMC_encontradas, 1, false)
 			elseif selector == 2 and #VMC_encontradas <= 0 then
 				selector_VMC = 0
-			elseif selector >= 11 and selector <= 13 and (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
-				local limite_gsm = 1
+			elseif selector >= 11 and selector <= 12 and (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
+				local limite_gsm = 5
 				if selector == 12 then
-					limite_gsm = 2
-				elseif selector == 13 then
 					limite_gsm = 3
 				end
 				menus_valores[selector] = cambiar_valor(menus_valores[selector], 0, limite_gsm, 1, true)
-			elseif selector >= 11 and selector <= 13 and (Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
-				local limite_gsm = 1
+			elseif selector >= 11 and selector <= 12 and (Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+				local limite_gsm = 5
 				if selector == 12 then
-					limite_gsm = 2
-				elseif selector == 13 then
 					limite_gsm = 3
 				end
 				menus_valores[selector] = cambiar_valor(menus_valores[selector], 0, limite_gsm, 1, false)
@@ -3545,11 +3541,9 @@ function menu_neutrino(nombre_iso)
 		-- Cambiar configuraciones (Neutrino). ------------------------------------------
 		elseif Pads.check(PAD, PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
 			repro_sfx(S_EJECUTAR, 1, false, nil)
-			if selector >= 11 and selector <= 13 then
-				local limite_gsm = 1
+			if selector >= 11 and selector <= 12 then
+				local limite_gsm = 5
 				if selector == 12 then
-					limite_gsm = 2
-				elseif selector == 13 then
 					limite_gsm = 3
 				end
 				menus_valores[selector] = cambiar_valor(menus_valores[selector], 0, limite_gsm, 1, true)
@@ -3626,24 +3620,24 @@ function menu_neutrino(nombre_iso)
 			-- Generar configuración de "GSM" (Neutrino). -------------------------------
 			local gsm_on = "-gsm="
 			if menus_valores[11] > 0 then
-				gsm_on = gsm_on .."fp"
+				if menus_valores[11] == 1 then
+					gsm_on = gsm_on .."fp1"
+				elseif menus_valores[11] == 2 then
+					gsm_on = gsm_on .."fp2"
+				elseif menus_valores[11] == 3 then
+					gsm_on = gsm_on .."1080ix1"
+				elseif menus_valores[11] == 4 then
+					gsm_on = gsm_on .."1080ix2"
+				elseif menus_valores[11] == 5 then
+					gsm_on = gsm_on .."1080ix3"
+				end
 			end
 			if menus_valores[12] > 0 then
 				if menus_valores[12] == 1 then
-					gsm_on = gsm_on ..":fp1"
-				elseif menus_valores[12] == 2 then
-					gsm_on = gsm_on ..":fp2"
-				end
-			end
-			if menus_valores[13] > 0 then
-				if menus_valores[12] <= 0 then
-					gsm_on = gsm_on ..":"
-				end
-				if menus_valores[13] == 1 then
 					gsm_on = gsm_on ..":1"
-				elseif menus_valores[13] == 2 then
+				elseif menus_valores[12] == 2 then
 					gsm_on = gsm_on ..":2"
-				elseif menus_valores[13] == 3 then
+				elseif menus_valores[12] == 3 then
 					gsm_on = gsm_on ..":3"
 				end
 			end
@@ -4145,7 +4139,8 @@ function menu_config()
 	OPCIONES.CAMBIO_FUENTE_ON; OPCIONES.CAMBIO_FONDO_ON; OPCIONES.GUI_LIMPIA_ON; OPCIONES.LIMITADOR_RAM_ON; OPCIONES.SALIDA_RETROLANCHER_ON;
 	OPCIONES.SALIDA_RETROLANCHER; OPCIONES.APPS_MENU_FULL_PATH; OPCIONES.SOUND_ON; OPCIONES.SOUND_VOLUME; OPCIONES.SCREENSHOT_BACK_ON;
 	OPCIONES.VIBRATION_ON; OPCIONES.DIR_EXTRAS_ON; CAMBIOS_EMUS.TRAS; OPCIONES.LIBERAR_LISTAS; OPCIONES.FONT_PIXEL_X; OPCIONES.FONT_PIXEL_Y;
-	OPCIONES.FONT_SHADOW; OPCIONES.SCROLL_MIN; OPCIONES.SPRITE_ON; OPCIONES.SEE_INDEX; OPCIONES.COLOR_LISTA_B;};
+	OPCIONES.FONT_SHADOW; OPCIONES.SCROLL_MIN; OPCIONES.SPRITE_ON; OPCIONES.SEE_INDEX; OPCIONES.COLOR_LISTA_B; OPCIONES.SCREENSHOT_BACK_TR;
+	OPCIONES.RUN_DEFAULT, COLOR.CC_BACK[1], COLOR.CC_BACK[2], COLOR.CC_BACK[3], COLOR.CC_BACK[4]};
 
 	-- Variables para controlar configuraciones. ----------------------------------------
 	color_emu(LISTAS.IDENTIDAD, OPCIONES.FONDO_RGB_ON, OPCIONES.FONDO_RGB_FIJO_ON)
@@ -4182,14 +4177,16 @@ function menu_config()
 	local volume = OPCIONES.SOUND_VOLUME
 
 	-- Opciones actuales de colores y transparencias. -----------------------------------
+	local cc_back_1, cc_back_2, cc_back_3, cc_back_4 = COLOR.CC_BACK[1], COLOR.CC_BACK[2], COLOR.CC_BACK[3], COLOR.CC_BACK[4]
 	local color_demo = Color.new(OPCIONES.R, OPCIONES.G, OPCIONES.B, CAMBIOS_EMUS.TRAS)
+	local prev_back_tras = OPCIONES.SCREENSHOT_BACK_TR
 	if CAMBIOS_EMUS.TRAS == 0 then
 		color_demo = Color.new(OPCIONES.R, OPCIONES.G, OPCIONES.B)
 	end
 	local tras_demo = CAMBIOS_EMUS.TRAS
 
 	-- Opciones actuales de salida. -----------------------------------------------------
-	local selec_dir, local_disp = OPCIONES.SALIDA_RETROLANCHER_ON, salida_texto_dir(System.currentDirectory(), nil)
+	local selec_dir, local_disp, menu_run = OPCIONES.SALIDA_RETROLANCHER_ON, salida_texto_dir(System.currentDirectory(), nil), OPCIONES.RUN_DEFAULT
 	lista_texto_config[28] = OPCIONES.SALIDA_RETROLANCHER
 	local function cambiar_medio()
 		OPCIONES.SALIDA_RETROLANCHER_ON = selec_dir
@@ -4290,7 +4287,8 @@ function menu_config()
 			lista_config[14]; lista_config[15]; lista_config[16]; lista_config[17]; lista_config[18]; lista_config[19]; lista_config[20];
 			lista_config[21]; lista_config[22]; selec_fuente; selec_fondo; lista_config[25]; lista_config[26]; selec_dir; lista_texto_config[28];
 			lista_config[29]; lista_config[30]; volume; lista_config[32]; lista_config[34]; lista_config[35]; tras_demo; OPCIONES.LIBERAR_LISTAS;
-			font_x; font_Y; font_shadow; font_scroll; ini_sprite; on_index; OPCIONES.COLOR_LISTA_B;};
+			font_x; font_Y; font_shadow; font_scroll; ini_sprite; on_index; OPCIONES.COLOR_LISTA_B; prev_back_tras, menu_run, cc_back_1, cc_back_2,
+			cc_back_3, cc_back_4};
 			cambio_realizado = false
 			for chequeo = 1, #nueva_conf do
 				if nueva_conf[chequeo] ~= anterior_conf[chequeo] then
@@ -4329,7 +4327,7 @@ function menu_config()
 		end
 
 		-- Sistemas de configuraciones extras. ------------------------------------------
-		if Pads.check(PAD, PAD_SELECT) and CONTROL.JOYSTICK_ON == false and ((selector >= 7 and selector <= 23) or (selector == 24 and SPRITES.FONDO_ANI == true) or selector == 26 or selector == 30 or selector == 35) then
+		if Pads.check(PAD, PAD_SELECT) and CONTROL.JOYSTICK_ON == false and ((selector >= 4 and selector <= 23) or (selector == 24 and SPRITES.FONDO_ANI == true) or selector == 26 or selector == 29 or selector == 30 or selector == 32 or selector == 35) then
 			repro_sfx(S_EJECUTAR, 1, false, nil)
 			-- Seleccionar configuración a editar con estilo personalizado. -------------
 			local spr_menu = true
@@ -4365,8 +4363,54 @@ function menu_config()
 				end
 			end
 
+			-- Configurar el color de sombras tras cada elemento. -----------------------
+			if (selector >= 4 and selector <= 6) then
+				local selec, pregunta = 1, true
+				local nombres_conf = {TEXT_M_CON[4], TEXT_M_CON[5], TEXT_M_CON[6], TEXT_M_CON[65]}
+				local lista_resp = {TEXT_GEN[12], TEXT_GEN[6]}
+				local valores_actual = {cc_back_1, cc_back_2, cc_back_3, cc_back_4}
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					m_dibujar_fondos()
+					Graphics.drawRect(12, 23+CONTROL.Y_FIX_PAL, 615, 400, Color.new(valores_actual[1], valores_actual[2], valores_actual[3], valores_actual[4]))
+					submenu_selector(nombres_conf, selec, TEXT_M_CON[121], 100, 240, false, 22, lista_resp, false, false, valores_actual, 498)
+					Graphics.drawRect(230, 137+CONTROL.Y_FIX_PAL, 210, 85, COLOR.BLANCO)
+					Graphics.drawRect(235, 142+CONTROL.Y_FIX_PAL, 100, 75, COLOR.BLANCO)
+					Graphics.drawRect(335, 142+CONTROL.Y_FIX_PAL, 100, 75, COLOR.NEGRO)
+					Graphics.drawRect(235, 142+CONTROL.Y_FIX_PAL, 200, 75, Color.new(valores_actual[1], valores_actual[2], valores_actual[3], valores_actual[4]))
+					refrescar(false)
+					if ((Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) or (Pads.check(PAD, PAD_UP) or Left_Y <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90)) and CONTROL.JOYSTICK_ON == false then
+						if (Pads.check(PAD, PAD_UP) or Left_Y <= -90) then
+							selec = cambiar_valor(selec, 1, #valores_actual, 1, false)
+						elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90) then
+							selec = cambiar_valor(selec, 1, #valores_actual, 1, true)
+						elseif (Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+							valores_actual[selec] = cambiar_valor(valores_actual[selec], 0, 128, 1, false)
+						elseif (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
+							valores_actual[selec] = cambiar_valor(valores_actual[selec], 0, 128, 1, true)
+						end
+						local kabal = 1 if Left_Y ~= 1 or Left_X ~= 1 then
+							kabal = 2
+						end
+						if kabal == 1 then
+							repro_sfx(S_MOVER, 1, true, nil)
+						end
+						JOYSTICK_LIMITE = control_FPS(kabal)
+					elseif Pads.check(PAD, PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
+						repro_sfx(S_EJECUTAR, 1, false, nil)
+						cc_back_1, cc_back_2, cc_back_3, cc_back_4 = valores_actual[1], valores_actual[2], valores_actual[3], valores_actual[4]
+						COLOR.NEGRO_T = Color.new(cc_back_1, cc_back_2, cc_back_3, cc_back_4)
+						JOYSTICK_LIMITE = control_FPS(1)
+						pregunta = false
+					elseif Pads.check(PAD, PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
+						repro_sfx(S_CANCELAR, 1, false, nil)
+						JOYSTICK_LIMITE = control_FPS(1)
+						pregunta = false
+					end
+				end
+
 			-- Configurar estilo personalizado. -----------------------------------------
-			if selector == 7 and estilo_lista == 7 and spr_menu == false then
+			elseif selector == 7 and estilo_lista == 7 and spr_menu == false then
 				local reload = editor_tema()
 				if CONTROL.ESTILO == 7 and reload == true then
 					cargar_style(true)
@@ -5183,6 +5227,28 @@ function menu_config()
 					refrescar(false)
 				end
 
+			-- Activar la selección de aplicación al ejecutar juegos. -------------------
+			elseif selector == 29 then
+				local pregunta = true
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					local lista_resp = {TEXT_GEN[8], TEXT_GEN[4]}
+					local index_text = TEXT_GEN[14]
+					if menu_run == 1 then
+						index_text = TEXT_GEN[13]
+					end
+					submenu_selector({index_text}, nil, "-".. TEXT_M_CON[120] .."-", 160, 226, true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
+					if Pads.check(PAD, PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
+						repro_sfx(S_EJECUTAR, 1, false, nil)
+						menu_run = cambiar_valor(menu_run, 0, 1, 1, true)
+						JOYSTICK_LIMITE = control_FPS(1)
+					elseif Pads.check(PAD, PAD_TRIANGLE) then
+						repro_sfx(S_CANCELAR, 1, false, nil)
+						pregunta = false
+					end
+					refrescar(false)
+				end
+
 			-- Configurar música de fondo. ----------------------------------------------
 			elseif selector == 30 then
 				local pregunta = true
@@ -5210,6 +5276,46 @@ function menu_config()
 						JOYSTICK_LIMITE = control_FPS(1)
 					elseif Pads.check(PAD, PAD_TRIANGLE) then
 						repro_sfx(S_CANCELAR, 1, false, nil)
+						pregunta = false
+					end
+					refrescar(false)
+				end
+
+			-- Cambiar nivel de transparencia sobre los screenshots de fondo. -----------
+			elseif selector == 32 and lista_config[32] == 1 then
+				local pregunta = true
+				local prev_tras = prev_back_tras
+				while pregunta do
+					capturar(JOYSTICK_LIMITE)
+					m_dibujar_fondos()
+					if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true then
+						Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, prev_back_tras))
+					else
+						Graphics.drawScaleImage(LISTAS.COVER_DEFAULT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, prev_back_tras))
+					end
+					local lista_resp = {TEXT_GEN[12], TEXT_GEN[6]}
+					local index_text = "<- %".. (prev_back_tras*100)//128 .." ->"
+					submenu_selector({index_text}, nil, "-".. TEXT_M_CON[119] .."-", 160, 226, true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
+					if ((Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90)) and CONTROL.JOYSTICK_ON == false then
+						if (Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+							prev_back_tras = cambiar_valor(prev_back_tras, 1, 128, 1, false)
+						elseif (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
+							prev_back_tras = cambiar_valor(prev_back_tras, 1, 128, 1, true)
+						end
+						local kabal = 1 if Left_X ~= 1 then
+							kabal = 2
+						end
+						if kabal == 1 then
+							repro_sfx(S_MOVER, 1, false, nil)
+						end
+						JOYSTICK_LIMITE = control_FPS(kabal)
+					elseif Pads.check(PAD, PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
+						repro_sfx(S_EJECUTAR, 1, false, nil)
+						JOYSTICK_LIMITE = control_FPS(1)
+						pregunta = false
+					elseif Pads.check(PAD, PAD_TRIANGLE) then
+						repro_sfx(S_CANCELAR, 1, false, nil)
+						prev_back_tras = prev_tras
 						pregunta = false
 					end
 					refrescar(false)
@@ -5374,7 +5480,7 @@ function menu_config()
 				local lenguaje_name = {"ENG", "SPA", "POR"}
 				while pregunta do
 					capturar(JOYSTICK_LIMITE)
-					local submenu_lista = {lenguaje[selec_lang]}
+					local submenu_lista = {"<- ".. lenguaje[selec_lang] .." ->"}
 					local lista_resp = {lenguaje_op1[selec_lang], lenguaje_op2[selec_lang]}
 					submenu_selector(submenu_lista, nil, lenguaje_pre[selec_lang], 160, 224, true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
 					if Pads.check(PAD, PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
@@ -5566,6 +5672,11 @@ function menu_config()
 			OPCIONES.SOUND_ON = lista_config[30]
 			OPCIONES.SOUND_VOLUME = volume
 			OPCIONES.SCREENSHOT_BACK_ON = lista_config[32]
+			if OPCIONES.SCREENSHOT_BACK_ON == 0 then 
+				OPCIONES.SCREENSHOT_BACK_TR = 128
+			elseif OPCIONES.SCREENSHOT_BACK_ON == 1 then
+				OPCIONES.SCREENSHOT_BACK_TR = prev_back_tras
+			end
 			OPCIONES.VIDEO_MODE = lista_config[33]
 			OPCIONES.VIBRATION_ON = lista_config[34]
 			OPCIONES.VIBRATION = false
@@ -5596,6 +5707,8 @@ function menu_config()
 			OPCIONES.FONT_PIXEL_X, OPCIONES.FONT_PIXEL_Y, OPCIONES.FONT_SHADOW, OPCIONES.SCROLL_MIN = font_x, font_Y, font_shadow, font_scroll
 			Font.ftSetPixelSize(CONTROL.fontARCA, OPCIONES.FONT_PIXEL_X, OPCIONES.FONT_PIXEL_Y)
 			Font.ftSetPixelSize(CONTROL.fontABC, 70, 70)
+			OPCIONES.RUN_DEFAULT = menu_run
+			COLOR.CC_BACK[1], COLOR.CC_BACK[2], COLOR.CC_BACK[3], COLOR.CC_BACK[4] = cc_back_1, cc_back_2, cc_back_3, cc_back_4
 			desactivados(nil)
 			guardar_opciones()
 			cambio_realizado = false
@@ -5827,7 +5940,7 @@ function menu_config()
 						Font.ftPrint(CONTROL.fontARCA, 498, espacio_linea, 0, 0, 8, acti, color_mos)
 					end
 				end
-				if estado == selector and (estado == 7 or estado == 23 or (estado == 24 and SPRITES.FONDO_ANI == true) or estado == 26 or estado == 30 or estado == 35) then
+				if estado == selector and ((estado >= 4 and estado <= 7) or estado == 23 or (estado == 24 and SPRITES.FONDO_ANI == true) or estado == 26 or estado == 29 or estado == 30 or (estado == 32 and lista_config[32] == 1) or estado == 35) then
 					local fix_sel = 0
 					if estado == 7 and estilo_lista ~= 7 and ini_sprite == 1 then
 						fix_sel = 40
@@ -6189,7 +6302,7 @@ end
 function alt_run(identidad)
 	local actual = System.currentDirectory()
 	local default_text = {"PicoDrive/RetroArch v1.19.1"; " "; " "; "FCEultra/RetroArch v1.19.1"; "Gambatte/RetroArch v1.20.0"; "Gambatte/RetroArch v1.20.0";
-	"gpSP/RetroArch v1.20.0"; " "; " "; " "; " "; "Snes9x 2002/RetroArch v1.20.0"; "wLaunchELF ISR v4.43x"; " "; "Neutrino v1.7.0";};
+	"gpSP/RetroArch v1.20.0"; " "; " "; " "; " "; "Snes9x 2002/RetroArch v1.20.0"; "wLaunchELF ISR v4.43x"; " "; "Neutrino v1.8.0";};
 	local alt_text = {"PicoDrive/RetroArch v1.15.0"; " "; " "; "QuickNES/RetroArch v1.21.0"; "TGB Dual/RetroArch v1.19.1"; "TGB Dual/RetroArch v1.19.1";
 	"TempGBA v1.45.5 (".. TEXT_GEN[9] .." exFAT)"; " "; " "; " "; " "; "SNESticle v0.3.4 (".. TEXT_GEN[9] .." SRAM)"; "Enceladus"; " "; "OPL";};
 	local run, selec_alt, pregunta = nil, 1, true
@@ -6202,7 +6315,7 @@ function alt_run(identidad)
 		capturar(JOYSTICK_LIMITE)
 		dibujar_fondos()
 		if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+			Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, OPCIONES.SCREENSHOT_BACK_TR))
 		end
 		local lista_resp = {TEXT_M_PRI[12], TEXT_GEN[4]}
 		local submenu_lista = {default_text[identidad], alt_text[identidad]}
@@ -6260,7 +6373,7 @@ function alt_run(identidad)
 				capturar(JOYSTICK_LIMITE)
 				dibujar_fondos()
 				if LISTAS.SCREENSHOT ~= nil and LISTAS.EXISTE_SCR == true and OPCIONES.SCREENSHOT_BACK_ON == 1 then
-					Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F)
+					Graphics.drawScaleImage(LISTAS.SCREENSHOT, -5, 0, CONTROL.ANCHO+5, CONTROL.ALTO_F, Color.new(128, 128, 128, OPCIONES.SCREENSHOT_BACK_TR))
 				end
 				local lista_resp = {TEXT_M_PRI[12], TEXT_GEN[4]}
 				local submenu_lista = {encontrados[selec_opl]}
@@ -6882,7 +6995,8 @@ function guardar_opciones()
 	" ".. OPCIONES.APPS_MENU_FULL_PATH .." ".. OPCIONES.SOUND_ON .." ".. OPCIONES.SOUND_VOLUME .." ".. OPCIONES.SCREENSHOT_BACK_ON ..
 	" ".. OPCIONES.VIDEO_MODE .." ".. OPCIONES.VIBRATION_ON .." ".. SISTEMAS.PLAYSTATION2_ON .." ".. OPCIONES.DIR_EXTRAS_ON .." ".. CAMBIOS_EMUS.TRAS ..
 	" ".. OPCIONES.LIBERAR_LISTAS .." ".. OPCIONES.FONT_PIXEL_X .." ".. OPCIONES.FONT_PIXEL_Y .." ".. OPCIONES.FONT_SHADOW .." ".. OPCIONES.SCROLL_MIN ..
-	" ".. OPCIONES.SPRITE_ON .." ".. OPCIONES.SEE_INDEX .." ".. OPCIONES.COLOR_LISTA_B ..
+	" ".. OPCIONES.SPRITE_ON .." ".. OPCIONES.SEE_INDEX .." ".. OPCIONES.COLOR_LISTA_B .." ".. OPCIONES.SCREENSHOT_BACK_TR .." ".. OPCIONES.RUN_DEFAULT ..
+	" ".. COLOR.CC_BACK[1] .." ".. COLOR.CC_BACK[2] .." ".. COLOR.CC_BACK[3] .." ".. COLOR.CC_BACK[4] ..
 	"                                                                                                    ")
 	if doesFileExist(actual .."/System/Config/System.cfg") then
 		local carga_de_opciones = System.openFile("System/Config/System.cfg", FRDWR)
@@ -6935,6 +7049,7 @@ function cargar_config()
 		OPCIONES.SOUND_VOLUME = 65
 		set_volume()
 		OPCIONES.SCREENSHOT_BACK_ON = 0
+		OPCIONES.SCREENSHOT_BACK_TR = 128
 		if doesFileExist("System/Respaldo/PAL") then
 			OPCIONES.VIDEO_MODE = 1
 		else
@@ -6956,6 +7071,9 @@ function cargar_config()
 		OPCIONES.COLOR_LISTA_B = 74
 		SPRITES.FONDO_N_COLUMNS = 4
 		SPRITES.FONDO_N_ROWS = 4
+		OPCIONES.RUN_DEFAULT = 0
+		COLOR.CC_BACK = {0, 0, 0, 85}
+		COLOR.NEGRO_T = Color.new(COLOR.CC_BACK[1], COLOR.CC_BACK[2], COLOR.CC_BACK[3], COLOR.CC_BACK[4])
 		guardar_opciones()
 	end
 	local function list_default_config()
@@ -6989,7 +7107,15 @@ function cargar_config()
 		System.closeFile(carga_de_config2)
 		local lista_config2 = {}
 		lista_config2 = sub_string(temp2, "%d+", lista_config2, true)
-		if lista_config2 ~= nil and #lista_config2 == 43 then
+		if #lista_config2 == 43 then
+			table.insert(lista_config2, 128)
+			table.insert(lista_config2, 0)
+			table.insert(lista_config2, 0)
+			table.insert(lista_config2, 0)
+			table.insert(lista_config2, 0)
+			table.insert(lista_config2, 85)
+		end
+		if lista_config2 ~= nil and #lista_config2 == 49 then
 			pantalla_reiniciar_conf(LISTAS.FONDO, 34, false, 21)
 			OPCIONES.RGB_ON = activ_opt(OPCIONES.RGB_ON, lista_config2[1], 1, 0)
 			OPCIONES.FONDO_RGB_ON = activ_opt(OPCIONES.FONDO_RGB_ON, lista_config2[2], 1, 0)
@@ -7089,6 +7215,17 @@ function cargar_config()
 			end
 			OPCIONES.SEE_INDEX = activ_opt(OPCIONES.SEE_INDEX, lista_config2[42], 1, 0)
 			OPCIONES.COLOR_LISTA_B = activ_opt(OPCIONES.COLOR_LISTA_B, lista_config2[43], 128, 50)
+			if OPCIONES.SCREENSHOT_BACK_ON == 1 then
+				OPCIONES.SCREENSHOT_BACK_TR = activ_opt(OPCIONES.SCREENSHOT_BACK_TR, lista_config2[44], 128, 1)
+			elseif OPCIONES.SCREENSHOT_BACK_ON == 0 then
+				OPCIONES.SCREENSHOT_BACK_TR = 128
+			end
+			OPCIONES.RUN_DEFAULT = activ_opt(OPCIONES.RUN_DEFAULT, lista_config2[45], 1, 0)
+			COLOR.CC_BACK[1] = activ_opt(COLOR.CC_BACK[1], lista_config2[46], 128, 0)
+			COLOR.CC_BACK[2] = activ_opt(COLOR.CC_BACK[2], lista_config2[47], 128, 0)
+			COLOR.CC_BACK[3] = activ_opt(COLOR.CC_BACK[3], lista_config2[48], 128, 0)
+			COLOR.CC_BACK[4] = activ_opt(COLOR.CC_BACK[4], lista_config2[49], 128, 0)
+			COLOR.NEGRO_T = Color.new(COLOR.CC_BACK[1], COLOR.CC_BACK[2], COLOR.CC_BACK[3], COLOR.CC_BACK[4])
 		else
 			default_config()
 		end
@@ -7284,6 +7421,7 @@ function reiniciar_conf(limpiar, indi_rest)
 		OPCIONES.SOUND_VOLUME = 65
 		set_volume()
 		OPCIONES.SCREENSHOT_BACK_ON = 0
+		OPCIONES.SCREENSHOT_BACK_TR = 128
 		OPCIONES.VIBRATION_ON = 0
 		OPCIONES.VIBRATION = false
 		OPCIONES.VIBRATION_MODE = nil
@@ -7299,6 +7437,9 @@ function reiniciar_conf(limpiar, indi_rest)
 		CONTROL.CUSTOM_SPRITE = false
 		OPCIONES.SEE_INDEX = 0
 		OPCIONES.COLOR_LISTA_B = 74
+		OPCIONES.RUN_DEFAULT = 0
+		COLOR.CC_BACK = {0, 0, 0, 85}
+		COLOR.NEGRO_T = Color.new(COLOR.CC_BACK[1], COLOR.CC_BACK[2], COLOR.CC_BACK[3], COLOR.CC_BACK[4])
 		Font.ftSetPixelSize(CONTROL.fontARCA, OPCIONES.FONT_PIXEL_X, OPCIONES.FONT_PIXEL_Y)
 		Font.ftSetPixelSize(CONTROL.fontABC, 70, 70)
 		if doesFileExist("System/Medios/Sound/Background/music.adp") then

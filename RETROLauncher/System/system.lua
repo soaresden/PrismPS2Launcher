@@ -216,6 +216,7 @@ COLOR = {
 	GRIS = Color.new(70, 70, 70);
 	NEGRO_T = Color.new(0, 0, 0, 85);
 	BLANCO_T = Color.new(128, 128, 128, 20);
+	CC_BACK = {0, 0, 0, 85};
 };
 
 -- Define opciones y configuraciones. ---------------------------------------------------
@@ -239,6 +240,7 @@ OPCIONES = {
 	SALIDA_DIR_ANTERIORES = {};
 	SOUND_ON = 0;
 	SCREENSHOT_BACK_ON = 0;
+	SCREENSHOT_BACK_TR = 128;
 	SOUND_VOLUME = 65;
 	VIDEO_MODE = 0;
 	VIBRATION_ON = 0;
@@ -256,6 +258,7 @@ OPCIONES = {
 	SPRITE_ON = 0;
 	SEE_INDEX = 0;
 	COLOR_LISTA_B = 74;
+	RUN_DEFAULT = 0
 };
 
 -- Define el estado de los emuladores (Activado / Desactivado). -------------------------

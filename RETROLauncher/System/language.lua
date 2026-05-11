@@ -167,9 +167,9 @@ function lang_select()
 			"IOP: Emulate DVD-DL"; -- 9
 			"IOP: Fix game buffer overrun"; -- 10
 			"Modo sintetizador gráfico"; -- 11
-			"Campo entrelazado"; -- 12
-			"Cuadro entrelazado"; -- 13
-			"Modo de compatibilidad"; -- 14
+			"Modo de vídeo forzado"; -- 12
+			"Modo de compatibilidad"; -- 13
+			"No usado"; -- 14
 			"Guardar configuración del juego"; -- 15
 			"OPL"; -- 16
 			"Neutrino"; -- 17
@@ -314,6 +314,9 @@ function lang_select()
 			"Seleccionar menú de configuración"; -- 116
 			"Editor de estilo"; -- 117
 			"Configuración de sprites"; -- 118
+			"Transparencia de los screenshots"; -- 119
+			"Mostrar siempre el menú de ejecución alternativo"; -- 120
+			"Color de las sombras detrás de los elementos"; -- 121
 		};
 
 		-- Nombre de los estilos de animación para los sprites. -------------------------
@@ -697,9 +700,9 @@ function lang_select()
 			"IOP: emulate DVD-DL"; -- 9
 			"IOP: Fix game buffer overrun"; -- 10
 			"Modo sintetizador gráfico"; -- 11
-			"Campo entrelaçado"; -- 12
-			"Quadro entrelaçado"; -- 13
-			"Modo de compatibilidade"; -- 14
+			"Forçar modo de vídeo"; -- 12
+			"Modo de compatibilidade"; -- 13
+			"Não utilizado"; -- 14
 			"Salvar configurações do jogo"; -- 15
 			"OPL"; -- 16
 			"Neutrino"; -- 17
@@ -844,6 +847,9 @@ function lang_select()
 			"Selecione o menu de configurações"; -- 116
 			"Editor de estilo"; -- 117
 			"Configuração do sprite"; -- 118
+			"Transparência das capturas de tela"; -- 119
+			"Exibir sempre o menu de execução alternativo."; -- 120
+			"Cor das sombras atrás dos elementos"; -- 121
 		};
 
 		-- Nomes dos estilos de animação para os sprites. -------------------------------
@@ -1231,9 +1237,9 @@ function lang_select()
 			"IOP: Emulate DVD-DL"; -- 9
 			"IOP: Fix game buffer overrun"; -- 10
 			"Graphics synthesizer mode"; -- 11
-			"Interlaced field mode"; -- 12
-			"Interlaced frame mode"; -- 13
-			"Compatibility mode"; -- 14
+			"Force video mode"; -- 12
+			"Compatibility mode"; -- 13
+			"Unused"; -- 14
 			"Save game settings"; -- 15
 			"OPL"; -- 16
 			"Neutrino"; -- 17
@@ -1378,6 +1384,9 @@ function lang_select()
 			"Select settings menu"; -- 116
 			"Style editor"; -- 117
 			"Sprite configuration"; -- 118
+			"Transparency of screenshots"; -- 119
+			"Always show the alternative execution menu"; -- 120
+			"Color of the shadows behind the elements"; -- 121
 		};
 
 		-- Nombre de los estilos de animación para los sprites. -------------------------

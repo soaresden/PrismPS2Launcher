@@ -33,25 +33,22 @@ Order of the commands:
 * The third line corresponds to the GSM configuration:
 	-gsm="GSM configuration"
 	Example command for GSM:
-		-gsm=fp:fp2:2
+		-gsm=fp2:1
 
 	If you do not use GSM, leave this line as "nil"
 	Example of GSM deactivated.
 		nil
 
-	GS video mode / -gsm=x:y:z
-	Parameter x = Interlaced field mode
-	A full height buffer is used by the game for displaying. Force video output to:
-	-      : don't force (default)  (480i/576i)
-	- fp   : force progressive scan (480p/576p)
+	GS video mode / -gsm=v:c
+	Parameter v = Force video mode to:
+	-         : don't force (default)  (480i/576i)
+	- fp1     : force 240p/288p - auto PAL/NTSC
+	- fp2     : force 480p/576p - auto PAL/NTSC
+	- 1080ix1 : force 1080i width x1, height x1 (very small!)
+	- 1080ix2 : force 1080i width x2, height x2
+	- 1080ix3 : force 1080i width x3, height x3
 			
-	Parameter y = Interlaced frame mode
-	A half height buffer is used by the game for displaying. Force video output to:
-	-      : don't force (default)  (480i/576i)
-	- fp1  : force progressive scan (240p/288p)
-	- fp2  : force progressive scan (480p/576p line doubling)
-
-	Parameter z = Compatibility mode
+	Parameter c = Compatibility mode:
 	-      : no compatibility mode (default)
 	- 1    : field flipping type 1 (GSM/OPL)
 	- 2    : field flipping type 2
