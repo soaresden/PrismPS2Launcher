@@ -210,7 +210,9 @@ function error_run()
 	elseif LISTAS.IDENTIDAD == 13 then
 		Font.ftPrint(CONTROL.fontARCA, x_inicio, y_inicio+19, 8, x_final, y_final, TEXT_M_PRI[17], COLOR.BLANCO)
 	elseif LISTAS.IDENTIDAD == 14 then
-		Font.ftPrint(CONTROL.fontARCA, x_inicio, y_inicio+19, 8, x_final, y_final, TEXT_M_PRI[18], COLOR.BLANCO)
+		local mens_ps1 = TEXT_M_PRI[18]
+		if string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) == ".cue" then mens_ps1 = TEXT_M_PRI[36] end
+		Font.ftPrint(CONTROL.fontARCA, x_inicio, y_inicio+19, 8, x_final, y_final, mens_ps1, COLOR.BLANCO)
 	elseif LISTAS.IDENTIDAD == 15 then
 		Font.ftPrint(CONTROL.fontARCA, x_inicio, y_inicio+19, 8, x_final, y_final, TEXT_M_PRI[19], COLOR.BLANCO)
 	end

@@ -6213,6 +6213,7 @@ function crear_listas(identidad, lista)
 	elseif identidad == 14 then
 		-- Realizar búsqueda. -----------------------------------------------------------
 		local buscar = System.listDirectory(device .."/POPS")
+		local buscar2 = System.listDirectory(actual .."/Roms/CUEs PlayStation 1")
 		if buscar ~= nil then
 			for contador = 1, #buscar do
 				local ps1_name = string.lower(string.sub(buscar[contador].name, -4))
@@ -6220,6 +6221,14 @@ function crear_listas(identidad, lista)
 					table.insert(encontrados, buscar[contador].name)
 				elseif ps1_name == ".elf" and string.lower(string.sub(buscar[contador].name, 1, 3)) ~= "xx." and string.lower(buscar[contador].name) ~= "popstarter.elf" and string.lower(buscar[contador].name) ~= "pops.elf" and string.lower(buscar[contador].name) ~= "popstarter.kelf" then
 					table.insert(encontrados, buscar[contador].name)
+				end
+			end
+			if buscar2 ~= nil and doesFileExist(actual .."/Roms/CUEs PlayStation 1/ember.elf") then
+				for contador = 1, #buscar2 do
+					local ps1_name = string.lower(string.sub(buscar2[contador].name, -4))
+					if buscar2[contador].directory == false and ps1_name == ".cue" then
+						table.insert(encontrados, buscar2[contador].name)
+					end
 				end
 			end
 			if encontrados ~= nil and #encontrados >= 1 then
@@ -6455,9 +6464,13 @@ function existe(identidad, nombre_juego, alternativo)
 
 	-- Comprobar la existencia de archivos necesarios (PlayStation 1). ------------------
 	elseif identidad == 14 and alternativo ~= nil then
-		if string.lower(string.sub(nombre_juego, -4)) == ".elf" then
+		local exten = string.lower(string.sub(nombre_juego, -4))
+		if exten == ".elf" then
 			return true
-		elseif doesFileExist(device .."/POPS/".. nombre_juego) and doesFileExist(device .."/POPS/POPS_IOX.PAK") and doesFileExist(device .."/POPS/IOPRP252.IMG") then
+		elseif exten == ".vcd" and doesFileExist(device .."/POPS/".. nombre_juego) and doesFileExist(device .."/POPS/POPS_IOX.PAK") and doesFileExist(device .."/POPS/IOPRP252.IMG") then
+			return true
+		elseif exten == ".cue" and doesFileExist(actual .."/Roms/CUEs PlayStation 1/".. nombre_juego) and doesFileExist(actual 
+		.."/Roms/CUEs PlayStation 1/ember.elf") and doesFileExist(actual .."/Roms/CUEs PlayStation 1/bios.bin") then
 			return true
 		else
 			return false
@@ -6703,7 +6716,9 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		if string.len(nombre_temp_2) >= 13 and string.match(string.sub(nombre_temp_2, 1, 12), "%a+_%d+%.%d+%.") then
 			nombre_temp_2 = string.sub(nombre_temp_2, 13)
 		end
-		if string.lower(string.sub(nombre_juego, -4)) == ".elf" then
+		if string.lower(string.sub(nombre_juego, -4)) == ".cue" then
+			System.loadELF(actual .."/Roms/CUEs PlayStation 1/ember.elf", 0, nombre_juego)
+		elseif string.lower(string.sub(nombre_juego, -4)) == ".elf" then
 			System.loadELF(device .."/POPS/".. nombre_juego, 0, device .."/POPS/")
 		elseif doesFileExist(device .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF") then
 			black_blur()

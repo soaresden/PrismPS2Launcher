@@ -556,6 +556,7 @@ function lang_select()
 			"Variante"; -- 33
 			"Explorador"; -- 34
 			"Seleccione el dispositivo a examinar"; -- 35
+			"¡Ember o Bios/CUE"; -- 36
 		};
 
 		-- Menú de reubicación. ---------------------------------------------------------
@@ -1089,6 +1090,7 @@ function lang_select()
 			"Variante"; -- 33
 			"Explorador"; -- 34
 			"Selecione o dispositivo a ser examinado"; -- 35
+			"Ember ou Bios/CUE"; -- 36
 		};
 
 		-- Menu de Realocação. ----------------------------------------------------------
@@ -1626,6 +1628,7 @@ function lang_select()
 			"Variant"; -- 33
 			"Explorer"; -- 34
 			"Select the device to examine"; -- 35
+			"Ember or Bios/CUE"; -- 36
 		};
 
 		-- Relocation Menu. -------------------------------------------------------------

@@ -14,5 +14,6 @@ krHACKen's POPSTARTER: https://www.psx-place.com/threads/popstarter.19139/
 
 Example:
 "mass:/POPS/Example.vcd" - Will find and list it.
+"mass:/POPS/Example.elf" - Will find and list it.
 
-Supported extensions: .vcd
+Supported extensions: .vcd .elf
