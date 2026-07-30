@@ -200,7 +200,7 @@ function cargar_art()
 
 		-- Ubicaciones para la carpeta "ART". -------------------------------------------
 		if LISTAS.IDENTIDAD == 13 or LISTAS.IDENTIDAD == 14 then
-			if LISTAS.IDENTIDAD == 14 and string.sub(LISTAS.ROMS[LISTAS.INDICE], -4) ~= ".elf" then
+			if LISTAS.IDENTIDAD == 14 and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".elf" then
 				nombre = "XX.".. nombre
 			end
 			if CONTROL.CUSTOM_ART1 == true then
@@ -208,10 +208,10 @@ function cargar_art()
 				LISTAS.SCREENSHOT_DIR_ALT = (device .."/ART/".. nombre ..".elf_SCR.png")
 			end
 			if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
-				if LISTAS.IDENTIDAD == 14 and string.sub(LISTAS.ROMS[LISTAS.INDICE2], -4) ~= ".elf" then
+				if LISTAS.IDENTIDAD == 14 and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE2], -4)) ~= ".elf" then
 					nombre2 = "XX.".. nombre2
 				end
-				if LISTAS.IDENTIDAD == 14 and string.sub(LISTAS.ROMS[LISTAS.INDICE3], -4) ~= ".elf" then
+				if LISTAS.IDENTIDAD == 14 and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE3], -4)) ~= ".elf" then
 					nombre3 = "XX.".. nombre3
 				end
 				LISTAS.COVER_DIR2_ALT = (device .."/ART/".. nombre2 ..".elf_COV.png")

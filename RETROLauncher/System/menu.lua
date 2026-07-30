@@ -112,7 +112,9 @@ function dibujar_indicadores()
 	if #LISTAS.ROMS >= 1 then
 		-- Cambio de arte. --------------------------------------------------------------
 		if CONTROL.CUSTOM_BUTTON_T == true then
-			if Pads.check(PAD, PAD_CIRCLE) and (LISTAS.IDENTIDAD == 15 or LISTAS.IDENTIDAD == 14) and string.sub(LISTAS.ROMS[LISTAS.INDICE], -4) ~= ".elf" then
+			if Pads.check(PAD, PAD_CIRCLE) and (LISTAS.IDENTIDAD == 14 or LISTAS.IDENTIDAD == 15) 
+			and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".elf" 
+			and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".cue" then
 				dibujar_indicador(CONTROL.X_BUTTON_T, CONTROL.Y_BUTTON_T, message[7], PAD_IMG.TRIANGLE, 25, 25, 1, true)
 			elseif Pads.check(PAD, PAD_CIRCLE) and LISTAS.IDENTIDAD == 13 then
 				dibujar_indicador(CONTROL.X_BUTTON_T, CONTROL.Y_BUTTON_T, message[9], PAD_IMG.TRIANGLE, 25, 25, 1, true)
@@ -312,7 +314,7 @@ function Controles_Listas()
 	-- Mostrar menú de configuración PS1. -----------------------------------------------
 	elseif LISTAS.IDENTIDAD == 14 and (Pads.check(PAD, PAD_CIRCLE) and Pads.check(PAD, PAD_TRIANGLE)) and CONTROL.JOYSTICK_ON == false then
 		repro_sfx(S_EJECUTAR, 1, false, nil)
-		if string.sub(LISTAS.ROMS[LISTAS.INDICE], -4) ~= ".elf" then
+		if string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".elf" then
 			animaciones(nil, true)
 			menu_pops(LISTAS.ROMS[LISTAS.INDICE])
 		end
@@ -320,7 +322,7 @@ function Controles_Listas()
 	-- Mostrar menú de configuración PS2. -----------------------------------------------
 	elseif LISTAS.IDENTIDAD == 15 and (Pads.check(PAD, PAD_CIRCLE) and Pads.check(PAD, PAD_TRIANGLE)) and CONTROL.JOYSTICK_ON == false then
 		repro_sfx(S_EJECUTAR, 1, false, nil)
-		if string.sub(LISTAS.ROMS[LISTAS.INDICE], -4) ~= ".elf" then
+		if string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".elf" then
 			animaciones(nil, true)
 			menu_neutrino(LISTAS.ROMS[LISTAS.INDICE])
 		end
@@ -598,7 +600,8 @@ function dibujar()
 		if mostar_extras == false then
 			if OPCIONES.GUI_LIMPIA_ON == 0 and #LISTAS.ROMS >= 1 and LISTAS.ROMS ~= nil then
 				if CONTROL.CUSTOM_BUTTON_T == true then
-					if Pads.check(PAD, PAD_CIRCLE) and (LISTAS.IDENTIDAD == 15 or LISTAS.IDENTIDAD == 14) and string.sub(LISTAS.ROMS[LISTAS.INDICE], -4) ~= ".elf" then
+					if Pads.check(PAD, PAD_CIRCLE) and (LISTAS.IDENTIDAD == 15 or LISTAS.IDENTIDAD == 14) 
+					and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".elf" then
 						dibujar_indicador(44, 422, TEXT_M_PRI[8], PAD_IMG.TRIANGLE, 20, 20, 3, true)
 					elseif Pads.check(PAD, PAD_CIRCLE) and LISTAS.IDENTIDAD == 13 then
 						dibujar_indicador(44, 422, TEXT_M_PRI[34], PAD_IMG.TRIANGLE, 20, 20, 3, true)
