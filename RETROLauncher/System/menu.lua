@@ -59,9 +59,16 @@ function dibujar_covers()
 			else
 				dibujar_arte(LISTAS.COVER_ART, LISTAS.EXISTE_COV, LISTAS.COVER_DEFAULT, CONTROL.IMG_ANCHO, CONTROL.IMG_ALTO, CONTROL.IMG_X, CONTROL.IMG_Y, LISTAS.COV_X, LISTAS.COV_Y, LISTAS.COV_FIX, LISTAS.COV_FIX_Y, true)
 			end
-			if LISTAS.IDENTIDAD == 15 and Pads.check(PAD, PAD_CIRCLE) then
-				local medio = "[USB]"
-				local ext_t = string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4))
+			-- Indicador de soporte. Ademas del modo PS2 (manteniendo CIRCULO), se
+			-- muestra "[ATA]" en CUALQUIER sistema cuando el juego proviene del disco
+			-- interno exFAT montado por ata_bd.
+			local medio = nil
+			local juego_actual = nil
+			if LISTAS.ROMS ~= nil then juego_actual = LISTAS.ROMS[LISTAS.INDICE] end
+
+			if LISTAS.IDENTIDAD == 15 and Pads.check(PAD, PAD_CIRCLE) and juego_actual ~= nil then
+				medio = "[USB]"
+				local ext_t = string.lower(string.sub(juego_actual, -4))
 				if ext_t == ".mx4" then
 					medio = "[MX4SIO]"
 				elseif ext_t == ".hdd" then
@@ -71,6 +78,13 @@ function dibujar_covers()
 				elseif ext_t == ".udp" then
 					medio = "[UDPBD]"
 				end
+			end
+
+			if juego_actual ~= nil and ES_ATA ~= nil and ES_ATA(LISTAS.IDENTIDAD, juego_actual) then
+				medio = "[ATA]"
+			end
+
+			if medio ~= nil then
 				Graphics.drawRect((CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2))-50, (CONTROL.IMG_ALTO+CONTROL.IMG_Y)-20, 100, 22, COLOR.NEGRO)
 				Font.ftPrint(CONTROL.fontARCA, (CONTROL.IMG_ANCHO+(CONTROL.IMG_X//2)), (CONTROL.IMG_ALTO+CONTROL.IMG_Y)-18, 8, (CONTROL.IMG_ANCHO+CONTROL.IMG_X), 28, medio, COLOR.BLANCO_LISTA)
 			end
@@ -85,6 +99,10 @@ end
 
 --- Dibujar indicadores. ----------------------------------------------------------------
 function dibujar_indicadores()
+	-- Atajo L1+R1: rejilla de seleccion rapida de sistema, arriba a la izquierda,
+	-- por encima del logo del sistema.
+	dibujar_indicador(24, 2, "+", PAD_IMG.L1, 24, 24, 3, true)
+	dibujar_indicador(56, 2, "Quick System Selection", PAD_IMG.R1, 24, 24, 3, true)
 	local message = {TEXT_M_PRI[2], TEXT_M_PRI[3], TEXT_M_PRI[4], TEXT_M_PRI[5], TEXT_M_PRI[6], TEXT_M_PRI[7], TEXT_M_PRI[8], TEXT_M_PRI[32], TEXT_M_PRI[34]}
 	if CONTROL.ESTILO == 6 then
 		message = {TEXT_GEN[7], TEXT_M_PRI[9], TEXT_M_PRI[10], TEXT_M_PRI[11], TEXT_M_PRI[12], TEXT_M_PRI[7], TEXT_M_PRI[31], TEXT_M_PRI[33], TEXT_M_PRI[34]}
@@ -214,6 +232,9 @@ function error_run()
 	elseif LISTAS.IDENTIDAD == 14 then
 		local mens_ps1 = TEXT_M_PRI[18]
 		if string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) == ".cue" then mens_ps1 = TEXT_M_PRI[36] end
+		-- Si existe() ha dejado un detalle, decir QUE falta y DONDE se esperaba,
+		-- en vez del mensaje generico.
+		if ERROR_DETALLE ~= nil and ERROR_DETALLE ~= "" then mens_ps1 = ERROR_DETALLE end
 		Font.ftPrint(CONTROL.fontARCA, x_inicio, y_inicio+19, 8, x_final, y_final, mens_ps1, COLOR.BLANCO)
 	elseif LISTAS.IDENTIDAD == 15 then
 		Font.ftPrint(CONTROL.fontARCA, x_inicio, y_inicio+19, 8, x_final, y_final, TEXT_M_PRI[19], COLOR.BLANCO)
@@ -403,14 +424,38 @@ function mostrar_lista(pos_linea, elemento, n_ele)
 	if CONTROL.ESTILO == 3 and OPCIONES.GUI_LIMPIA_ON == 1 then
 		largo = CONTROL.LISTA_X+236
 	end
+	-- Prefijo de la lista: soporte y extension. El nombre se sigue mostrando sin su
+	-- extension (CONTROL.EXTENSION la recorta), asi que la etiqueta es la unica
+	-- forma de distinguir un ".zip" de una rom suelta.
+	--   "[ATA]" : el juego viene del disco interno exFAT.
+	--   "[ZIP]" : archivo comprimido. Los cores de RetroArch en PS2 no siempre
+	--            saben abrirlos, aunque el launcher los liste.
+	local function prefijo_lista(idx)
+		if LISTAS.ROMS == nil or LISTAS.ROMS[idx] == nil then return "" end
+		local nom = LISTAS.ROMS[idx]
+		local pre = ""
+		if ES_ATA ~= nil and ES_ATA(LISTAS.IDENTIDAD, nom) then pre = "[ATA]" end
+
+		-- El scan anade un espacio al final para las extensiones de 3 letras.
+		local limpio = nom
+		while string.sub(limpio, -1) == " " do limpio = string.sub(limpio, 1, -2) end
+		local punto = string.find(string.reverse(limpio), ".", 1, true)
+		if punto ~= nil and punto >= 2 and punto <= 5 then
+			pre = pre .. string.lower(string.sub(limpio, -punto))
+		end
+
+		if pre ~= "" then pre = pre .." " end
+		return pre
+	end
+
 	if elemento ~= 0 then
 		local fix_ini_name = 1
 		if (LISTAS.IDENTIDAD == 15 or LISTAS.IDENTIDAD == 14) and string.match(string.sub(LISTAS.ROMS[elemento], 1, 12), "%a+_%d+%.%d+%.") then
 			fix_ini_name = 13
 		end
-		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. string.sub(LISTAS.ROMS[elemento], fix_ini_name, -CONTROL.EXTENSION), COLOR.BLANCO_LISTA)
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(elemento) .. string.sub(LISTAS.ROMS[elemento], fix_ini_name, -CONTROL.EXTENSION), COLOR.BLANCO_LISTA)
 	else
-		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. string.sub(LISTAS.ROMS[LISTAS.INDICE], LISTAS.SCROLL_TEX, -CONTROL.EXTENSION), CAMBIOS_EMUS.COLOR_EMU)
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(LISTAS.INDICE) .. string.sub(LISTAS.ROMS[LISTAS.INDICE], LISTAS.SCROLL_TEX, -CONTROL.EXTENSION), CAMBIOS_EMUS.COLOR_EMU)
 	end
 end
 
@@ -523,8 +568,27 @@ function dibujar()
 	-- Dibujar listas y arte. -----------------------------------------------------------
 	dibujar_covers()
 
+	-- L1 + R1 a la vez: rejilla de seleccion de sistema. -------------------------------
+	-- SELECT, L3, R3, START, L2 y R2 ya estan ocupados en este menu, de ahi la
+	-- combinacion. Cada gatillo por separado sigue encadenando los sistemas.
+	if Pads.check(PAD, PAD_L1) and Pads.check(PAD, PAD_R1) and CONTROL.JOYSTICK_ON == false then
+		repro_sfx(S_EJECUTAR, 1, false, nil)
+		LAST_MOVE[LISTAS.IDENTIDAD] = LISTAS.INDICE
+		local elegido = selector_sistemas(dibujar_fondos)
+		if elegido ~= nil and elegido ~= LISTAS.IDENTIDAD then
+			ir_a_sistema(elegido)
+			LISTAS.SCROLL_TEX = 1
+			reset_tiempo_espera(-CONTROL.FPS-CONTROL.FPS)
+			animaciones(true, false)
+			LISTAS.SCREENSHOT_ON = false
+			limpiar_art()
+			LISTAS.MOSTRAR = 0-CONTROL.FPS
+		end
+		-- Bloqueo largo: evita que la pulsacion de salida de la rejilla se propague.
+		JOYSTICK_LIMITE = control_FPS(1)-40
+
 	-- Cambiar de sistema. --------------------------------------------------------------
-	if (Pads.check(PAD, PAD_R1) or Pads.check(PAD, PAD_L1)) and CONTROL.JOYSTICK_ON == false then
+	elseif (Pads.check(PAD, PAD_R1) or Pads.check(PAD, PAD_L1)) and CONTROL.JOYSTICK_ON == false then
 		local disabled, side = false, true
 		if Pads.check(PAD, PAD_L1) then
 			disabled, side = true, false

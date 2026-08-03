@@ -1,0 +1,20 @@
+# Journaux de diagnostic ecrits par la console
+BDM_REPORT.txt
+LAUNCH_LOG.txt
+
+# Sauvegardes locales des binaires
+*.orig
+*.bak
+*.2025
+RETROLauncher/enceladus.elf
+
+# Nightlies RetroArch en vrac (non redistribuables)
+/retroarch/
+
+# Collection personnelle
+/RETROLauncher/Roms/CUEs PlayStation 1/
+/RETROLauncher/Roms
+RETROLauncher/System/Respaldo/NTSC
+RETROLauncher/System/Respaldo/PAL
+RETROLauncher/System/Respaldo/NTSC
+CHANGES.md

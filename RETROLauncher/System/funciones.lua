@@ -434,6 +434,122 @@ function letter_breaks(inicial, pos, lado)
 end
 
 --- Controlar el cambio entre sistemas activados y desactivados. ------------------------
+--- Salta directamente a un sistema concreto (usado por la rejilla). -------------------
+function ir_a_sistema(id)
+	if id == nil or id == LISTAS.IDENTIDAD then return end
+	if OPCIONES.LIBERAR_LISTAS == 1 then
+		PRE_CARGADAS[LISTAS.IDENTIDAD] = {}
+	end
+	LISTAS.IDENTIDAD = id
+	LISTAS.ROMS = nil
+	if OPCIONES.LIBERAR_LISTAS == 1 then
+		recargar_una(LISTAS.IDENTIDAD)
+	end
+	LISTAS.ROMS = PRE_CARGADAS[LISTAS.IDENTIDAD]
+	indices_extras()
+	rest_sprites(CONTROL.CUSTOM_SPRITE)
+	if LISTAS.ROMS ~= nil and LAST_MOVE[LISTAS.IDENTIDAD] <= #LISTAS.ROMS then
+		LISTAS.INDICE = LAST_MOVE[LISTAS.IDENTIDAD]
+	else
+		LISTAS.INDICE = 1
+		LAST_MOVE[LISTAS.IDENTIDAD] = 1
+	end
+end
+
+--- Rejilla de seleccion de sistema (L1+R1). Devuelve la identidad o nil. -------------
+--- Solo muestra los sistemas activados en SISTEMAS.*_ON, con su logo.
+function selector_sistemas(fondos)
+	local claves = {"MEGADRIVE", "MASTERSYSTEM", "GAMEGEAR", "FAMICOM", "GAMEBOY", "GAMEBOYCOLOR",
+		"GAMEBOYADVANCE", "ATARI2600", "ATARILYNX", "SEGASG1000", "NEOGEOPOCKET", "SUPERFAMICOM",
+		"APPS", "PLAYSTATION", "PLAYSTATION2"}
+	local nombres = {"Sega Megadrive", "Sega Master System", "Sega Game Gear", "Nintendo Famicom",
+		"Nintendo Game Boy", "Nintendo Game Boy Color", "Nintendo Game Boy Advance", "Atari 2600",
+		"Atari Lynx", "Sega SG-1000", "Neo Geo Pocket", "Nintendo Super Famicom",
+		"APPS", "PlayStation", "PlayStation 2"}
+	local activos = {SISTEMAS.MEGADRIVE_ON, SISTEMAS.MASTERSYSTEM_ON, SISTEMAS.GAMEGEAR_ON,
+		SISTEMAS.FAMICOM_ON, SISTEMAS.GAMEBOY_ON, SISTEMAS.GAMEBOYCOLOR_ON, SISTEMAS.GAMEBOYADVANCE_ON,
+		SISTEMAS.ATARI2600_ON, SISTEMAS.ATARILYNX_ON, SISTEMAS.SEGASG1000_ON, SISTEMAS.NEOGEOPOCKET_ON,
+		SISTEMAS.SUPERFAMICOM_ON, SISTEMAS.APPS_ON, SISTEMAS.PLAYSTATION_ON, SISTEMAS.PLAYSTATION2_ON}
+
+	local lista = {}
+	for i = 1, 15 do
+		if activos[i] == 1 then table.insert(lista, i) end
+	end
+	if #lista == 0 then return nil end
+
+	-- Posicionarse sobre el sistema actual. ------------------------------------------
+	local sel = 1
+	for i = 1, #lista do
+		if lista[i] == LISTAS.IDENTIDAD then sel = i end
+	end
+
+	local COLS, CW, CH, GX, GY = 5, 118, 86, 6, 8
+	local X0 = (640 - (COLS*CW + (COLS-1)*GX)) // 2
+	local Y0 = 78 + CONTROL.Y_FIX_PAL
+	local elegido, abierto = nil, true
+	JOYSTICK_LIMITE = control_FPS(1)-20
+
+	while abierto do
+		CONTROL.FPS = Screen.getFPS(1)
+		capturar(JOYSTICK_LIMITE)
+		fondos()
+
+		Graphics.drawRect(10, 16+CONTROL.Y_FIX_PAL, 619, 419, COLOR.NEGRO_T)
+		Graphics.drawRect(-5, 22+CONTROL.Y_FIX_PAL, 650, 25, COLOR.NEGRO)
+		Font.ftPrint(CONTROL.fontARCA, 320, 28+CONTROL.Y_FIX_PAL, 8, 600, 25, "SELECT SYSTEM", COLOR.BLANCO)
+
+		for i = 1, #lista do
+			local col = (i-1) % COLS
+			local fila = (i-1) // COLS
+			local x = X0 + col*(CW+GX)
+			local y = Y0 + fila*(CH+GY)
+			if i == sel then
+				Graphics.drawRect(x-3, y-3, CW+6, CH+6, CAMBIOS_EMUS.COLOR_EMU)
+			end
+			Graphics.drawRect(x, y, CW, CH, COLOR.NEGRO)
+			local img = LOGOS[claves[lista[i]]]
+			if img ~= nil then
+				Graphics.drawScaleImage(img, x+5, y+5, CW-10, CH-10)
+			end
+		end
+
+		Graphics.drawRect(-5, 394+CONTROL.Y_FIX_PAL, 650, 26, COLOR.NEGRO)
+		Font.ftPrint(CONTROL.fontARCA, 320, 400+CONTROL.Y_FIX_PAL, 8, 620, 25, nombres[lista[sel]], COLOR.BLANCO_LISTA)
+		refrescar(false)
+
+		if CONTROL.JOYSTICK_ON == false then
+			if Pads.check(PAD, PAD_CROSS) then
+				repro_sfx(S_EJECUTAR, 1, false, nil)
+				elegido, abierto = lista[sel], false
+				-- Bloquear el pad al salir: sin esto, la misma pulsacion de CRUZ se
+				-- propaga al menu principal y lanza el juego seleccionado.
+				JOYSTICK_LIMITE = control_FPS(1)-40
+			elseif Pads.check(PAD, PAD_TRIANGLE) then
+				repro_sfx(S_CANCELAR, 1, false, nil)
+				abierto = false
+				JOYSTICK_LIMITE = control_FPS(1)-40
+			elseif Pads.check(PAD, PAD_LEFT) or Left_X <= -90 then
+				repro_sfx(S_MOVER, 1, false, nil)
+				sel = cambiar_valor(sel, 1, #lista, 1, false)
+				JOYSTICK_LIMITE = control_FPS(1)-6
+			elseif Pads.check(PAD, PAD_RIGHT) or Left_X >= 90 then
+				repro_sfx(S_MOVER, 1, false, nil)
+				sel = cambiar_valor(sel, 1, #lista, 1, true)
+				JOYSTICK_LIMITE = control_FPS(1)-6
+			elseif Pads.check(PAD, PAD_UP) or Left_Y <= -90 then
+				repro_sfx(S_MOVER, 1, false, nil)
+				if sel - COLS >= 1 then sel = sel - COLS end
+				JOYSTICK_LIMITE = control_FPS(1)-6
+			elseif Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 then
+				repro_sfx(S_MOVER, 1, false, nil)
+				if sel + COLS <= #lista then sel = sel + COLS end
+				JOYSTICK_LIMITE = control_FPS(1)-6
+			end
+		end
+	end
+	return elegido
+end
+
 function desactivados(lado)
 	local buscar = true
 	local sistemas_on = {SISTEMAS.MEGADRIVE_ON; SISTEMAS.MASTERSYSTEM_ON; SISTEMAS.GAMEGEAR_ON; SISTEMAS.FAMICOM_ON; SISTEMAS.GAMEBOY_ON;
@@ -2226,20 +2342,20 @@ function menu_pops(nombre_vcd)
 	local parches_indi_enc, parches_indi, ubicar, tipo, selec_act, selec_opt = {}, nil, " ", nil, true, 1
 	LISTAS.SCROLL_TEX = 1
 	reset_tiempo_espera(-CONTROL.FPS-CONTROL.FPS)
-	local estatus_game = System.listDirectory(device .."/POPS/".. nombre_game)
+	local estatus_game = System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
 
 	-- Crear directorios faltantes. -----------------------------------------------------
 	if estatus_game == nil then
-		System.createDirectory(device .."/POPS/".. nombre_game)
+		System.createDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
 	end
-	if System.listDirectory(device .."/POPS/Hugopocked Fixes") == nil then
-		System.createDirectory(device .."/POPS/Hugopocked Fixes")
+	if System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes") == nil then
+		System.createDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes")
 	end
-	if System.listDirectory(device .."/POPS/Hugopocked Fixes/POPS General Fixes") == nil then
-		System.createDirectory(device .."/POPS/Hugopocked Fixes/POPS General Fixes")
+	if System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes") == nil then
+		System.createDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes")
 	end
-	if System.listDirectory(device .."/POPS/Hugopocked Fixes/POPS Game Fixes") == nil then
-		System.createDirectory(device .."/POPS/Hugopocked Fixes/POPS Game Fixes")
+	if System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes") == nil then
+		System.createDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes")
 	end
 
 	-- Dibujar los submenús con múltiples opciones. -------------------------------------
@@ -2531,7 +2647,7 @@ function menu_pops(nombre_vcd)
 						end
 					end
 				end
-				if (confirmar_cheat == true or new == true) and System.listDirectory(device .."/POPS/".. nombre_game) ~= nil then
+				if (confirmar_cheat == true or new == true) and System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game) ~= nil then
 					if new == false then
 						sub_menu_multi({}, 1, nombre_game, TEXT_M_PS1[6] .."... ".. TEXT_M_CON[46], 160, 226, true, 0, true, lista_resp, nil, false)
 					end
@@ -2553,15 +2669,15 @@ function menu_pops(nombre_vcd)
 						end
 						config_f = config_f .. new_cheats_config[create] .. salto_linea
 					end
-					if doesFileExist(device .."/POPS/".. nombre_game .."/CHEATS.TXT") then
-						System.removeFile(device .."/POPS/".. nombre_game .."/CHEATS.TXT")
+					if doesFileExist(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT") then
+						System.removeFile(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT")
 					end
-					local final_cheats = System.openFile(device .."/POPS/".. nombre_game .."/CHEATS.TXT", FCREATE)
+					local final_cheats = System.openFile(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT", FCREATE)
 					System.writeFile(final_cheats, config_f, string.len(config_f))
 					System.closeFile(final_cheats)
 					cheats_menu = false
 					JOYSTICK_LIMITE = control_FPS(1)-20
-					estatus_game = System.listDirectory(device .."/POPS/".. nombre_game)
+					estatus_game = System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
 					System.sleep(1)
 				end
 			elseif Pads.check(PAD, PAD_CIRCLE) and CONTROL.JOYSTICK_ON == false then
@@ -2575,8 +2691,8 @@ function menu_pops(nombre_vcd)
 	-- Cargar configuraciones desde "CHEATS.TXT". ---------------------------------------
 	local function cargar_cheats_txt(rest)
 		local lista_config = {}
-		if doesFileExist(device .."/POPS/".. nombre_game .."/CHEATS.TXT") then
-			local cheats_txt = System.openFile(device .."/POPS/".. nombre_game .."/CHEATS.TXT", FREAD)
+		if doesFileExist(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT") then
+			local cheats_txt = System.openFile(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT", FREAD)
 			System.seekFile(cheats_txt, 0, SET)
 			local size_config = System.sizeFile(cheats_txt)
 			local temp = System.readFile(cheats_txt, size_config)
@@ -2590,7 +2706,7 @@ function menu_pops(nombre_vcd)
 
 	-- Instalar parches para POPStarter. ------------------------------------------------
 	local function instalar_parches(tipo_de_inst, dir_orig, cheats_ins)
-		local dir_pops_game = device .."/POPS/".. nombre_game
+		local dir_pops_game = POPS_RAIZ .."/POPS/".. nombre_game
 		if tipo_de_inst == false or tipo_de_inst == nil then
 			local prev_parches = System.listDirectory(dir_pops_game)
 			if prev_parches ~= nil then
@@ -2611,7 +2727,7 @@ function menu_pops(nombre_vcd)
 				end
 			end
 		end
-		estatus_game = System.listDirectory(device .."/POPS/".. nombre_game)
+		estatus_game = System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
 	end
 
 	-- Buscar parches para POPStarter. --------------------------------------------------
@@ -2620,12 +2736,12 @@ function menu_pops(nombre_vcd)
 		parches_indi = nil
 		local text_parche, text_adver = " ", " "
 		if tipo == true then
-			parches_indi = System.listDirectory(device .."/POPS/Hugopocked Fixes/POPS General Fixes")
-			ubicar = device .."/POPS/Hugopocked Fixes/POPS General Fixes/"
+			parches_indi = System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes")
+			ubicar = POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes/"
 			text_parche, text_adver = TEXT_M_PS1[11], TEXT_M_PS1[12]
 		elseif tipo == false then
-			parches_indi = System.listDirectory(device .."/POPS/Hugopocked Fixes/POPS Game Fixes")
-			ubicar = device .."/POPS/Hugopocked Fixes/POPS Game Fixes/"
+			parches_indi = System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes")
+			ubicar = POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes/"
 			text_parche, text_adver = TEXT_M_PS1[13], TEXT_M_PS1[14]
 			if cheats_ins == true then
 				text_parche, text_adver = TEXT_M_PS1[29], TEXT_M_PS1[30]
@@ -2860,7 +2976,7 @@ function menu_pops(nombre_vcd)
 							JOYSTICK_LIMITE = control_FPS(1)
 						end
 					end
-					if confirmar_limp == true and System.listDirectory(device .."/POPS/".. nombre_game) ~= nil then
+					if confirmar_limp == true and System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game) ~= nil then
 						sub_menu_multi({}, 1, nombre_game, text_carga, 160, 298, true, 0, true, {}, nil, false)
 						if selector_lim == 1 then
 							instalar_parches(nil, "", false); System.sleep(2)
@@ -3748,7 +3864,18 @@ function exporer_apps()
 		capturar(JOYSTICK_LIMITE)
 		dibujar_fondos()
 		local submenu_lista = {"mc0:", "mc1:", device}
-		submenu_selector(submenu_lista, selec_disp, TEXT_M_PRI[35], 160, 273, true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
+		-- Unidades BDM detectadas al arrancar (disco interno exFAT via ata_bd). --------
+		if BDM_DEVICES ~= nil then
+			for i_bdm = 1, #BDM_DEVICES do
+				table.insert(submenu_lista, BDM_DEVICES[i_bdm])
+			end
+		end
+		-- El bandeau tiene altura fija: cada linea ocupa 24 px. Con las unidades BDM
+		-- anadidas hay que agrandarlo, si no el contenido desborda y la fila de botones
+		-- (calculada desde el borde inferior) queda desplazada.
+		local extra_bdm = #submenu_lista - 3
+		if extra_bdm < 0 then extra_bdm = 0 end
+		submenu_selector(submenu_lista, selec_disp, TEXT_M_PRI[35], 160-(extra_bdm*12), 273+(extra_bdm*12), true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
 		if cambio_ani == true then
 			cambio_ani, n_ani = intro_menu(cambio_ani, n_ani)
 			JOYSTICK_LIMITE = control_FPS(1)-16
@@ -3762,9 +3889,9 @@ function exporer_apps()
 		elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) and CONTROL.JOYSTICK_ON == false then
 			repro_sfx(S_MOVER, 1, false, nil)
 			if (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
-				selec_disp = cambiar_valor(selec_disp, 1, 3, 1, false)
+				selec_disp = cambiar_valor(selec_disp, 1, #submenu_lista, 1, false)
 			elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
-				selec_disp = cambiar_valor(selec_disp, 1, 3, 1, true)
+				selec_disp = cambiar_valor(selec_disp, 1, #submenu_lista, 1, true)
 			end
 			JOYSTICK_LIMITE = control_FPS(1)
 		elseif Pads.check(PAD, PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
@@ -3982,6 +4109,9 @@ function buscar_directorio(dir, disp)
 			OPCIONES.SALIDA_DIR_ACTUALES, OPCIONES.SALIDA_DIR_ANTERIORES = {}, {}
 		elseif disp == 3 then
 			OPCIONES.SALIDA_RETROLANCHER = device .."/"
+			OPCIONES.SALIDA_DIR_ACTUALES, OPCIONES.SALIDA_DIR_ANTERIORES = {}, {}
+		elseif disp >= 4 and BDM_DEVICES ~= nil and BDM_DEVICES[disp-3] ~= nil then
+			OPCIONES.SALIDA_RETROLANCHER = BDM_DEVICES[disp-3] .."/"
 			OPCIONES.SALIDA_DIR_ACTUALES, OPCIONES.SALIDA_DIR_ANTERIORES = {}, {}
 		end
 	end
@@ -4695,10 +4825,10 @@ function menu_config()
 					lang = "POR"
 				end
 				local estados_pops = {2, 2, 2}
-				if doesFileExist(device .."/POPS/PATCH_9.BIN") == true then
+				if doesFileExist(POPS_RAIZ .."/POPS/PATCH_9.BIN") == true then
 					estados_pops[1] = 3
 				end
-				if doesFileExist(device .."/POPS/TROJAN_9.BIN") == true then
+				if doesFileExist(POPS_RAIZ .."/POPS/TROJAN_9.BIN") == true then
 					estados_pops[2] = 3
 				end
 				while pregunta do
@@ -4713,28 +4843,28 @@ function menu_config()
 						repro_sfx(S_EJECUTAR, 1, false, nil)
 						submenu_selector({}, nil, TEXT_M_CON[46], 160, 274, true, CONTROL.ANCHO//2, {}, false, true, {}, nil)
 						if estados_pops[1] == 2 then
-							if doesFileExist(device .."/POPS/PATCH_9.BIN") == true then
-								System.removeFile(device .."/POPS/PATCH_9.BIN")
+							if doesFileExist(POPS_RAIZ .."/POPS/PATCH_9.BIN") == true then
+								System.removeFile(POPS_RAIZ .."/POPS/PATCH_9.BIN")
 							end
 						elseif estados_pops[1] == 3 then
-							if doesFileExist(device .."/POPS/PATCH_9.BIN") == false and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/PATCH_9.BIN") then
-								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/PATCH_9.BIN", device .."/POPS/PATCH_9.BIN")
+							if doesFileExist(POPS_RAIZ .."/POPS/PATCH_9.BIN") == false and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/PATCH_9.BIN") then
+								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/PATCH_9.BIN", POPS_RAIZ .."/POPS/PATCH_9.BIN")
 							end
 						end
 						if estados_pops[2] == 2 then
-							if doesFileExist(device .."/POPS/TROJAN_9.BIN") == true then
-								System.removeFile(device .."/POPS/TROJAN_9.BIN")
+							if doesFileExist(POPS_RAIZ .."/POPS/TROJAN_9.BIN") == true then
+								System.removeFile(POPS_RAIZ .."/POPS/TROJAN_9.BIN")
 							end
 						elseif estados_pops[2] == 3 then
-							if doesFileExist(device .."/POPS/TROJAN_9.BIN") == false and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/TROJAN_9.BIN") then
-								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/TROJAN_9.BIN", device .."/POPS/TROJAN_9.BIN")
+							if doesFileExist(POPS_RAIZ .."/POPS/TROJAN_9.BIN") == false and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/TROJAN_9.BIN") then
+								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/TROJAN_9.BIN", POPS_RAIZ .."/POPS/TROJAN_9.BIN")
 							end
 						end
 						if estados_pops[3] == 3 then
-							if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_BG.TM2") and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_NO.TM2") and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_YES.TM2") and System.listDirectory(device .."/POPS") ~= nil then
-								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_BG.TM2", device .."/POPS/IGR_BG.TM2")
-								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_NO.TM2", device .."/POPS/IGR_NO.TM2")
-								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_YES.TM2", device .."/POPS/IGR_YES.TM2")
+							if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_BG.TM2") and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_NO.TM2") and doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_YES.TM2") and System.listDirectory(POPS_RAIZ .."/POPS") ~= nil then
+								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_BG.TM2", POPS_RAIZ .."/POPS/IGR_BG.TM2")
+								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_NO.TM2", POPS_RAIZ .."/POPS/IGR_NO.TM2")
+								System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/".. lang .."/IGR_YES.TM2", POPS_RAIZ .."/POPS/IGR_YES.TM2")
 							end
 						end
 						pregunta = false
@@ -4778,8 +4908,19 @@ function menu_config()
 					if CONTROL.ESPERA_CARGA_SCR == false then
 						scroll_opl = scroll_texto(scroll_opl, OPCIONES.OPL_ELF, 44)
 					end
-					local submenu_lista = {"mc0:", "mc1:", device, string.sub(OPCIONES.OPL_ELF, scroll_opl)}
-					submenu_selector(submenu_lista, selec_disp, text_prin, 160, 297, true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
+					-- Soportes disponibles + unidades BDM detectadas (disco interno exFAT). --
+					local submenu_lista = {"mc0:", "mc1:", device}
+					if BDM_DEVICES ~= nil then
+						for i_bdm = 1, #BDM_DEVICES do
+							table.insert(submenu_lista, BDM_DEVICES[i_bdm])
+						end
+					end
+					local n_disp = #submenu_lista
+					table.insert(submenu_lista, string.sub(OPCIONES.OPL_ELF, scroll_opl))
+					-- Mismo ajuste de altura: 3 soportes de base + la linea de la ruta.
+					local extra_bdm = #submenu_lista - 4
+					if extra_bdm < 0 then extra_bdm = 0 end
+					submenu_selector(submenu_lista, selec_disp, text_prin, 160-(extra_bdm*12), 297+(extra_bdm*12), true, CONTROL.ANCHO//2, lista_resp, false, false, {}, nil)
 					refrescar(false)
 					if Pads.check(PAD, PAD_SQUARE) and CONTROL.JOYSTICK_ON == false then
 						repro_sfx(S_EJECUTAR, 1, false, nil)
@@ -4788,9 +4929,9 @@ function menu_config()
 					elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) and CONTROL.JOYSTICK_ON == false then
 						repro_sfx(S_MOVER, 1, false, nil)
 						if (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
-							selec_disp = cambiar_valor(selec_disp, 1, 3, 1, false)
+							selec_disp = cambiar_valor(selec_disp, 1, n_disp, 1, false)
 						elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) then
-							selec_disp = cambiar_valor(selec_disp, 1, 3, 1, true)
+							selec_disp = cambiar_valor(selec_disp, 1, n_disp, 1, true)
 						end
 						JOYSTICK_LIMITE = control_FPS(1)
 					elseif Pads.check(PAD, PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
@@ -6105,31 +6246,39 @@ function crear_listas(identidad, lista)
 		end
 
 		-- Realizar búsquedas. ----------------------------------------------------------
-		local buscar = System.listDirectory(actual .."/Roms/Roms ".. dir_sistemas[identidad])
-		if buscar ~= nil then
-			for contador = 1, #buscar do
-				if buscar[contador].directory == false then
-					local temp_ext = string.lower(string.sub(buscar[contador].name, -4))
-					if exten_mini == true then
-						temp_ext2 = string.lower(string.sub(buscar[contador].name, -3))
-					end
-					for test = 1, #exten do
-						if temp_ext == exten[test] then
-							table.insert(encontrados, buscar[contador].name)
-						elseif exten_mini == true and temp_ext2 == exten[test] then
-							table.insert(encontrados, buscar[contador].name .." ")
+		-- Busqueda acumulada sobre TODAS las raices (USB + disco interno exFAT). ------
+		local vistos = {}
+		for i_raiz = 1, #RAICES do
+			local sub = "/Roms/Roms ".. dir_sistemas[identidad]
+			local buscar = System.listDirectory(RAICES[i_raiz] .. sub)
+			if buscar ~= nil then
+				for contador = 1, #buscar do
+					if buscar[contador].directory == false then
+						local temp_ext = string.lower(string.sub(buscar[contador].name, -4))
+						if exten_mini == true then
+							temp_ext2 = string.lower(string.sub(buscar[contador].name, -3))
+						end
+						for test = 1, #exten do
+							local nom = nil
+							if temp_ext == exten[test] then
+								nom = buscar[contador].name
+							elseif exten_mini == true and temp_ext2 == exten[test] then
+								nom = buscar[contador].name .." "
+							end
+							if nom ~= nil and vistos[nom] == nil then
+								vistos[nom] = true
+								table.insert(encontrados, nom)
+								ORIGEN[tostring(identidad) .."|".. nom] = RAICES[i_raiz]
+							end
 						end
 					end
 				end
 			end
-			if encontrados ~= nil and #encontrados >= 1 then
-				lista = encontrados
-				table.sort(lista, orden_alfabetico)
-				return lista
-			else
-				lista = {}
-				return lista
-			end
+		end
+		if encontrados ~= nil and #encontrados >= 1 then
+			lista = encontrados
+			table.sort(lista, orden_alfabetico)
+			return lista
 		else
 			lista = {}
 			return lista
@@ -6212,8 +6361,7 @@ function crear_listas(identidad, lista)
 	-- Búsquedas para PlayStation 1. ----------------------------------------------------
 	elseif identidad == 14 then
 		-- Realizar búsqueda. -----------------------------------------------------------
-		local buscar = System.listDirectory(device .."/POPS")
-		local buscar2 = System.listDirectory(actual .."/Roms/CUEs PlayStation 1")
+		local buscar = System.listDirectory(POPS_RAIZ .."/POPS")
 		if buscar ~= nil then
 			for contador = 1, #buscar do
 				local ps1_name = string.lower(string.sub(buscar[contador].name, -4))
@@ -6223,22 +6371,28 @@ function crear_listas(identidad, lista)
 					table.insert(encontrados, buscar[contador].name)
 				end
 			end
-			if buscar2 ~= nil and doesFileExist(actual .."/Roms/CUEs PlayStation 1/ember.elf") then
+		end
+		-- Scan Ember: independiente de POPS y sobre TODAS las raices. -----------------
+		local vistos_ps1 = {}
+		for i_raiz = 1, #RAICES do
+			local sub = "/Roms/CUEs PlayStation 1"
+			local buscar2 = System.listDirectory(RAICES[i_raiz] .. sub)
+			if buscar2 ~= nil and doesFileExist(RAICES[i_raiz] .. sub .."/ember.elf") then
 				for contador = 1, #buscar2 do
 					local ps1_name = string.lower(string.sub(buscar2[contador].name, -4))
-					if buscar2[contador].directory == false and ps1_name == ".cue" then
+					if buscar2[contador].directory == false and ps1_name == ".cue"
+					   and vistos_ps1[buscar2[contador].name] == nil then
+						vistos_ps1[buscar2[contador].name] = true
 						table.insert(encontrados, buscar2[contador].name)
+						ORIGEN["14|".. buscar2[contador].name] = RAICES[i_raiz]
 					end
 				end
 			end
-			if encontrados ~= nil and #encontrados >= 1 then
-				lista = encontrados
-				table.sort(lista, orden_alfabetico_PS)
-				return lista
-			else
-				lista = {}
-				return lista
-			end
+		end
+		if encontrados ~= nil and #encontrados >= 1 then
+			lista = encontrados
+			table.sort(lista, orden_alfabetico_PS)
+			return lista
 		else
 			lista = {}
 			return lista
@@ -6247,6 +6401,39 @@ function crear_listas(identidad, lista)
 	-- Búsquedas para PlayStation 2. ----------------------------------------------------
 	elseif identidad == 15 then
 		-- Lista de directorios. --------------------------------------------------------
+		-- Raices adicionales (disco interno exFAT), antes del bucle principal. --------
+		local vistos_ps2 = {}
+		-- Directorios extra a explorar: "<raiz>/Roms/ISOs PlayStation 2" y, en las
+		-- unidades ATA, tambien "<unidad>/DVD" y "<unidad>/CD" como en el USB.
+		local dirs_extra = {}
+		for i_raiz = 2, #RAICES do
+			table.insert(dirs_extra, RAICES[i_raiz] .."/Roms/ISOs PlayStation 2/")
+		end
+		if OPCIONES.DIR_EXTRAS_ON ~= 0 then
+			for i_u = 1, #BDM_DEVICES do
+				if BDM_ATA[BDM_DEVICES[i_u]] == true then
+					table.insert(dirs_extra, BDM_DEVICES[i_u] .."/DVD/")
+					table.insert(dirs_extra, BDM_DEVICES[i_u] .."/CD/")
+				end
+			end
+		end
+
+		for i_d = 1, #dirs_extra do
+			local extra = System.listDirectory(dirs_extra[i_d])
+			if extra ~= nil then
+				for c = 1, #extra do
+					local e = string.lower(string.sub(extra[c].name, -4))
+					if extra[c].directory == false and (e == ".iso" or e == ".hdd" or e == ".mx4" or e == ".mmc" or e == ".udp")
+					   and vistos_ps2[extra[c].name] == nil then
+						vistos_ps2[extra[c].name] = true
+						table.insert(encontrados, extra[c].name)
+						ORIGEN["15|".. extra[c].name] = dirs_extra[i_d]
+						ORIGEN_DIR["15|".. extra[c].name] = dirs_extra[i_d]
+					end
+				end
+			end
+		end
+
 		local buscar_directorio = {actual .."/Roms/ISOs PlayStation 2", device .."/DVD", device .."/CD", "cdfs:"}
 		if OPCIONES.DIR_EXTRAS_ON == 0 then
 			buscar_directorio[2] = nil
@@ -6264,7 +6451,11 @@ function crear_listas(identidad, lista)
 							if buscar_ps2 == 4 then
 								table.insert(encontrados, buscar[contador].name ..".".. obtener_nombre_DVD(buscar[contador].name, true))
 							else
-								table.insert(encontrados, buscar[contador].name)
+								if vistos_ps2[buscar[contador].name] == nil then
+									vistos_ps2[buscar[contador].name] = true
+									table.insert(encontrados, buscar[contador].name)
+									ORIGEN_DIR["15|".. buscar[contador].name] = buscar_directorio[buscar_ps2] .."/"
+								end
 							end
 						end
 					end
@@ -6444,9 +6635,9 @@ function existe(identidad, nombre_juego, alternativo)
 		if identidad == 12 and alternativo == true then
 			dir_especiales = "SNESticle"
 		end
-		if doesFileExist(actual .."/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores[identidad]) and alternativo == false then
+		if doesFileExist(RUTA("/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores[identidad]) and alternativo == false then
 			return true
-		elseif doesFileExist(actual .."/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores_alt[identidad]) and alternativo == true then
+		elseif doesFileExist(RUTA("/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores_alt[identidad]) and alternativo == true then
 			return true
 		else
 			return false
@@ -6467,12 +6658,34 @@ function existe(identidad, nombre_juego, alternativo)
 		local exten = string.lower(string.sub(nombre_juego, -4))
 		if exten == ".elf" then
 			return true
-		elseif exten == ".vcd" and doesFileExist(device .."/POPS/".. nombre_juego) and doesFileExist(device .."/POPS/POPS_IOX.PAK") and doesFileExist(device .."/POPS/IOPRP252.IMG") then
+		elseif exten == ".vcd" and doesFileExist(POPS_RAIZ .."/POPS/".. nombre_juego) and doesFileExist(POPS_RAIZ .."/POPS/POPS_IOX.PAK") and doesFileExist(POPS_RAIZ .."/POPS/IOPRP252.IMG") then
 			return true
-		elseif exten == ".cue" and doesFileExist(actual .."/Roms/CUEs PlayStation 1/".. nombre_juego) and doesFileExist(actual 
-		.."/Roms/CUEs PlayStation 1/ember.elf") and doesFileExist(actual .."/Roms/CUEs PlayStation 1/bios.bin") then
+		elseif exten == ".cue" and doesFileExist(RUTA("/Roms/CUEs PlayStation 1/".. nombre_juego))
+		and doesFileExist(RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego) .."/Roms/CUEs PlayStation 1/ember.elf")
+		and doesFileExist(RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego) .."/Roms/CUEs PlayStation 1/bios.bin") then
 			return true
 		else
+			-- Detalle del fallo: que falta exactamente y donde se esperaba. -----------
+			local faltan = {}
+			if exten == ".vcd" then
+				local base = POPS_RAIZ .."/POPS/"
+				local req = {nombre_juego, "POPS_IOX.PAK", "IOPRP252.IMG"}
+				for i = 1, #req do
+					if doesFileExist(base .. req[i]) == false then
+						table.insert(faltan, req[i])
+					end
+				end
+				ERROR_DETALLE = detalle_falta("POPS", base, faltan)
+			elseif exten == ".cue" then
+				local base = RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego) .."/Roms/CUEs PlayStation 1/"
+				local req = {nombre_juego, "ember.elf", "bios.bin"}
+				for i = 1, #req do
+					if doesFileExist(base .. req[i]) == false then
+						table.insert(faltan, req[i])
+					end
+				end
+				ERROR_DETALLE = detalle_falta("Ember", base, faltan)
+			end
 			return false
 		end
 
@@ -6482,7 +6695,13 @@ function existe(identidad, nombre_juego, alternativo)
 		if alternativo == true then
 			elf_lauch = OPCIONES.OPL_ELF
 		end
-		if doesFileExist(actual .."/Roms/ISOs PlayStation 2/".. nombre_juego) and doesFileExist(elf_lauch) then
+		-- La ISO puede estar en "<raiz>/Roms/ISOs PlayStation 2" o en el "DVD"/"CD" de
+		-- una unidad ATA. El scan memorizo el directorio real en ORIGEN_DIR.
+		local ruta_iso = RUTA("/Roms/ISOs PlayStation 2/".. nombre_juego)
+		if ORIGEN_DIR ~= nil and ORIGEN_DIR["15|".. nombre_juego] ~= nil then
+			ruta_iso = ORIGEN_DIR["15|".. nombre_juego] .. nombre_juego
+		end
+		if doesFileExist(ruta_iso) and doesFileExist(elf_lauch) then
 			OPCIONES.OPL_DIR = "RETRO"
 			return true
 		elseif doesFileExist(device .."/DVD/".. nombre_juego) and doesFileExist(elf_lauch) and OPCIONES.DIR_EXTRAS_ON == 1 then
@@ -6586,10 +6805,12 @@ function ejecutar_iso(nombre)
 
 		-- Definir el directorio donde se encuentra el juego. ---------------------------
 		local selector_device = 1
-		local name_device = {actual, device, "mmce:"}
+		-- La ISO puede estar en el USB o en el disco interno: resolver la raiz real. --
+		local raiz_iso = RAIZ("/Roms/ISOs PlayStation 2/".. nombre)
+		local name_device = {raiz_iso, device, "mmce:"}
 		local selector_dir = 1
 		local dir_iso = {"/Roms/ISOs PlayStation 2/", "/DVD/", "/CD/"}
-		if doesFileExist(actual .."/Roms/ISOs PlayStation 2/".. nombre) then
+		if doesFileExist(raiz_iso .."/Roms/ISOs PlayStation 2/".. nombre) then
 			selector_dir = 1
 			selector_device = 1
 		elseif doesFileExist(device .."/DVD/".. nombre) then
@@ -6625,8 +6846,41 @@ function ejecutar_iso(nombre)
 			name_bsd[selector_bsd] = name_bsd[selector_bsd] .. soporte
 		end
 
+		-- Si la ISO esta en el disco interno exFAT, forzar el driver ATA. -------------
+		if selector_device == 1 and ES_RAIZ_ATA(raiz_iso) then
+			selector_bsd = 3
+			if string.lower(string.sub(nombre_final, -4)) ~= ".iso" then
+				nombre_final = string.sub(nombre_final, 1, -5) ..".iso"
+			end
+		end
+
 		-- Lanzar el juego. -------------------------------------------------------------
 		local directorio_iso = name_device[selector_device] .. dir_iso[selector_dir]
+		-- Si el scan memorizo el directorio real (DVD/CD de una unidad ATA, etc.),
+		-- tiene prioridad sobre la deduccion por device.
+		if ORIGEN_DIR ~= nil and ORIGEN_DIR["15|".. nombre] ~= nil then
+			directorio_iso = ORIGEN_DIR["15|".. nombre]
+			if ES_RAIZ_ATA(directorio_iso) then selector_bsd = 3 end
+		end
+		-- Con "-bsd=ata" Neutrino solo carga ata_bd: el disco interno es la UNICA
+		-- unidad de bloque y se monta como "mass:". Hay que reescribir el prefijo.
+		if selector_bsd == 3 then
+			local pfx = string.find(directorio_iso, ":", 1, true)
+			if pfx ~= nil then directorio_iso = "mass:".. string.sub(directorio_iso, pfx+1) end
+		end
+		log_lanzamiento("PS2  Neutrino", {
+			"juego        : ".. tostring(nombre),
+			"iso final    : ".. tostring(nombre_final),
+			"directorio   : ".. tostring(directorio_iso),
+			"-bsd=        : ".. tostring(name_bsd[selector_bsd]),
+			"desde disco interno (ATA) : ".. tostring(ES_ATA(15, nombre)),
+			"",
+			log_existe("neutrino.elf", actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf"),
+			"",
+			"argumento -dvd= : ".. tostring(directorio_iso) .. tostring(nombre_final),
+			"NOTA: con -bsd=ata el disco interno es la unica unidad y Neutrino la ve",
+			"como mass:, de ahi la reescritura del prefijo.",
+		})
 		if modos == nil and vmc == nil then
 			if Pads.check(PAD, PAD_CIRCLE) == false then
 				System.loadELF(actual .."/System/RetroarchPS2/Sony PlayStation 2/Neutrino/neutrino.elf", 0, GSM, "-bsd=".. name_bsd[selector_bsd], "-dvd=".. directorio_iso .. nombre_final)
@@ -6691,11 +6945,23 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		-- Ejecutar juego. --------------------------------------------------------------
 		guardar()
 		black_blur()
-		if alternativo == true then
-			System.loadELF(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores_alt[identidad], 0, actual .."/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)
-		else
-			System.loadELF(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores[identidad], 0, actual .."/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)
-		end
+		local nucleo = name_cores[identidad]
+		if alternativo == true then nucleo = name_cores_alt[identidad] end
+		local ruta_core = actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. nucleo
+		local ruta_rom  = RUTA("/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)
+		log_lanzamiento("RETROARCH  ".. dir_sistemas[identidad], {
+			"identidad   : ".. tostring(identidad),
+			"juego       : ".. tostring(nombre_juego),
+			"alternativo : ".. tostring(alternativo),
+			"desde disco interno (ATA) : ".. tostring(ES_ATA(identidad, nombre_juego)),
+			"",
+			log_existe("core", ruta_core),
+			log_existe("rom ", ruta_rom),
+			"",
+			"IOP_REBOOT_CORES : ".. tostring(IOP_REBOOT_CORES),
+			"Una ROM en la unidad ATA sera invisible para ellos.",
+		})
+		System.loadELF(ruta_core, IOP_REBOOT_CORES, ruta_rom)
 
 	-- Ejecutar APPS. -------------------------------------------------------------------
 	elseif identidad == 13 then
@@ -6703,8 +6969,10 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		black_blur()
 		if doesFileExist(actual .."/System/RetroarchPS2/APPS/WLE.elf") and alternativo == false then
 			app_alt(false)
+			log_lanzamiento("APPS  wLaunchELF", {log_existe("elf", actual .."/System/RetroarchPS2/APPS/WLE.elf")})
 			System.loadELF(actual .."/System/RetroarchPS2/APPS/WLE.elf", 0, actual .."/System/RetroarchPS2/APPS/")
 		else
+			log_lanzamiento("APPS  ELF externo", {log_existe("elf", LISTAS.DIR_FULL_APP[LISTAS.INDICE])})
 			System.loadELF(LISTAS.DIR_FULL_APP[LISTAS.INDICE], 0, salida_texto_dir(LISTAS.DIR_FULL_APP[LISTAS.INDICE], false))
 		end
 
@@ -6717,23 +6985,34 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 			nombre_temp_2 = string.sub(nombre_temp_2, 13)
 		end
 		if string.lower(string.sub(nombre_juego, -4)) == ".cue" then
-			System.loadELF(actual .."/Roms/CUEs PlayStation 1/ember.elf", 0, nombre_juego)
+			local raiz_ps1 = RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego)
+			log_lanzamiento("PS1  Ember", {
+				"juego : ".. tostring(nombre_juego),
+				"raiz  : ".. tostring(raiz_ps1),
+				"desde disco interno (ATA) : ".. tostring(ES_ATA(14, nombre_juego)),
+				"",
+				log_existe("ember.elf", raiz_ps1 .."/Roms/CUEs PlayStation 1/ember.elf"),
+				log_existe("bios.bin ", raiz_ps1 .."/Roms/CUEs PlayStation 1/bios.bin"),
+				log_existe("cue      ", raiz_ps1 .."/Roms/CUEs PlayStation 1/".. nombre_juego),
+			})
+			System.loadELF(raiz_ps1 .."/Roms/CUEs PlayStation 1/ember.elf", 0, nombre_juego)
 		elseif string.lower(string.sub(nombre_juego, -4)) == ".elf" then
-			System.loadELF(device .."/POPS/".. nombre_juego, 0, device .."/POPS/")
-		elseif doesFileExist(device .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF") then
+			log_lanzamiento("PS1  ELF en POPS", {log_existe("elf", POPS_RAIZ .."/POPS/".. nombre_juego)})
+			System.loadELF(POPS_RAIZ .."/POPS/".. nombre_juego, 0, POPS_RAIZ .."/POPS/")
+		elseif doesFileExist(POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF") then
 			black_blur()
 			if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1.lua") then
 				require("System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1")
 				ps1_startup()
 			end
-			System.loadELF(device .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF", 0, device .."/APPS/".. nombre_temp_2 .."/", "--nr")
-		elseif doesFileExist(device .."/POPS/XX.".. nombre_temp ..".ELF") then
+			System.loadELF(POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF", 0, POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/", "--nr")
+		elseif doesFileExist(POPS_RAIZ .."/POPS/XX.".. nombre_temp ..".ELF") then
 			black_blur()
 			if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1.lua") then
 				require("System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1")
 				ps1_startup()
 			end
-			System.loadELF(device .."/POPS/XX.".. nombre_temp ..".ELF", 0, device .."/POPS/", "--nr")
+			System.loadELF(POPS_RAIZ .."/POPS/XX.".. nombre_temp ..".ELF", 0, POPS_RAIZ .."/POPS/", "--nr")
 		else
 			JOYSTICK_LIMITE = control_FPS(1)-30
 			local pregunta, selector_dir = true, 1
@@ -6749,22 +7028,22 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 					submenu_selector({}, nil, TEXT_M_CON[46], 160, 247, true, CONTROL.ANCHO//2, {}, false, true, {}, nil)
 					if selector_dir == 1 then
 						if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF") then
-							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", device .."/POPS/XX.".. nombre_temp ..".ELF")
+							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", POPS_RAIZ .."/POPS/XX.".. nombre_temp ..".ELF")
 						else
 							error("No found \"".. actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF\"")
 						end
 						ejecutar_juego(14, nombre_juego, false)
 					elseif selector_dir == 2 then
 						if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF") then
-							if System.listDirectory(device .."/APPS") == nil then
-								System.createDirectory(device .."/APPS")
+							if System.listDirectory(POPS_RAIZ .."/APPS") == nil then
+								System.createDirectory(POPS_RAIZ .."/APPS")
 							end
-							if System.listDirectory(device .."/APPS/".. nombre_temp_2) == nil then
-								System.createDirectory(device .."/APPS/".. nombre_temp_2)
+							if System.listDirectory(POPS_RAIZ .."/APPS/".. nombre_temp_2) == nil then
+								System.createDirectory(POPS_RAIZ .."/APPS/".. nombre_temp_2)
 							end
-							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", device .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF")
+							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF")
 							local data_pops = "title=".. nombre_temp_2 .."\r\nboot=XX.".. nombre_temp ..".ELF\r\n"
-							local title_create = System.openFile(device .."/APPS/".. nombre_temp_2 .."/title.cfg", FCREATE)
+							local title_create = System.openFile(POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/title.cfg", FCREATE)
 							System.writeFile(title_create, data_pops, string.len(data_pops))
 							System.closeFile(title_create)
 						else

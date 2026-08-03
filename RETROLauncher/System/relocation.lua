@@ -42,6 +42,9 @@ function puerto_usb()
 	if doesFileExist(actual .."/System/Respaldo/PAL") then
 		res_y_tex = 34
 	end
+	-- Una unidad montada por "ata_bd" (disco interno exFAT) aparece tambien como
+	-- "massN:", pero NO es un segundo USB. system.lua marca esas unidades en BDM_ATA.
+	if BDM_ATA ~= nil and BDM_ATA["mass1:"] == true then buscar = nil end
 	if string.sub(actual, 1, 6) == "mass1:" or buscar ~= nil then
 		while true do
 			Screen.clear(Color.new(0, 0, 0))

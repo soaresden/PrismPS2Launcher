@@ -538,7 +538,7 @@ function lang_select()
 			"¡Error!"; -- 15
 			"¡Juegos o RetroArch"; -- 16
 			"¡Aplicación O ELF"; -- 17
-			"¡POSP O Binarios"; -- 18
+			"¡POPS O Binarios"; -- 18
 			"¡Neutrino/OPL O ISO"; -- 19
 			"No encontrados!"; -- 20
 			"Nº de juegos"; -- 21
@@ -1072,7 +1072,7 @@ function lang_select()
 			"Erro!"; -- 15
 			"Jogos ou RetroArch"; -- 16
 			"Aplicativo ou ELF"; -- 17
-			"POSP ou Binários"; -- 18
+			"POPS ou Binários"; -- 18
 			"Neutrino/OPL ou ISO"; -- 19
 			"Não encontrado!"; -- 20
 			"Nº de jogos"; -- 21
@@ -1610,7 +1610,7 @@ function lang_select()
 			"Error!"; -- 15
 			"Games or RetroArch"; -- 16
 			"Application or ELF"; -- 17
-			"POSP or Binaries"; -- 18
+			"POPS or Binaries"; -- 18
 			"Neutrino/OPL or ISO"; -- 19
 			"Not found!"; -- 20
 			"Found games"; -- 21

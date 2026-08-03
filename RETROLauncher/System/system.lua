@@ -3,19 +3,387 @@
 --[[█▀▄ █▄▄  █  █▀▄ █▄█ █▄▄ ▀▄█ █▄█ █ █ █▄▄ █ █ ██▄ █ ]]--
 --[[------------------- v1.0/rev2 --------------------]]--
 
+--- Capa de compatibilidad Enceladus 2024 <-> 2025+ ------------------------------------
+--- La build de 2024 incluida en RETROLauncher define FREAD/FWRITE/FCREATE, SET/CUR/END,
+--- la tabla "Sif" y System.rename. Las versiones recientes las han sustituido por
+--- O_RDONLY/O_WRONLY/O_CREAT..., la tabla "IOP" y System.moveFile.
+--- Este bloque NO hace nada en la build antigua: solo rellena lo que falte.
+if FREAD   == nil and O_RDONLY ~= nil then FREAD   = O_RDONLY end
+if FWRITE  == nil and O_WRONLY ~= nil then FWRITE  = O_WRONLY end
+if FRDWR   == nil and O_RDWR   ~= nil then FRDWR   = O_RDWR   end   -- usada por guardar()
+if FCREATE == nil and O_CREAT  ~= nil then FCREATE = O_RDWR | O_CREAT | O_TRUNC end
+if SET == nil then SET = 0 end
+if CUR == nil then CUR = 1 end
+if END == nil then END = 2 end
+if Sif == nil and IOP ~= nil then Sif = IOP end
+if System.rename == nil and System.moveFile ~= nil then System.rename = System.moveFile end
+
+--- Deteccion de la build: la tabla global "IOP" solo existe en Enceladus reciente. ----
+ENCELADUS_MODERNO = (IOP ~= nil)
+
 --- Intenta cargar módulos "IRX". -------------------------------------------------------
+--- Solo se intenta en la build reciente. En el ELF de 2024-10-20 incluido en
+--- RETROLauncher, "Sif.loadModule" cuelga la consola en CUALQUIER llamada:
+--- probado con las formas de 1 y de 3 argumentos, y hasta con un fichero que ni
+--- siquiera es un IRX valido. Se congela antes de la inicializacion de video,
+--- sin ningun mensaje en pantalla.
+IRX_CARGA_ACTIVA = ENCELADUS_MODERNO
+
+--- Orden impuesto: "ata_bd.irx" importa la libreria "dev9", asi que el driver dev9
+--- tiene que estar cargado ANTES. System.listDirectory no garantiza ningun orden.
+---   dev9_ns.irx : driver dev9 (hardware del adaptador de red).
+---   ata_bd.irx  : expone el disco interno a la pila BDM. Importa "dev9" y "bdm".
+--- No hace falta nada mas. "poweroff.irx" solo servia para satisfacer un import de
+--- "ps2dev9.irx", abandonado en favor de la version de Neutrino, y "_test_dummy.irx"
+--- era el testigo de diagnostico.
+IRX_ORDEN = {"dev9_ns.irx", "ata_bd.irx"}
+
+--- No cargar: ya los carga Enceladus, o son restos de diagnostico.
+IRX_IGNORAR = {"usbd.irx", "usbhdfsd.irx", "bdm.irx", "bdmfs_fatfs.irx", "usbmass_bd.irx",
+	"iomanx.irx", "filexio.irx", "dev9_hidden.irx", "ps2dev9.irx", "poweroff.irx",
+	"_test_dummy.irx"}
+
+IRX_LOG = "RETROLauncher - informe IRX / BDM\n\n"
+BDM_DEVICES = {}
+BDM_ATA = {}   -- unidades aparecidas TRAS cargar ata_bd => disco interno, no USB
+
+--- Volcado del informe. Reescribir el fichero entero en CADA linea costaba varios
+--- segundos de arranque (una apertura/escritura/cierre en el USB por linea, con un
+--- buffer que crece). Ahora solo se fuerza durante la carga de modulos IRX, que es
+--- la unica fase donde un cuelgue puede ocurrir y donde localizarlo importa.
+IRX_FLUSH = true
+
+function irx_escribir()
+	pcall(function()
+		local f = System.openFile(System.currentDirectory() .."/BDM_REPORT.txt", FCREATE)
+		System.writeFile(f, IRX_LOG, string.len(IRX_LOG))
+		System.closeFile(f)
+	end)
+end
+
+function irx_log(linea)
+	IRX_LOG = IRX_LOG .. linea .. "\n"
+	if IRX_FLUSH == true then irx_escribir() end
+end
+
 function irx_load()
+	if IRX_CARGA_ACTIVA == false then return end
 	local actual = System.currentDirectory()
+	local hecho = {}
+	irx_log("Enceladus reciente detectado (tabla IOP presente).")
+	irx_log("currentDirectory = ".. actual)
+	irx_log("")
+	for i = 1, #IRX_IGNORAR do hecho[IRX_IGNORAR[i]] = "ignorar" end
+
+	-- IMPORTANTE: NO usar Sif.loadModule(ruta). Esa funcion hace que el IOP resuelva
+	-- la ruta con su modulo LOADFILE, que usa el viejo "ioman". Pero "mass:" lo aporta
+	-- bdmfs_fatfs, que se registra en "iomanX". El IOP no sabe abrir la ruta y la
+	-- llamada RPC nunca vuelve: la consola se congela. Comprobado con cualquier
+	-- fichero, incluso uno que no es un IRX, y en las builds de 2024 y de 2025.
+	-- Solucion: leer el fichero desde el EE y enviar los bytes con loadModuleBuffer.
+	local function cargar(nombre)
+		local ruta = actual .."/System/IRX/".. nombre
+		irx_log("-> ".. nombre)
+
+		local okl, datos, tam = pcall(function()
+			local fd = System.openFile(ruta, FREAD)
+			local size = System.sizeFile(fd)
+			System.seekFile(fd, 0, SET)
+			local buf = System.readFile(fd, size)
+			System.closeFile(fd)
+			return buf, size
+		end)
+
+		if okl == false or datos == nil then
+			irx_log("   ERROR de lectura: ".. tostring(datos))
+			return
+		end
+		irx_log("   leidos ".. tostring(tam) .." bytes, primer byte = ".. tostring(string.byte(datos, 1)) .." (127 = ELF valido)")
+
+		local okc, ID = pcall(Sif.loadModuleBuffer, datos, tam)
+		irx_log("   loadModuleBuffer ok=".. tostring(okc) .."  ID=".. tostring(ID))
+	end
+
+	-- Instantanea de las unidades BDM ANTES de cargar los drivers. -------------------
+	local antes = {}
+	for n = 0, 5 do
+		if System.listDirectory("mass".. n ..":") ~= nil then antes["mass".. n ..":"] = true end
+	end
+
+	for i = 1, #IRX_ORDEN do
+		if doesFileExist(actual .."/System/IRX/".. IRX_ORDEN[i]) then
+			cargar(IRX_ORDEN[i])
+			hecho[string.lower(IRX_ORDEN[i])] = "hecho"
+		end
+	end
+
 	local buscar_irx = System.listDirectory(actual.. "/System/IRX")
 	if buscar_irx ~= nil and #buscar_irx >= 1 then
 		for elementos = 1, #buscar_irx do
-			if string.lower(string.sub(buscar_irx[elementos].name, -4)) == ".irx" then
-				local ID, RET = Sif.loadModule(actual .."/System/IRX/".. buscar_irx[elementos].name)
+			local nombre = buscar_irx[elementos].name
+			local clave = string.lower(nombre)
+			if string.lower(string.sub(nombre, -4)) == ".irx" then
+				if hecho[clave] == "ignorar" then
+					irx_log("-- ignorado ".. nombre)
+				elseif hecho[clave] == nil then
+					cargar(nombre)
+				end
 			end
 		end
 	end
+
+	-- Fin de la fase critica: a partir de aqui basta con volcar al final.
+	IRX_FLUSH = false
+	if System.sleep ~= nil then System.sleep(1) end
+
+	-- Sondeo de las unidades BDM y relleno de BDM_DEVICES. ----------------------------
+	local propio = ""
+	local pos = string.find(actual, ":", 1, false)
+	if pos ~= nil then propio = string.sub(actual, 1, pos) end
+	irx_log("")
+	irx_log("Unidades BDM (propio = ".. propio ..") :")
+	for n = 0, 5 do
+		local unidad = "mass".. n ..":"
+		local contenido = System.listDirectory(unidad)
+		if contenido ~= nil then
+			local texto = "  ".. unidad .."  OK  (".. #contenido .." entradas)"
+			for i = 1, math.min(#contenido, 30) do
+				local marca = "   "
+				if contenido[i].directory == true then marca = " d " end
+				texto = texto .."\n      ".. marca .. contenido[i].name
+			end
+			-- No estaba antes de cargar los drivers => la ha montado ata_bd.
+			if antes[unidad] ~= true then
+				BDM_ATA[unidad] = true
+				texto = texto .."\n      (ATA: montada por ata_bd, NO es un USB)"
+			end
+			irx_log(texto)
+			if unidad ~= propio then table.insert(BDM_DEVICES, unidad) end
+		else
+			irx_log("  ".. unidad .."  nil")
+		end
+	end
+	irx_log("")
+	irx_log("Fin. Arranque normal a partir de aqui.")
+	irx_escribir()
 end
 irx_load()
+
+--- Raices de busqueda de juegos ("append" USB + disco interno). -----------------------
+--- RAICES[1] es SIEMPRE el soporte de arranque. Se anaden las unidades ATA que
+--- contengan un directorio con el mismo nombre que el del launcher.
+--- Ejemplo: arranque en "mass:/RETROLauncher", disco interno en "mass1:" con un
+--- "mass1:/RETROLauncher" => se buscan los juegos en los dos.
+RAICES = { System.currentDirectory() }
+
+if true then
+	local actual = System.currentDirectory()
+	local nombre_carpeta = actual
+	local corte = string.find(string.reverse(actual), "/", 1, true)
+	if corte ~= nil then nombre_carpeta = string.sub(actual, -corte+1) end
+	for i = 1, #BDM_DEVICES do
+		if BDM_ATA[BDM_DEVICES[i]] == true then
+			local candidata = BDM_DEVICES[i] .."/".. nombre_carpeta
+			if System.listDirectory(candidata) ~= nil then
+				table.insert(RAICES, candidata)
+			end
+		end
+	end
+	local resumen = "\nRaices de busqueda:\n"
+	for i = 1, #RAICES do resumen = resumen .."  ".. i ..". ".. RAICES[i] .."\n" end
+	if IRX_CARGA_ACTIVA then irx_log(resumen) end
+end
+
+--- Unidad donde vive el directorio "POPS". Puede estar en el soporte de arranque o
+--- en el disco interno exFAT. Se prefiere la que contenga los binarios de POPStarter
+--- ("POPS_IOX.PAK"), luego cualquiera que exista, y en ultimo recurso el arranque.
+POPS_RAIZ = nil
+
+if true then
+	local cand = {}
+	local pos = string.find(System.currentDirectory(), ":", 1, true)
+	if pos ~= nil then table.insert(cand, string.sub(System.currentDirectory(), 1, pos)) end
+	for i = 1, #BDM_DEVICES do table.insert(cand, BDM_DEVICES[i]) end
+
+	for i = 1, #cand do
+		if POPS_RAIZ == nil and doesFileExist(cand[i] .."/POPS/POPS_IOX.PAK") then
+			POPS_RAIZ = cand[i]
+		end
+	end
+	if POPS_RAIZ == nil then
+		for i = 1, #cand do
+			if POPS_RAIZ == nil and System.listDirectory(cand[i] .."/POPS") ~= nil then
+				POPS_RAIZ = cand[i]
+			end
+		end
+	end
+	if POPS_RAIZ == nil and #cand >= 1 then POPS_RAIZ = cand[1] end
+	if POPS_RAIZ == nil then POPS_RAIZ = "mass:" end
+end
+
+--- Primera raiz donde exista la ruta relativa dada (empieza por "/"). ------------------
+function RAIZ(rel)
+	for i = 1, #RAICES do
+		if doesFileExist(RAICES[i] .. rel) then return RAICES[i] end
+	end
+	return RAICES[1]
+end
+
+--- Inventario de lo que el launcher ve en cada raiz. Se anade a BDM_REPORT.txt. ------
+--- Poner INVENTARIO_ON a false cuando ya no haga falta.
+INVENTARIO_ON = false
+
+function inventario()
+	if INVENTARIO_ON ~= true then return end
+	local sistemas = {"Sega Megadrive", "Sega Master System", "Sega Game Gear", "Nintendo Famicom",
+		"Nintendo Game Boy", "Nintendo Game Boy Color", "Nintendo Game Boy Advance", "Atari 2600",
+		"Atari Lynx", "Sega SG-1000", "Neo Geo Pocket", "Nintendo Super Famicom"}
+
+	local function listar(etiqueta, ruta)
+		local c = System.listDirectory(ruta)
+		if c == nil then
+			irx_log("    ".. etiqueta .."  ->  NO EXISTE   (".. ruta ..")")
+			return
+		end
+		local ficheros = 0
+		for i = 1, #c do
+			if c[i].directory == false then ficheros = ficheros + 1 end
+		end
+		local t = "    ".. etiqueta .."  ->  ".. ficheros .." fichero(s)   (".. ruta ..")"
+		local n = 0
+		for i = 1, #c do
+			if c[i].directory == false and string.sub(c[i].name, 1, 1) ~= "." then
+				n = n + 1
+				if n <= 25 then t = t .."\n         ".. c[i].name end
+			end
+		end
+		if n > 25 then t = t .."\n         ... y ".. (n-25) .." mas" end
+		irx_log(t)
+	end
+
+	irx_log("")
+	irx_log("=====================================================================")
+	irx_log("INVENTARIO: lo que RETROLauncher encuentra en cada raiz")
+	irx_log("=====================================================================")
+
+	for i = 1, #RAICES do
+		local r = RAICES[i]
+		local etiqueta_raiz = "USB / soporte de arranque"
+		if ES_RAIZ_ATA(r) then etiqueta_raiz = "DISCO INTERNO exFAT (ATA)" end
+		irx_log("")
+		irx_log("RAIZ ".. i ..": ".. r .."   [".. etiqueta_raiz .."]")
+		for s = 1, #sistemas do
+			listar(sistemas[s], r .."/Roms/Roms ".. sistemas[s])
+		end
+		listar("PS1 (CUEs + ember)", r .."/Roms/CUEs PlayStation 1")
+		listar("PS2 (ISOs)",         r .."/Roms/ISOs PlayStation 2")
+		listar("APPS",               r .."/Roms/APPS")
+	end
+
+	-- Directorios a nivel de unidad (fuera de la carpeta del launcher). --------------
+	local unidades = {}
+	local pos = string.find(System.currentDirectory(), ":", 1, true)
+	if pos ~= nil then table.insert(unidades, string.sub(System.currentDirectory(), 1, pos)) end
+	for i = 1, #BDM_DEVICES do table.insert(unidades, BDM_DEVICES[i]) end
+
+	for i = 1, #unidades do
+		local u = unidades[i]
+		local etiqueta_u = "USB"
+		if BDM_ATA[u] == true then etiqueta_u = "DISCO INTERNO exFAT (ATA)" end
+		irx_log("")
+		irx_log("UNIDAD ".. u .."   [".. etiqueta_u .."]")
+		listar("DVD",  u .."/DVD")
+		listar("CD",   u .."/CD")
+		listar("POPS", u .."/POPS")
+		listar("APPS", u .."/APPS")
+	end
+	irx_log("")
+	irx_log("Fin del inventario.")
+	irx_escribir()
+end
+
+--- Journal de lancement. Ecrit LAUNCH_LOG.txt juste avant chaque loadELF, pour
+--- qu'un ecran noir laisse une trace exploitable au prochain demarrage.
+--- Mettre LAUNCH_LOG_ON a false pour desactiver.
+LAUNCH_LOG_ON = true
+
+--- Reinicio del IOP antes de lanzar un core de RetroArch. ----------------------------
+--- 0 = no reiniciar (comportamiento original de RETROLauncher).
+--- 1 = reiniciar: el core recibe un IOP limpio y carga sus propios drivers USB.
+--- Con 0, el core hereda usbd/usbmass_bd/bdm/bdmfs_fatfs ya residentes (mas
+--- dev9_ns y ata_bd), y su propia carga de drivers puede fallar -> pantalla negra.
+IOP_REBOOT_CORES = 1
+
+function log_lanzamiento(titulo, campos)
+	if LAUNCH_LOG_ON ~= true then return end
+	pcall(function()
+		local t = "RETROLauncher - ultimo intento de lanzamiento\n"
+		t = t .."============================================\n\n"
+		t = t .. titulo .."\n\n"
+		for i = 1, #campos do
+			t = t .. campos[i] .."\n"
+		end
+		t = t .."\n(si esto es lo ultimo escrito, el fallo esta en el ELF de arriba)\n"
+		local f = System.openFile(System.currentDirectory() .."/LAUNCH_LOG.txt", FCREATE)
+		System.writeFile(f, t, string.len(t))
+		System.closeFile(f)
+	end)
+end
+
+--- Verifica que un fichero existe y lo describe para el journal. ---------------------
+function log_existe(etiqueta, ruta)
+	local marca = "NO EXISTE"
+	if ruta ~= nil and doesFileExist(ruta) then marca = "ok" end
+	return etiqueta .." [".. marca .."] : ".. tostring(ruta)
+end
+
+--- Origen de cada juego encontrado: ORIGEN["identidad|nombre"] = raiz. ---------------
+ERROR_DETALLE = nil   -- detalle del ultimo fallo de "existe()"
+
+--- El cuadro de error solo dispone de UNA linea entre el titulo y el pie. Aqui se
+--- devuelve un texto corto (solo los nombres de fichero, truncado si hace falta) y
+--- se vuelca la version completa, con la ruta, en LAUNCH_LOG.txt.
+function detalle_falta(etiqueta, base, faltan)
+	if faltan == nil or #faltan == 0 then
+		log_lanzamiento(etiqueta .."  comprobacion fallida", {"directorio : ".. tostring(base), "(ningun fichero identificado como ausente)"})
+		return "Check ".. etiqueta ..": path?"
+	end
+
+	local campos = {"directorio esperado : ".. tostring(base), ""}
+	for i = 1, #faltan do
+		table.insert(campos, "FALTA : ".. faltan[i])
+	end
+	log_lanzamiento(etiqueta .."  ficheros ausentes", campos)
+
+	local corto = "Missing: ".. faltan[1]
+	if #faltan >= 2 then corto = corto .." +".. (#faltan-1) end
+	if string.len(corto) > 44 then corto = string.sub(corto, 1, 41) .."..." end
+	return corto
+end
+ORIGEN = {}
+ORIGEN_DIR = {}   -- directorio real donde se encontro el juego (PS2)
+
+--- True si la ruta esta en una unidad montada por ata_bd (disco interno exFAT). ------
+function ES_RAIZ_ATA(ruta)
+	if ruta == nil then return false end
+	local pos = string.find(ruta, ":", 1, true)
+	if pos == nil then return false end
+	return BDM_ATA[string.sub(ruta, 1, pos)] == true
+end
+
+--- True si el juego indicado proviene del disco interno. -----------------------------
+function ES_ATA(identidad, nombre)
+	if nombre == nil then return false end
+	return ES_RAIZ_ATA(ORIGEN[tostring(identidad) .."|".. nombre])
+end
+
+--- Ruta completa resuelta sobre la primera raiz que la contenga. ----------------------
+function RUTA(rel)
+	return RAIZ(rel) .. rel
+end
+
+--- El inventario usa ES_RAIZ_ATA, asi que se llama DESPUES de definirla. -------------
+inventario()
 
 --- Pantalla de carga y comprobación de directorio. -------------------------------------
 if true then
@@ -27,7 +395,9 @@ if true then
 		temp_dir = System.readFile(salamander, size)
 		System.closeFile(salamander)
 	end
-	if string.lower("libretro_path = \"".. actual .."/RETROLauncher.elf\"") ~= string.lower(temp_dir) or System.listDirectory("mass1:") ~= nil then
+	-- "mass1:" solo cuenta como segundo USB si NO la ha montado ata_bd.
+	local usb2 = (System.listDirectory("mass1:") ~= nil and BDM_ATA["mass1:"] ~= true)
+	if string.lower("libretro_path = \"".. actual .."/RETROLauncher.elf\"") ~= string.lower(temp_dir) or usb2 then
 		require("System/relocation")
 	end
 	if doesFileExist("System/Respaldo/PAL") == false and doesFileExist("System/Respaldo/NTSC") == false then
