@@ -190,12 +190,12 @@ function cargar_art()
 
 		-- Ubicaciones para covers, screenshot y covers flow. ---------------------------
 		if CONTROL.CUSTOM_ART1 == true then
-			LISTAS.COVER_DIR = (actual .."/Multimedia/Covers/Covers ".. sistemas_nombre[LISTAS.IDENTIDAD] .."/".. nombre ..".png")
-			LISTAS.SCREENSHOT_DIR = (actual .."/Multimedia/Screenshots/Screenshots ".. sistemas_nombre[LISTAS.IDENTIDAD] .."/".. nombre ..".png")
+			LISTAS.COVER_DIR = RUTA_MEDIA("cover", LISTAS.IDENTIDAD, sistemas_nombre[LISTAS.IDENTIDAD], LISTAS.ROMS[LISTAS.INDICE], nombre)
+			LISTAS.SCREENSHOT_DIR = RUTA_MEDIA("screenshot", LISTAS.IDENTIDAD, sistemas_nombre[LISTAS.IDENTIDAD], LISTAS.ROMS[LISTAS.INDICE], nombre)
 		end
 		if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
-			LISTAS.COVER_DIR2 = (actual .."/Multimedia/Covers/Covers ".. sistemas_nombre[LISTAS.IDENTIDAD] .."/".. nombre2 ..".png")
-			LISTAS.COVER_DIR3 = (actual .."/Multimedia/Covers/Covers ".. sistemas_nombre[LISTAS.IDENTIDAD] .."/".. nombre3 ..".png")
+			LISTAS.COVER_DIR2 = RUTA_MEDIA("cover", LISTAS.IDENTIDAD, sistemas_nombre[LISTAS.IDENTIDAD], LISTAS.ROMS[LISTAS.INDICE2], nombre2)
+			LISTAS.COVER_DIR3 = RUTA_MEDIA("cover", LISTAS.IDENTIDAD, sistemas_nombre[LISTAS.IDENTIDAD], LISTAS.ROMS[LISTAS.INDICE3], nombre3)
 		end
 
 		-- Ubicaciones para la carpeta "ART". -------------------------------------------
@@ -204,8 +204,8 @@ function cargar_art()
 				nombre = "XX.".. nombre
 			end
 			if CONTROL.CUSTOM_ART1 == true then
-				LISTAS.COVER_DIR_ALT = (device .."/ART/".. nombre ..".elf_COV.png")
-				LISTAS.SCREENSHOT_DIR_ALT = (device .."/ART/".. nombre ..".elf_SCR.png")
+				LISTAS.COVER_DIR_ALT = RUTA_ART(nombre ..".elf_COV.png")
+				LISTAS.SCREENSHOT_DIR_ALT = RUTA_ART(nombre ..".elf_SCR.png")
 			end
 			if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
 				if LISTAS.IDENTIDAD == 14 and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE2], -4)) ~= ".elf" then
@@ -214,17 +214,17 @@ function cargar_art()
 				if LISTAS.IDENTIDAD == 14 and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE3], -4)) ~= ".elf" then
 					nombre3 = "XX.".. nombre3
 				end
-				LISTAS.COVER_DIR2_ALT = (device .."/ART/".. nombre2 ..".elf_COV.png")
-				LISTAS.COVER_DIR3_ALT = (device .."/ART/".. nombre3 ..".elf_COV.png")
+				LISTAS.COVER_DIR2_ALT = RUTA_ART(nombre2 ..".elf_COV.png")
+				LISTAS.COVER_DIR3_ALT = RUTA_ART(nombre3 ..".elf_COV.png")
 			end
 		elseif LISTAS.IDENTIDAD == 15 then
 			if CONTROL.CUSTOM_ART1 == true then
-				LISTAS.COVER_DIR_ALT = (device .."/ART/".. string.sub(nombre, 1, 11) .."_COV.png")
-				LISTAS.SCREENSHOT_DIR_ALT = (device .."/ART/".. string.sub(nombre, 1, 11) .."_SCR.png")
+				LISTAS.COVER_DIR_ALT = RUTA_ART(string.sub(nombre, 1, 11) .."_COV.png")
+				LISTAS.SCREENSHOT_DIR_ALT = RUTA_ART(string.sub(nombre, 1, 11) .."_SCR.png")
 			end
 			if (CONTROL.ESTILO == 2 or CONTROL.ESTILO == 7) and CONTROL.CUSTOM_FLOW == true then
-				LISTAS.COVER_DIR2_ALT = (device .."/ART/".. string.sub(nombre2, 1, 11) .."_COV.png")
-				LISTAS.COVER_DIR3_ALT = (device .."/ART/".. string.sub(nombre3, 1, 11) .."_COV.png")
+				LISTAS.COVER_DIR2_ALT = RUTA_ART(string.sub(nombre2, 1, 11) .."_COV.png")
+				LISTAS.COVER_DIR3_ALT = RUTA_ART(string.sub(nombre3, 1, 11) .."_COV.png")
 			end
 		end
 	end
@@ -234,10 +234,14 @@ function cargar_art()
 		Pads.rumble(0, 0, 0)
 		-- Carga de covers. -------------------------------------------------------------
 		if doesFileExist(LISTAS.COVER_DIR) then
+			log_art("cover  cargando", LISTAS.COVER_DIR)
 			LISTAS.COVER_ART = Graphics.loadImage(LISTAS.COVER_DIR)
+			log_art("cover  ok       ", LISTAS.COVER_DIR)
 			LISTAS.EXISTE_COV = true
 		elseif LISTAS.IDENTIDAD >= 13 and LISTAS.IDENTIDAD <= 15 and doesFileExist(LISTAS.COVER_DIR_ALT) then
+			log_art("cover  cargando", LISTAS.COVER_DIR_ALT)
 			LISTAS.COVER_ART = Graphics.loadImage(LISTAS.COVER_DIR_ALT)
+			log_art("cover  ok       ", LISTAS.COVER_DIR_ALT)
 			LISTAS.EXISTE_COV = true
 		else
 			LISTAS.COVER_ART = nil
@@ -246,10 +250,14 @@ function cargar_art()
 
 		-- Carga de screenshot. ---------------------------------------------------------
 		if doesFileExist(LISTAS.SCREENSHOT_DIR) then
+			log_art("screen cargando", LISTAS.SCREENSHOT_DIR)
 			LISTAS.SCREENSHOT = Graphics.loadImage(LISTAS.SCREENSHOT_DIR)
+			log_art("screen ok      ", LISTAS.SCREENSHOT_DIR)
 			LISTAS.EXISTE_SCR = true
 		elseif LISTAS.IDENTIDAD >= 13 and LISTAS.IDENTIDAD <= 15 and doesFileExist(LISTAS.SCREENSHOT_DIR_ALT) then
+			log_art("screen cargando", LISTAS.SCREENSHOT_DIR_ALT)
 			LISTAS.SCREENSHOT = Graphics.loadImage(LISTAS.SCREENSHOT_DIR_ALT)
+			log_art("screen ok      ", LISTAS.SCREENSHOT_DIR_ALT)
 			LISTAS.EXISTE_SCR = true
 		else
 			LISTAS.SCREENSHOT = nil
@@ -2339,23 +2347,24 @@ function menu_pops(nombre_vcd)
 	local actual = System.currentDirectory()
 	local device = salida_texto_dir(actual, nil)
 	local nombre_game = string.sub(nombre_vcd, 1, -5)
+	local pops_u = POPS_DE(nombre_vcd)   -- unidad cuyo POPS/ contiene este juego
 	local parches_indi_enc, parches_indi, ubicar, tipo, selec_act, selec_opt = {}, nil, " ", nil, true, 1
 	LISTAS.SCROLL_TEX = 1
 	reset_tiempo_espera(-CONTROL.FPS-CONTROL.FPS)
-	local estatus_game = System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
+	local estatus_game = System.listDirectory(pops_u .."/POPS/".. nombre_game)
 
 	-- Crear directorios faltantes. -----------------------------------------------------
 	if estatus_game == nil then
-		System.createDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
+		System.createDirectory(pops_u .."/POPS/".. nombre_game)
 	end
-	if System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes") == nil then
-		System.createDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes")
+	if System.listDirectory(pops_u .."/POPS/Hugopocked Fixes") == nil then
+		System.createDirectory(pops_u .."/POPS/Hugopocked Fixes")
 	end
-	if System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes") == nil then
-		System.createDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes")
+	if System.listDirectory(pops_u .."/POPS/Hugopocked Fixes/POPS General Fixes") == nil then
+		System.createDirectory(pops_u .."/POPS/Hugopocked Fixes/POPS General Fixes")
 	end
-	if System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes") == nil then
-		System.createDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes")
+	if System.listDirectory(pops_u .."/POPS/Hugopocked Fixes/POPS Game Fixes") == nil then
+		System.createDirectory(pops_u .."/POPS/Hugopocked Fixes/POPS Game Fixes")
 	end
 
 	-- Dibujar los submenús con múltiples opciones. -------------------------------------
@@ -2647,7 +2656,7 @@ function menu_pops(nombre_vcd)
 						end
 					end
 				end
-				if (confirmar_cheat == true or new == true) and System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game) ~= nil then
+				if (confirmar_cheat == true or new == true) and System.listDirectory(pops_u .."/POPS/".. nombre_game) ~= nil then
 					if new == false then
 						sub_menu_multi({}, 1, nombre_game, TEXT_M_PS1[6] .."... ".. TEXT_M_CON[46], 160, 226, true, 0, true, lista_resp, nil, false)
 					end
@@ -2669,15 +2678,15 @@ function menu_pops(nombre_vcd)
 						end
 						config_f = config_f .. new_cheats_config[create] .. salto_linea
 					end
-					if doesFileExist(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT") then
-						System.removeFile(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT")
+					if doesFileExist(pops_u .."/POPS/".. nombre_game .."/CHEATS.TXT") then
+						System.removeFile(pops_u .."/POPS/".. nombre_game .."/CHEATS.TXT")
 					end
-					local final_cheats = System.openFile(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT", FCREATE)
+					local final_cheats = System.openFile(pops_u .."/POPS/".. nombre_game .."/CHEATS.TXT", FCREATE)
 					System.writeFile(final_cheats, config_f, string.len(config_f))
 					System.closeFile(final_cheats)
 					cheats_menu = false
 					JOYSTICK_LIMITE = control_FPS(1)-20
-					estatus_game = System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
+					estatus_game = System.listDirectory(pops_u .."/POPS/".. nombre_game)
 					System.sleep(1)
 				end
 			elseif Pads.check(PAD, PAD_CIRCLE) and CONTROL.JOYSTICK_ON == false then
@@ -2691,8 +2700,8 @@ function menu_pops(nombre_vcd)
 	-- Cargar configuraciones desde "CHEATS.TXT". ---------------------------------------
 	local function cargar_cheats_txt(rest)
 		local lista_config = {}
-		if doesFileExist(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT") then
-			local cheats_txt = System.openFile(POPS_RAIZ .."/POPS/".. nombre_game .."/CHEATS.TXT", FREAD)
+		if doesFileExist(pops_u .."/POPS/".. nombre_game .."/CHEATS.TXT") then
+			local cheats_txt = System.openFile(pops_u .."/POPS/".. nombre_game .."/CHEATS.TXT", FREAD)
 			System.seekFile(cheats_txt, 0, SET)
 			local size_config = System.sizeFile(cheats_txt)
 			local temp = System.readFile(cheats_txt, size_config)
@@ -2706,7 +2715,7 @@ function menu_pops(nombre_vcd)
 
 	-- Instalar parches para POPStarter. ------------------------------------------------
 	local function instalar_parches(tipo_de_inst, dir_orig, cheats_ins)
-		local dir_pops_game = POPS_RAIZ .."/POPS/".. nombre_game
+		local dir_pops_game = pops_u .."/POPS/".. nombre_game
 		if tipo_de_inst == false or tipo_de_inst == nil then
 			local prev_parches = System.listDirectory(dir_pops_game)
 			if prev_parches ~= nil then
@@ -2727,7 +2736,7 @@ function menu_pops(nombre_vcd)
 				end
 			end
 		end
-		estatus_game = System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game)
+		estatus_game = System.listDirectory(pops_u .."/POPS/".. nombre_game)
 	end
 
 	-- Buscar parches para POPStarter. --------------------------------------------------
@@ -2736,12 +2745,12 @@ function menu_pops(nombre_vcd)
 		parches_indi = nil
 		local text_parche, text_adver = " ", " "
 		if tipo == true then
-			parches_indi = System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes")
-			ubicar = POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS General Fixes/"
+			parches_indi = System.listDirectory(pops_u .."/POPS/Hugopocked Fixes/POPS General Fixes")
+			ubicar = pops_u .."/POPS/Hugopocked Fixes/POPS General Fixes/"
 			text_parche, text_adver = TEXT_M_PS1[11], TEXT_M_PS1[12]
 		elseif tipo == false then
-			parches_indi = System.listDirectory(POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes")
-			ubicar = POPS_RAIZ .."/POPS/Hugopocked Fixes/POPS Game Fixes/"
+			parches_indi = System.listDirectory(pops_u .."/POPS/Hugopocked Fixes/POPS Game Fixes")
+			ubicar = pops_u .."/POPS/Hugopocked Fixes/POPS Game Fixes/"
 			text_parche, text_adver = TEXT_M_PS1[13], TEXT_M_PS1[14]
 			if cheats_ins == true then
 				text_parche, text_adver = TEXT_M_PS1[29], TEXT_M_PS1[30]
@@ -2976,7 +2985,7 @@ function menu_pops(nombre_vcd)
 							JOYSTICK_LIMITE = control_FPS(1)
 						end
 					end
-					if confirmar_limp == true and System.listDirectory(POPS_RAIZ .."/POPS/".. nombre_game) ~= nil then
+					if confirmar_limp == true and System.listDirectory(pops_u .."/POPS/".. nombre_game) ~= nil then
 						sub_menu_multi({}, 1, nombre_game, text_carga, 160, 298, true, 0, true, {}, nil, false)
 						if selector_lim == 1 then
 							instalar_parches(nil, "", false); System.sleep(2)
@@ -3703,8 +3712,8 @@ function menu_neutrino(nombre_iso)
 				if doesFileExist(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar]) then
 					System.removeFile(actual .."/Roms/ISOs PlayStation 2/Configs/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar])
 				end
-				if doesFileExist(actual .."/Roms/ISOs PlayStation 2/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar]) then
-					System.removeFile(actual .."/Roms/ISOs PlayStation 2/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar])
+				if doesFileExist(actual .."/Roms/ps2-isos/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar]) then
+					System.removeFile(actual .."/Roms/ps2-isos/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar])
 				end
 				if doesFileExist(device .."/DVD/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar]) then
 					System.removeFile(device .."/DVD/".. string.sub(nombre_iso, 1, -5) .. conf_del[limpiar])
@@ -3985,13 +3994,13 @@ end
 --- Buscar y guardar fuentes de texto. --------------------------------------------------
 function buscar_fuentes()
 	local actual = System.currentDirectory()
-	local buscar_fuentes = System.listDirectory(actual .."/Multimedia/Others/Font")
+	local buscar_fuentes = System.listDirectory(RUTA_GLOBAL("Font"))
 	OPCIONES.FUENTES_ENCONTRADAS = {}
 	table.insert(OPCIONES.FUENTES_ENCONTRADAS, actual .."/System/Medios/Font/PublicPixel.ttf")
 	if buscar_fuentes ~= nil then
 		for contador = 1, #buscar_fuentes do
 			if buscar_fuentes[contador].directory == false and (string.lower(string.sub(buscar_fuentes[contador].name, -4)) == ".ttf" or string.lower(string.sub(buscar_fuentes[contador].name, -4)) == ".otf") then
-				table.insert(OPCIONES.FUENTES_ENCONTRADAS, actual .."/Multimedia/Others/Font/".. buscar_fuentes[contador].name)
+				table.insert(OPCIONES.FUENTES_ENCONTRADAS, RUTA_GLOBAL("Font") .."/".. buscar_fuentes[contador].name)
 			end
 		end
 	end
@@ -4000,7 +4009,7 @@ end
 --- Busca y establece los fondos de pantalla. -------------------------------------------
 function buscar_fondos(cambio_de_fondo, selec_fondo)
 	local actual = System.currentDirectory()
-	local buscar_fondos = System.listDirectory(actual .."/Multimedia/Others/Background")
+	local buscar_fondos = System.listDirectory(RUTA_GLOBAL("Background"))
 	OPCIONES.FONDO_ENCONTRADOS = {}
 	table.insert(OPCIONES.FONDO_ENCONTRADOS, actual .."/".. verif_img("System/Medios/Default/FONDO.png"))
 	table.insert(OPCIONES.FONDO_ENCONTRADOS, actual .."/".. verif_img("System/Medios/Default/FONDO_2x2_ANI.png"))
@@ -4008,7 +4017,7 @@ function buscar_fondos(cambio_de_fondo, selec_fondo)
 	if buscar_fondos ~= nil then
 		for contador = 1, #buscar_fondos do
 			if buscar_fondos[contador].directory == false and string.lower(string.sub(buscar_fondos[contador].name, -4)) == ".png" then
-				table.insert(OPCIONES.FONDO_ENCONTRADOS, actual .."/Multimedia/Others/Background/".. buscar_fondos[contador].name)
+				table.insert(OPCIONES.FONDO_ENCONTRADOS, RUTA_GLOBAL("Background") .."/".. buscar_fondos[contador].name)
 			end
 		end
 	end
@@ -6227,6 +6236,9 @@ function crear_listas(identidad, lista)
 	local actual = System.currentDirectory()
 	local device = salida_texto_dir(actual, nil)
 	local encontrados = {}
+	-- Reconstruir una lista es el unico momento en que el contenido de las carpetas
+	-- de medios ha podido cambiar: se olvida el indice y se vuelve a construir solo.
+	media_indice_olvidar()
 
 	-- Búsquedas para cores de RetroArch. -----------------------------------------------
 	if identidad <= 12 then
@@ -6246,12 +6258,55 @@ function crear_listas(identidad, lista)
 		end
 
 		-- Realizar búsquedas. ----------------------------------------------------------
-		-- Busqueda acumulada sobre TODAS las raices (USB + disco interno exFAT). ------
-		local vistos = {}
+		-- Busqueda acumulada. Ademas de la estructura propia de RETROLauncher
+		-- ("Roms/Roms <sistema>"), se aceptan los nombres al estilo EmulationStation
+		-- / Batocera ("roms/snes", "roms/nes"...), tanto dentro de la carpeta del
+		-- launcher como en la raiz de cada unidad.
+		local dirs = {}
 		for i_raiz = 1, #RAICES do
-			local sub = "/Roms/Roms ".. dir_sistemas[identidad]
-			local buscar = System.listDirectory(RAICES[i_raiz] .. sub)
+			table.insert(dirs, RAICES[i_raiz] .."/Roms/".. ROMS_DIR[identidad])
+		end
+		if ES_ALIAS ~= nil and ES_ALIAS[identidad] ~= nil then
+			local unidades = {}
+			local pos_u = string.find(actual, ":", 1, true)
+			if pos_u ~= nil then table.insert(unidades, string.sub(actual, 1, pos_u)) end
+			if BDM_DEVICES ~= nil then
+				for i_u = 1, #BDM_DEVICES do table.insert(unidades, BDM_DEVICES[i_u]) end
+			end
+			-- Carpetas contenedoras aceptadas. "Games" es la que usa este fork,
+			-- "roms" la de Batocera / Recalbox en la raiz de la unidad.
+			local contenedores = {"Games", "roms", "Roms"}
+			for a_i = 1, #ES_ALIAS[identidad] do
+				local alias = ES_ALIAS[identidad][a_i]
+				for c_i = 1, #contenedores do
+					for i_raiz = 1, #RAICES do
+						table.insert(dirs, RAICES[i_raiz] .."/".. contenedores[c_i] .."/".. alias)
+					end
+					for i_u = 1, #unidades do
+						table.insert(dirs, unidades[i_u] .."/".. contenedores[c_i] .."/".. alias)
+					end
+				end
+			end
+
+			-- "Games/Roms <sistema>": misma carpeta contenedora, nombre largo.
+			for i_raiz = 1, #RAICES do
+				table.insert(dirs, RAICES[i_raiz] .."/Games/".. ROMS_DIR[identidad])
+			end
+		end
+
+		local vistos = {}
+		for i_dir = 1, #dirs do
+			local buscar = System.listDirectory(dirs[i_dir])
 			if buscar ~= nil then
+				cargar_titulos(dirs[i_dir], identidad)
+				-- Los titulos de los juegos del disco exFAT se escriben en la carpeta
+				-- canonica del USB, porque el PC no siempre tiene acceso al disco.
+				if MEDIA_ALIAS[identidad] ~= nil then
+					for i_r = 1, #RAICES do
+						cargar_titulos(RAICES[i_r] .."/Roms/".. MEDIA_ALIAS[identidad], identidad)
+					end
+				end
+				local db_juegos = {}
 				for contador = 1, #buscar do
 					if buscar[contador].directory == false then
 						local temp_ext = string.lower(string.sub(buscar[contador].name, -4))
@@ -6268,13 +6323,18 @@ function crear_listas(identidad, lista)
 							if nom ~= nil and vistos[nom] == nil then
 								vistos[nom] = true
 								table.insert(encontrados, nom)
-								ORIGEN[tostring(identidad) .."|".. nom] = RAICES[i_raiz]
+								ORIGEN[tostring(identidad) .."|".. nom] = dirs[i_dir]
+								ORIGEN_DIR[tostring(identidad) .."|".. nom] = dirs[i_dir] .."/"
+								table.insert(db_juegos, {fichero = nom,
+									titulo = NOMBRE_VISIBLE(identidad, nom)})
 							end
 						end
 					end
 				end
+				exfatdb_dir(identidad, dir_sistemas[identidad], dirs[i_dir], db_juegos)
 			end
 		end
+		exfatdb_escribir()
 		if encontrados ~= nil and #encontrados >= 1 then
 			lista = encontrados
 			table.sort(lista, orden_alfabetico)
@@ -6288,6 +6348,7 @@ function crear_listas(identidad, lista)
 	elseif identidad == 13 then
 		-- Lista de directorios. --------------------------------------------------------
 		local buscar_directorio = {device .."/APPS", "mc0:/APPS", "mc1:/APPS", actual .."/Roms/APPS", "cdfs:", "mc0:", "mc1:", device}
+		if BUSCAR_CDVD == false then buscar_directorio[5] = nil end
 		if OPCIONES.DIR_EXTRAS_ON == 0 then
 			buscar_directorio[1] = nil
 			buscar_directorio[2] = nil
@@ -6361,23 +6422,65 @@ function crear_listas(identidad, lista)
 	-- Búsquedas para PlayStation 1. ----------------------------------------------------
 	elseif identidad == 14 then
 		-- Realizar búsqueda. -----------------------------------------------------------
-		local buscar = System.listDirectory(POPS_RAIZ .."/POPS")
-		if buscar ~= nil then
-			for contador = 1, #buscar do
-				local ps1_name = string.lower(string.sub(buscar[contador].name, -4))
-				if buscar[contador].directory == false and ps1_name == ".vcd" then
-					table.insert(encontrados, buscar[contador].name)
-				elseif ps1_name == ".elf" and string.lower(string.sub(buscar[contador].name, 1, 3)) ~= "xx." and string.lower(buscar[contador].name) ~= "popstarter.elf" and string.lower(buscar[contador].name) ~= "pops.elf" and string.lower(buscar[contador].name) ~= "popstarter.kelf" then
-					table.insert(encontrados, buscar[contador].name)
+		-- "POPS/" en la raiz de CADA unidad, no solo en POPS_RAIZ: puede haber juegos
+		-- en el POPS de la llave y en el del disco interno a la vez.
+		local vistos_vcd = {}
+		local unidades_pops = POPS_UNIDADES()
+		for i_u = 1, #unidades_pops do
+			local buscar = System.listDirectory(unidades_pops[i_u] .."/POPS")
+			if buscar ~= nil then
+				local db_pops = {}
+				for contador = 1, #buscar do
+					local nom = buscar[contador].name
+					local ps1_name = string.lower(string.sub(nom, -4))
+					if buscar[contador].directory == false and ps1_name == ".vcd"
+					   and vistos_vcd[string.lower(nom)] == nil then
+						vistos_vcd[string.lower(nom)] = true
+						table.insert(encontrados, nom)
+						ORIGEN["14|".. nom] = unidades_pops[i_u]
+						table.insert(db_pops, {fichero = nom,
+							titulo = NOMBRE_VISIBLE(14, nom)})
+					elseif ps1_name == ".elf" and string.lower(string.sub(nom, 1, 3)) ~= "xx." and string.lower(nom) ~= "popstarter.elf" and string.lower(nom) ~= "pops.elf" and string.lower(nom) ~= "popstarter.kelf"
+					   and vistos_vcd[string.lower(nom)] == nil then
+						vistos_vcd[string.lower(nom)] = true
+						table.insert(encontrados, nom)
+						ORIGEN["14|".. nom] = unidades_pops[i_u]
+					end
 				end
+				exfatdb_dir(14, "PlayStation", unidades_pops[i_u] .."/POPS", db_pops,
+					"POPS")
+			end
+		end
+		-- Segunda biblioteca de .VCD: "<raiz>/Roms/psx-pops(vcd)". Los de "POPS/" tienen
+		-- prioridad. Al lanzarlos se trasladan a "POPS/", que es donde POPStarter los
+		-- busca y donde crea la tarjeta de memoria del juego.
+		for i_raiz = 1, #RAICES do
+			local buscar_vcd = System.listDirectory(RAICES[i_raiz] .. POPS_SUB)
+			if buscar_vcd ~= nil then
+				local db_vcd = {}
+				for contador = 1, #buscar_vcd do
+					local nom = buscar_vcd[contador].name
+					if buscar_vcd[contador].directory == false
+					   and string.lower(string.sub(nom, -4)) == ".vcd"
+					   and vistos_vcd[string.lower(nom)] == nil then
+						vistos_vcd[string.lower(nom)] = true
+						table.insert(encontrados, nom)
+						ORIGEN["14|".. nom] = RAICES[i_raiz]
+						table.insert(db_vcd, {fichero = nom,
+							titulo = NOMBRE_VISIBLE(14, nom)})
+					end
+				end
+				exfatdb_dir(14, "PlayStation", RAICES[i_raiz] .. POPS_SUB, db_vcd,
+					"psx-pops(vcd)")
 			end
 		end
 		-- Scan Ember: independiente de POPS y sobre TODAS las raices. -----------------
 		local vistos_ps1 = {}
 		for i_raiz = 1, #RAICES do
-			local sub = "/Roms/CUEs PlayStation 1"
+			local sub = "/Roms/psx-ember(bin and cue)"
 			local buscar2 = System.listDirectory(RAICES[i_raiz] .. sub)
-			if buscar2 ~= nil and doesFileExist(RAICES[i_raiz] .. sub .."/ember.elf") then
+			if buscar2 ~= nil and doesFileExist(RUTA_BIOS("psx-ember.elf", RAICES[i_raiz] .. sub .."/ember.elf")) then
+				local db_ps1 = {}
 				for contador = 1, #buscar2 do
 					local ps1_name = string.lower(string.sub(buscar2[contador].name, -4))
 					if buscar2[contador].directory == false and ps1_name == ".cue"
@@ -6385,10 +6488,21 @@ function crear_listas(identidad, lista)
 						vistos_ps1[buscar2[contador].name] = true
 						table.insert(encontrados, buscar2[contador].name)
 						ORIGEN["14|".. buscar2[contador].name] = RAICES[i_raiz]
+						table.insert(db_ps1, {fichero = buscar2[contador].name,
+							titulo = NOMBRE_VISIBLE(14, buscar2[contador].name)})
 					end
 				end
+				exfatdb_dir(14, "PlayStation", RAICES[i_raiz] .. sub, db_ps1,
+					"psx-ember(bin and cue)")
 			end
 		end
+		-- Titulos reales de PS1: los dos formatos comparten la lista, asi que se leen
+		-- los "titles.txt" de las dos carpetas y en todas las raices.
+		for i_raiz = 1, #RAICES do
+			cargar_titulos(RAICES[i_raiz] .."/Roms/psx-ember(bin and cue)", 14)
+			cargar_titulos(RAICES[i_raiz] .. POPS_SUB, 14)
+		end
+		exfatdb_escribir()
 		if encontrados ~= nil and #encontrados >= 1 then
 			lista = encontrados
 			table.sort(lista, orden_alfabetico_PS)
@@ -6407,7 +6521,7 @@ function crear_listas(identidad, lista)
 		-- unidades ATA, tambien "<unidad>/DVD" y "<unidad>/CD" como en el USB.
 		local dirs_extra = {}
 		for i_raiz = 2, #RAICES do
-			table.insert(dirs_extra, RAICES[i_raiz] .."/Roms/ISOs PlayStation 2/")
+			table.insert(dirs_extra, RAICES[i_raiz] .."/Roms/ps2-isos/")
 		end
 		if OPCIONES.DIR_EXTRAS_ON ~= 0 then
 			for i_u = 1, #BDM_DEVICES do
@@ -6421,6 +6535,7 @@ function crear_listas(identidad, lista)
 		for i_d = 1, #dirs_extra do
 			local extra = System.listDirectory(dirs_extra[i_d])
 			if extra ~= nil then
+				local db_ps2 = {}
 				for c = 1, #extra do
 					local e = string.lower(string.sub(extra[c].name, -4))
 					if extra[c].directory == false and (e == ".iso" or e == ".hdd" or e == ".mx4" or e == ".mmc" or e == ".udp")
@@ -6429,12 +6544,16 @@ function crear_listas(identidad, lista)
 						table.insert(encontrados, extra[c].name)
 						ORIGEN["15|".. extra[c].name] = dirs_extra[i_d]
 						ORIGEN_DIR["15|".. extra[c].name] = dirs_extra[i_d]
+						table.insert(db_ps2, {fichero = extra[c].name,
+							titulo = NOMBRE_VISIBLE(15, extra[c].name)})
 					end
 				end
+				exfatdb_dir(15, "PlayStation 2", dirs_extra[i_d], db_ps2, "ps2-isos")
 			end
 		end
 
-		local buscar_directorio = {actual .."/Roms/ISOs PlayStation 2", device .."/DVD", device .."/CD", "cdfs:"}
+		local buscar_directorio = {actual .."/Roms/ps2-isos", device .."/DVD", device .."/CD", "cdfs:"}
+		if BUSCAR_CDVD == false then buscar_directorio[4] = nil end
 		if OPCIONES.DIR_EXTRAS_ON == 0 then
 			buscar_directorio[2] = nil
 			buscar_directorio[3] = nil
@@ -6445,6 +6564,7 @@ function crear_listas(identidad, lista)
 			if buscar_directorio[buscar_ps2] ~= nil then
 				local buscar = System.listDirectory(buscar_directorio[buscar_ps2])
 				if buscar ~= nil then
+					local db_ps2b = {}
 					for contador = 1, #buscar do
 						local ps2_name = string.lower(string.sub(buscar[contador].name, -4))
 						if buscar[contador].directory == false and (buscar_ps2 ~= 4 and ps2_name == ".iso") or ((buscar_ps2 == 2 or buscar_ps2 == 3) and ps2_name == ".mx4" or ps2_name == ".hdd" or ps2_name == ".mmc" or ps2_name == ".udp") or (buscar_ps2 == 4 and string.match(buscar[contador].name, "%a+_%d+.%d+") == buscar[contador].name) then
@@ -6455,13 +6575,17 @@ function crear_listas(identidad, lista)
 									vistos_ps2[buscar[contador].name] = true
 									table.insert(encontrados, buscar[contador].name)
 									ORIGEN_DIR["15|".. buscar[contador].name] = buscar_directorio[buscar_ps2] .."/"
+									table.insert(db_ps2b, {fichero = buscar[contador].name,
+										titulo = NOMBRE_VISIBLE(15, buscar[contador].name)})
 								end
 							end
 						end
 					end
+					exfatdb_dir(15, "PlayStation 2", buscar_directorio[buscar_ps2], db_ps2b, "ps2-isos")
 				end
 			end
 		end
+		exfatdb_escribir()
 		if encontrados ~= nil and #encontrados >= 1 then
 			lista = encontrados
 			table.sort(lista, orden_alfabetico_PS)
@@ -6635,9 +6759,9 @@ function existe(identidad, nombre_juego, alternativo)
 		if identidad == 12 and alternativo == true then
 			dir_especiales = "SNESticle"
 		end
-		if doesFileExist(RUTA("/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores[identidad]) and alternativo == false then
+		if doesFileExist(RUTA_ROM(identidad, dir_sistemas[identidad], nombre_juego)) and doesFileExist(RUTA_CORE(name_cores[identidad], actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores[identidad])) and alternativo == false then
 			return true
-		elseif doesFileExist(RUTA("/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)) and doesFileExist(actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores_alt[identidad]) and alternativo == true then
+		elseif doesFileExist(RUTA_ROM(identidad, dir_sistemas[identidad], nombre_juego)) and doesFileExist(RUTA_CORE(name_cores_alt[identidad], actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. name_cores_alt[identidad])) and alternativo == true then
 			return true
 		else
 			return false
@@ -6658,18 +6782,23 @@ function existe(identidad, nombre_juego, alternativo)
 		local exten = string.lower(string.sub(nombre_juego, -4))
 		if exten == ".elf" then
 			return true
-		elseif exten == ".vcd" and doesFileExist(POPS_RAIZ .."/POPS/".. nombre_juego) and doesFileExist(POPS_RAIZ .."/POPS/POPS_IOX.PAK") and doesFileExist(POPS_RAIZ .."/POPS/IOPRP252.IMG") then
+		-- La guia oficial de POPStarter es tajante: en modo USB el emulador es UN
+		-- solo fichero, "POPS_IOX.PAK". "IOPRP252.IMG" pertenece al modo HDD, y
+		-- exigirlo rechazaba montajes USB perfectamente validos.
+		elseif exten == ".vcd" and RUTA_VCD(nombre_juego) ~= nil and doesFileExist(POPS_DE(nombre_juego) .."/POPS/POPS_IOX.PAK") then
 			return true
-		elseif exten == ".cue" and doesFileExist(RUTA("/Roms/CUEs PlayStation 1/".. nombre_juego))
-		and doesFileExist(RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego) .."/Roms/CUEs PlayStation 1/ember.elf")
-		and doesFileExist(RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego) .."/Roms/CUEs PlayStation 1/bios.bin") then
+		elseif exten == ".cue" and doesFileExist(RUTA("/Roms/psx-ember(bin and cue)/".. nombre_juego))
+		and doesFileExist(RUTA_BIOS("psx-ember.elf", ""))
+		and doesFileExist(RUTA_BIOS("bios.bin", "")) then
 			return true
 		else
 			-- Detalle del fallo: que falta exactamente y donde se esperaba. -----------
 			local faltan = {}
 			if exten == ".vcd" then
-				local base = POPS_RAIZ .."/POPS/"
-				local req = {nombre_juego, "POPS_IOX.PAK", "IOPRP252.IMG"}
+				local base = POPS_DE(nombre_juego) .."/POPS/"
+				local req = {"POPS_IOX.PAK"}
+				-- El .VCD vale tanto en "POPS/" como en la biblioteca "psx-pops(vcd)".
+				if RUTA_VCD(nombre_juego) == nil then table.insert(req, 1, nombre_juego) end
 				for i = 1, #req do
 					if doesFileExist(base .. req[i]) == false then
 						table.insert(faltan, req[i])
@@ -6677,12 +6806,17 @@ function existe(identidad, nombre_juego, alternativo)
 				end
 				ERROR_DETALLE = detalle_falta("POPS", base, faltan)
 			elseif exten == ".cue" then
-				local base = RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego) .."/Roms/CUEs PlayStation 1/"
-				local req = {nombre_juego, "ember.elf", "bios.bin"}
-				for i = 1, #req do
-					if doesFileExist(base .. req[i]) == false then
-						table.insert(faltan, req[i])
-					end
+				local base = RAIZ("/Roms/psx-ember(bin and cue)/".. nombre_juego) .."/Roms/psx-ember(bin and cue)/"
+				if doesFileExist(base .. nombre_juego) == false then
+					table.insert(faltan, nombre_juego)
+				end
+				-- Ember y su bios viven en "Bios/", no junto a la ROM: si faltan hay
+				-- que decirlo, antes se mostraba un error mudo.
+				if doesFileExist(RUTA_BIOS("psx-ember.elf", "")) == false then
+					table.insert(faltan, "Bios/psx-ember.elf")
+				end
+				if doesFileExist(RUTA_BIOS("bios.bin", "")) == false then
+					table.insert(faltan, "Bios/bios.bin")
 				end
 				ERROR_DETALLE = detalle_falta("Ember", base, faltan)
 			end
@@ -6697,7 +6831,7 @@ function existe(identidad, nombre_juego, alternativo)
 		end
 		-- La ISO puede estar en "<raiz>/Roms/ISOs PlayStation 2" o en el "DVD"/"CD" de
 		-- una unidad ATA. El scan memorizo el directorio real en ORIGEN_DIR.
-		local ruta_iso = RUTA("/Roms/ISOs PlayStation 2/".. nombre_juego)
+		local ruta_iso = RUTA("/Roms/ps2-isos/".. nombre_juego)
 		if ORIGEN_DIR ~= nil and ORIGEN_DIR["15|".. nombre_juego] ~= nil then
 			ruta_iso = ORIGEN_DIR["15|".. nombre_juego] .. nombre_juego
 		end
@@ -6710,7 +6844,7 @@ function existe(identidad, nombre_juego, alternativo)
 		elseif doesFileExist(device .."/CD/".. nombre_juego) and doesFileExist(elf_lauch) and OPCIONES.DIR_EXTRAS_ON == 1 then
 			OPCIONES.OPL_DIR = "CD"
 			return true
-		elseif doesFileExist("cdfs:/".. string.sub(nombre_juego, 1, 11)) then
+		elseif BUSCAR_CDVD == true and doesFileExist("cdfs:/".. string.sub(nombre_juego, 1, 11)) then
 			return true
 		else
 			return false
@@ -6806,11 +6940,11 @@ function ejecutar_iso(nombre)
 		-- Definir el directorio donde se encuentra el juego. ---------------------------
 		local selector_device = 1
 		-- La ISO puede estar en el USB o en el disco interno: resolver la raiz real. --
-		local raiz_iso = RAIZ("/Roms/ISOs PlayStation 2/".. nombre)
+		local raiz_iso = RAIZ("/Roms/ps2-isos/".. nombre)
 		local name_device = {raiz_iso, device, "mmce:"}
 		local selector_dir = 1
-		local dir_iso = {"/Roms/ISOs PlayStation 2/", "/DVD/", "/CD/"}
-		if doesFileExist(raiz_iso .."/Roms/ISOs PlayStation 2/".. nombre) then
+		local dir_iso = {"/Roms/ps2-isos/", "/DVD/", "/CD/"}
+		if doesFileExist(raiz_iso .."/Roms/ps2-isos/".. nombre) then
 			selector_dir = 1
 			selector_device = 1
 		elseif doesFileExist(device .."/DVD/".. nombre) then
@@ -6913,6 +7047,101 @@ function ejecutar_iso(nombre)
 	end
 end
 
+--- Cores compatibles con un sistema, en cache: leer decenas de ".info" en cada
+--- lanzamiento seria lento, y su contenido no cambia mientras el programa corre.
+CORES_CACHE = {}
+
+--- Selector de core de RetroArch. ------------------------------------------------------
+--- Se muestra al lanzar, con el core previsto para el sistema ya seleccionado, y SOLO
+--- si hay mas de un candidato: si el sistema no tiene alternativa no estorba a nadie.
+--- La lista se filtra por plataforma cruzando las extensiones reales del sistema con
+--- las que cada core declara en "Retroarch Extracted Files/info/<core>.info".
+--- Devuelve la ruta elegida, o nil si se cancela.
+function elegir_core(ruta_defecto, identidad)
+	local rutas, nombres = {}, {}
+	local cache = CORES_CACHE[identidad]
+	if cache ~= nil then
+		rutas, nombres = cache.rutas, cache.nombres
+	else
+	local vistos = {}
+
+	local function anadir(ruta)
+		local n = nombre_fichero(ruta)
+		if n == "" or n == " " then return end
+		if vistos[string.lower(n)] ~= nil then return end
+		if doesFileExist(ruta) == false then return end
+		vistos[string.lower(n)] = true
+		table.insert(rutas, ruta)
+		table.insert(nombres, string.sub(n, 1, -5))
+	end
+
+	anadir(ruta_defecto)
+	if RAICES ~= nil then
+		for i = 1, #RAICES do
+			local dir = RAICES[i] .."/Retroarch Extracted Files/cores"
+			local c = System.listDirectory(dir)
+			if c ~= nil then
+				for j = 1, #c do
+					if c[j].directory == false and string.lower(string.sub(c[j].name, -4)) == ".elf"
+					   and CORE_SIRVE(dir .."/".. c[j].name, identidad) then
+						anadir(dir .."/".. c[j].name)
+					end
+				end
+			end
+		end
+	end
+	CORES_CACHE[identidad] = {rutas = rutas, nombres = nombres}
+	end
+	-- Sin alternativas reales no hay nada que preguntar.
+	if #rutas <= 1 then return ruta_defecto end
+
+	-- La lista puede tener decenas de entradas y el bandeau no se desplaza solo:
+	-- se muestra una ventana de siete alrededor del cursor.
+	local VENTANA = 7
+	local sel, elegir = 1, true
+	JOYSTICK_LIMITE = control_FPS(1)-30
+	while elegir do
+		CONTROL.FPS = Screen.getFPS(1)
+		capturar(JOYSTICK_LIMITE)
+		dibujar_fondos()
+
+		local ini = sel - (VENTANA // 2)
+		if ini < 1 then ini = 1 end
+		if ini > #rutas - VENTANA + 1 then ini = #rutas - VENTANA + 1 end
+		if ini < 1 then ini = 1 end
+		local vista, cursor = {}, 1
+		for i = ini, ini + VENTANA - 1 do
+			if nombres[i] ~= nil then
+				table.insert(vista, nombres[i])
+				if i == sel then cursor = #vista end
+			end
+		end
+		local extra = #vista - 3
+		if extra < 0 then extra = 0 end
+		submenu_selector(vista, cursor, "CORE  ".. sel .."/".. #rutas,
+			160-(extra*12), 273+(extra*12), true, CONTROL.ANCHO//2,
+			{TEXT_GEN[5], TEXT_GEN[6]}, false, false, {}, nil)
+		refrescar(false)
+
+		if Pads.check(PAD, PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
+			repro_sfx(S_EJECUTAR, 1, false, nil)
+			return rutas[sel]
+		elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90 or Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) and CONTROL.JOYSTICK_ON == false then
+			repro_sfx(S_MOVER, 1, false, nil)
+			if (Pads.check(PAD, PAD_UP) or Left_Y <= -90 or Pads.check(PAD, PAD_LEFT) or Left_X <= -90) then
+				sel = cambiar_valor(sel, 1, #rutas, 1, false)
+			else
+				sel = cambiar_valor(sel, 1, #rutas, 1, true)
+			end
+			JOYSTICK_LIMITE = control_FPS(1)
+		elseif Pads.check(PAD, PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false then
+			repro_sfx(S_CANCELAR, 1, false, nil)
+			elegir = false
+		end
+	end
+	return nil
+end
+
 --- Ejecuta cada juego con su respectiva aplicación. ------------------------------------
 function ejecutar_juego(identidad, nombre_juego, alternativo)
 	local actual = System.currentDirectory()
@@ -6944,11 +7173,36 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 
 		-- Ejecutar juego. --------------------------------------------------------------
 		guardar()
-		black_blur()
 		local nucleo = name_cores[identidad]
 		if alternativo == true then nucleo = name_cores_alt[identidad] end
-		local ruta_core = actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. nucleo
-		local ruta_rom  = RUTA("/Roms/Roms ".. dir_sistemas[identidad] .."/".. nombre_juego)
+		local ruta_core = RUTA_CORE(nucleo, actual .."/System/RetroarchPS2/".. dir_sistemas[identidad] .."/".. dir_especiales .."/".. nucleo)
+		-- Eleccion de core al lanzar. La ejecucion alternativa queda como estaba: ahi
+		-- "TempGBA" y "SNESticle" no son cores de RetroArch y no tienen ".info".
+		if alternativo ~= true then
+			local elegido = elegir_core(ruta_core, identidad)
+			if elegido == nil then return end
+			ruta_core = elegido
+		end
+		black_blur()
+		local ruta_rom  = RUTA_ROM(identidad, dir_sistemas[identidad], nombre_juego)
+		-- El core recibe el juego en argv[1]: Enceladus pone la ruta del ELF en argv[0]
+		-- y encadena los argumentos variadicos a partir de argv[1], que es exactamente
+		-- lo que lee "frontend_ps2_get_env" para fijar "content_path". La llamada era
+		-- correcta; lo que fallaba es el NOMBRE DE LA UNIDAD. RetroArch reinicia el IOP
+		-- y monta su propio stack USB, donde el dispositivo se llama "mass:", no
+		-- "mass0:" como lo ve Enceladus. Con el prefijo numerado el core no encuentra
+		-- el fichero y se cierra sin escribir nada.
+		-- Solo se toca el prefijo de unidad. NORM_DEV pasa TODA la cadena a minusculas
+		-- porque sirve para comparar rutas; aqui eso mutilaria el nombre del fichero.
+		local rom_arg = ruta_rom
+		local pos_dev = string.find(ruta_rom, ":", 1, true)
+		if pos_dev ~= nil then
+			local dev = string.sub(ruta_rom, 1, pos_dev-1)
+			while string.len(dev) > 0 and string.match(string.sub(dev, -1), "%d") ~= nil do
+				dev = string.sub(dev, 1, -2)
+			end
+			rom_arg = dev ..":".. string.sub(ruta_rom, pos_dev+1)
+		end
 		log_lanzamiento("RETROARCH  ".. dir_sistemas[identidad], {
 			"identidad   : ".. tostring(identidad),
 			"juego       : ".. tostring(nombre_juego),
@@ -6957,11 +7211,29 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 			"",
 			log_existe("core", ruta_core),
 			log_existe("rom ", ruta_rom),
+			"argv[1]     : ".. tostring(rom_arg),
 			"",
 			"IOP_REBOOT_CORES : ".. tostring(IOP_REBOOT_CORES),
 			"Una ROM en la unidad ATA sera invisible para ellos.",
 		})
-		System.loadELF(ruta_core, IOP_REBOOT_CORES, ruta_rom)
+		-- Preferir "raboot.elf" cuando esta disponible: es el bootstrap oficial de
+		-- las nightlies, y funciona donde la llamada directa al core falla.
+		local raboot = RUTA_RABOOT()
+		if raboot ~= nil and PREPARAR_RABOOT(raboot, ruta_core) then
+			log_lanzamiento("RETROARCH via raboot  ".. dir_sistemas[identidad], {
+				"juego : ".. tostring(nombre_juego),
+				"",
+				log_existe("raboot", raboot),
+				log_existe("core  ", ruta_core),
+				log_existe("rom   ", ruta_rom),
+				"",
+				log_existe("salamander", RUTA_SALAMANDER(raboot)),
+				"Verificado por relectura: contiene el core de arriba.",
+				"Poner RABOOT_ON a false para volver a la llamada directa.",
+			})
+			System.loadELF(raboot, IOP_REBOOT_CORES, rom_arg)
+		end
+		System.loadELF(ruta_core, IOP_REBOOT_CORES, rom_arg)
 
 	-- Ejecutar APPS. -------------------------------------------------------------------
 	elseif identidad == 13 then
@@ -6984,35 +7256,105 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		if string.len(nombre_temp_2) >= 13 and string.match(string.sub(nombre_temp_2, 1, 12), "%a+_%d+%.%d+%.") then
 			nombre_temp_2 = string.sub(nombre_temp_2, 13)
 		end
+		-- Unidad de trabajo de POPStarter: la que tenga el juego en su "POPS/", que no
+		-- es forzosamente POPS_RAIZ. El ELF, el .VCD y la tarjeta de memoria deben
+		-- compartir unidad, de ahi que todo lo de abajo pase por aqui.
+		local pops_u = POPS_DE(nombre_juego)
+		-- Misma cautela que con Ember: reiniciar el IOP descarga "ata_bd".
+		local reboot_pops = IOP_REBOOT_POPS
+		if ES_RAIZ_ATA(pops_u) then reboot_pops = 0 end
 		if string.lower(string.sub(nombre_juego, -4)) == ".cue" then
-			local raiz_ps1 = RAIZ("/Roms/CUEs PlayStation 1/".. nombre_juego)
+			local raiz_ps1 = RAIZ("/Roms/psx-ember(bin and cue)/".. nombre_juego)
+			local carpeta_ps1 = raiz_ps1 .."/Roms/psx-ember(bin and cue)"
+			-- Ember se lanza DESDE la carpeta de los juegos y recibe solo el nombre
+			-- del fichero, como en el original: resuelve el .cue relativo a su
+			-- directorio, no acepta una ruta completa.
+			local ember = EMBER_EN(carpeta_ps1)
+			-- Un IOP limpio se lleva por delante "ata_bd", y con el, el disco interno.
+			-- Si el juego vive ahi NO se puede reiniciar: Ember dejaria de ver su
+			-- propia carpeta. Se reinicia solo cuando el juego esta en el arranque.
+			local reboot_ember = IOP_REBOOT_EMBER
+			if ES_RAIZ_ATA(carpeta_ps1) then reboot_ember = 0 end
 			log_lanzamiento("PS1  Ember", {
 				"juego : ".. tostring(nombre_juego),
 				"raiz  : ".. tostring(raiz_ps1),
 				"desde disco interno (ATA) : ".. tostring(ES_ATA(14, nombre_juego)),
 				"",
-				log_existe("ember.elf", raiz_ps1 .."/Roms/CUEs PlayStation 1/ember.elf"),
-				log_existe("bios.bin ", raiz_ps1 .."/Roms/CUEs PlayStation 1/bios.bin"),
-				log_existe("cue      ", raiz_ps1 .."/Roms/CUEs PlayStation 1/".. nombre_juego),
+				log_existe("ember.elf", carpeta_ps1 .."/ember.elf"),
+				log_existe("bios.bin ", carpeta_ps1 .."/bios.bin"),
+				log_existe("cue      ", carpeta_ps1 .."/".. nombre_juego),
+				"",
+				"argumento : ".. tostring(nombre_juego) .."  (nombre desnudo)",
+				"reinicio del IOP : ".. tostring(reboot_ember) .."  (ajuste: ".. tostring(IOP_REBOOT_EMBER) ..")",
 			})
-			System.loadELF(raiz_ps1 .."/Roms/CUEs PlayStation 1/ember.elf", 0, nombre_juego)
+			if ember == nil then
+				ERROR_DETALLE = detalle_falta("Ember", carpeta_ps1 .."/", {"ember.elf"})
+				return
+			end
+			System.loadELF(ember, reboot_ember, nombre_juego)
 		elseif string.lower(string.sub(nombre_juego, -4)) == ".elf" then
-			log_lanzamiento("PS1  ELF en POPS", {log_existe("elf", POPS_RAIZ .."/POPS/".. nombre_juego)})
-			System.loadELF(POPS_RAIZ .."/POPS/".. nombre_juego, 0, POPS_RAIZ .."/POPS/")
-		elseif doesFileExist(POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF") then
+			log_lanzamiento("PS1  ELF en POPS", {log_existe("elf", pops_u .."/POPS/".. nombre_juego)})
+			System.loadELF(pops_u .."/POPS/".. nombre_juego, 0, pops_u .."/POPS/")
+		elseif VCD_A_POPS(nombre_juego) and doesFileExist(pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF") then
+			log_lanzamiento("PS1  POPStarter (atajo en APPS)", {
+				"juego     : ".. tostring(nombre_juego),
+				"unidad    : ".. tostring(pops_u),
+				"desde disco interno (ATA) : ".. tostring(ES_ATA(14, nombre_juego)),
+				"",
+				log_existe("atajo ", pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF"),
+				log_existe("vcd   ", pops_u .."/POPS/".. nombre_juego),
+				log_existe("iox   ", pops_u .."/POPS/POPS_IOX.PAK"),
+				log_existe("ioprp ", pops_u .."/POPS/IOPRP252.IMG"),
+				log_existe("POPS.ELF", pops_u .."/POPS/POPS.ELF"),
+				log_existe("POPS.PAK", pops_u .."/POPS/POPS.PAK"),
+				"",
+				"Drivers BDMAssault en la Memory Card. El manual los exige para",
+				"POPStarter cuando el soporte esta en exFAT, y POPStarter los carga",
+				"el mismo: si faltan, no sabe leer el .VCD y devuelve al launcher.",
+				log_existe("mc0 usbd    ", "mc0:/POPSTARTER/usbd.irx"),
+				log_existe("mc0 usbhdfsd", "mc0:/POPSTARTER/usbhdfsd.irx"),
+				log_existe("mc0 SYS USBD", "mc0:/SYS-CONF/USBD.IRX"),
+				log_existe("mc0 SYS HDFS", "mc0:/SYS-CONF/USBHDFSD.IRX"),
+				"",
+				"POPStarter necesita el atajo, el .VCD y su tarjeta de memoria en la",
+				"MISMA unidad. En exFAT hacen falta ademas los drivers BDMAssault en",
+				"la Memory Card, y no hay constancia de que soporte un disco ATA.",
+			})
 			black_blur()
 			if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1.lua") then
 				require("System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1")
 				ps1_startup()
 			end
-			System.loadELF(POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF", 0, POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/", "--nr")
-		elseif doesFileExist(POPS_RAIZ .."/POPS/XX.".. nombre_temp ..".ELF") then
+			System.loadELF(pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF", reboot_pops, pops_u .."/APPS/".. nombre_temp_2 .."/", "--nr")
+		elseif doesFileExist(pops_u .."/POPS/XX.".. nombre_temp ..".ELF") then
+			log_lanzamiento("PS1  POPStarter (atajo en POPS)", {
+				"juego     : ".. tostring(nombre_juego),
+				"unidad    : ".. tostring(pops_u),
+				"desde disco interno (ATA) : ".. tostring(ES_ATA(14, nombre_juego)),
+				"",
+				log_existe("atajo ", pops_u .."/POPS/XX.".. nombre_temp ..".ELF"),
+				log_existe("vcd   ", pops_u .."/POPS/".. nombre_juego),
+				log_existe("iox   ", pops_u .."/POPS/POPS_IOX.PAK"),
+				log_existe("ioprp ", pops_u .."/POPS/IOPRP252.IMG"),
+				log_existe("POPS.ELF", pops_u .."/POPS/POPS.ELF"),
+				log_existe("POPS.PAK", pops_u .."/POPS/POPS.PAK"),
+				"",
+				"Drivers BDMAssault en la Memory Card. El manual los exige para",
+				"POPStarter cuando el soporte esta en exFAT, y POPStarter los carga",
+				"el mismo: si faltan, no sabe leer el .VCD y devuelve al launcher.",
+				log_existe("mc0 usbd    ", "mc0:/POPSTARTER/usbd.irx"),
+				log_existe("mc0 usbhdfsd", "mc0:/POPSTARTER/usbhdfsd.irx"),
+				log_existe("mc0 SYS USBD", "mc0:/SYS-CONF/USBD.IRX"),
+				log_existe("mc0 SYS HDFS", "mc0:/SYS-CONF/USBHDFSD.IRX"),
+				"",
+				"reinicio del IOP : ".. tostring(reboot_pops) .."  (ajuste: ".. tostring(IOP_REBOOT_POPS) ..")",
+			})
 			black_blur()
 			if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1.lua") then
 				require("System/RetroarchPS2/Sony PlayStation/PS1 Startup/intro_ps1")
 				ps1_startup()
 			end
-			System.loadELF(POPS_RAIZ .."/POPS/XX.".. nombre_temp ..".ELF", 0, POPS_RAIZ .."/POPS/", "--nr")
+			System.loadELF(pops_u .."/POPS/XX.".. nombre_temp ..".ELF", reboot_pops, pops_u .."/POPS/", "--nr")
 		else
 			JOYSTICK_LIMITE = control_FPS(1)-30
 			local pregunta, selector_dir = true, 1
@@ -7028,22 +7370,24 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 					submenu_selector({}, nil, TEXT_M_CON[46], 160, 247, true, CONTROL.ANCHO//2, {}, false, true, {}, nil)
 					if selector_dir == 1 then
 						if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF") then
-							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", POPS_RAIZ .."/POPS/XX.".. nombre_temp ..".ELF")
+							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", pops_u .."/POPS/XX.".. nombre_temp ..".ELF")
+							PARCHE_USB_DELAY(pops_u .."/POPS/XX.".. nombre_temp ..".ELF")
 						else
 							error("No found \"".. actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF\"")
 						end
 						ejecutar_juego(14, nombre_juego, false)
 					elseif selector_dir == 2 then
 						if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF") then
-							if System.listDirectory(POPS_RAIZ .."/APPS") == nil then
-								System.createDirectory(POPS_RAIZ .."/APPS")
+							if System.listDirectory(pops_u .."/APPS") == nil then
+								System.createDirectory(pops_u .."/APPS")
 							end
-							if System.listDirectory(POPS_RAIZ .."/APPS/".. nombre_temp_2) == nil then
-								System.createDirectory(POPS_RAIZ .."/APPS/".. nombre_temp_2)
+							if System.listDirectory(pops_u .."/APPS/".. nombre_temp_2) == nil then
+								System.createDirectory(pops_u .."/APPS/".. nombre_temp_2)
 							end
-							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF")
+							System.copyFile(actual .."/System/RetroarchPS2/Sony PlayStation/POPSTARTER.ELF", pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF")
+							PARCHE_USB_DELAY(pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF")
 							local data_pops = "title=".. nombre_temp_2 .."\r\nboot=XX.".. nombre_temp ..".ELF\r\n"
-							local title_create = System.openFile(POPS_RAIZ .."/APPS/".. nombre_temp_2 .."/title.cfg", FCREATE)
+							local title_create = System.openFile(pops_u .."/APPS/".. nombre_temp_2 .."/title.cfg", FCREATE)
 							System.writeFile(title_create, data_pops, string.len(data_pops))
 							System.closeFile(title_create)
 						else
@@ -7084,6 +7428,7 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		else
 			black_blur()
 			if string.lower(string.sub(nombre_juego, -4)) == ".elf" then
+				log_lanzamiento("PS2  ELF en el lector CD/DVD", {log_existe("elf", "cdfs:/".. string.sub(nombre_juego, 1, 11))})
 				System.loadELF("cdfs:/".. string.sub(nombre_juego, 1, 11), 0, "cdfs:/")
 			else
 				if doesFileExist(actual .."/System/RetroarchPS2/Sony PlayStation 2/PS2 Startup/intro_ps2.lua") then

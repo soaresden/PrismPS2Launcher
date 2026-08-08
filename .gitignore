@@ -1,20 +1,51 @@
-# Journaux de diagnostic ecrits par la console
+# Diagnostic logs written by the console
 BDM_REPORT.txt
 LAUNCH_LOG.txt
+exfatdb.json
 
-# Sauvegardes locales des binaires
+# Local binary backups
 *.orig
 *.bak
 *.2025
 RETROLauncher/enceladus.elf
 
-# Nightlies RetroArch en vrac (non redistribuables)
-/retroarch/
+# Personal content: ROMs, artwork, titles. The folder STRUCTURE is kept, so a
+# fresh clone still gets the layout - only what sits inside is ignored.
+/RETROLauncher/Roms/*/*
+!/RETROLauncher/Roms/*/.INFO*
+!/RETROLauncher/Roms/*/media/
+/RETROLauncher/Roms/*/media/*
+!/RETROLauncher/Roms/*/media/*/
+/RETROLauncher/Roms/*/media/*/*
+!/RETROLauncher/Roms/*/media/*/.INFO*
 
-# Collection personnelle
-/RETROLauncher/Roms/CUEs PlayStation 1/
-/RETROLauncher/Roms
+# BIOS and POPStarter binaries are not redistributable
+/RETROLauncher/Bios/*
+!/RETROLauncher/Bios/.INFO*
+
+# RetroArch nightlies, dropped in by the user
+/retroarch/
+/RETROLauncher/Retroarch Extracted Files/cores/
+/RETROLauncher/Retroarch Extracted Files/info/
+/RETROLauncher/Retroarch Extracted Files/raboot.elf
+
+# Local video-mode markers
 RETROLauncher/System/Respaldo/NTSC
 RETROLauncher/System/Respaldo/PAL
-RETROLauncher/System/Respaldo/NTSC
-CHANGES.md
+POPS/IOPRP252.IMG
+POPS/POPS.ELF
+POPS/POPS.PAK
+POPS/POPS_IOX.PAK
+POPS/POPSTARTER.ELF
+POPS/TROJAN_7.BIN
+*.VCD
+/RETROLauncher/HelperScripts/__pycache__
+*.lrtl
+RETROLauncher/Retroarch Extracted Files/retroarch/system/scph1001.bin
+RETROLauncher/Retroarch Extracted Files/retroarch/system/gba_bios.bin
+*.state
+*.srm
+*.lpl
+/RETROLauncher/Retroarch Extracted Files/retroarch/logs
+*.opt
+RETROLauncher/HelperScripts/PopsDelay.py

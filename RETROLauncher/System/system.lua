@@ -18,6 +18,42 @@ if END == nil then END = 2 end
 if Sif == nil and IOP ~= nil then Sif = IOP end
 if System.rename == nil and System.moveFile ~= nil then System.rename = System.moveFile end
 
+--- Normaliza el prefijo de unidad de una ruta. ---------------------------------------
+--- "mass:/X" y "mass0:/X" designan lo mismo, pero el nombre depende de QUIEN lanza el
+--- programa: desde el OSD o FMCB se obtiene "mass:", desde uLaunchELF "mass0:".
+--- Sin esto, el launcher cree que la instalacion ha cambiado de sitio y propone
+--- reubicar las configuraciones (perdiendo los ajustes de RetroArch) a cada cambio
+--- de metodo de arranque.
+function NORM_DEV(ruta)
+	if ruta == nil then return "" end
+	local pos = string.find(ruta, ":", 1, true)
+	if pos == nil then return string.lower(ruta) end
+	local dev = string.sub(ruta, 1, pos-1)
+	while string.len(dev) > 0 and string.match(string.sub(dev, -1), "%d") ~= nil do
+		dev = string.sub(dev, 1, -2)
+	end
+	return string.lower(dev ..":".. string.sub(ruta, pos+1))
+end
+
+--- Quita la numeracion del prefijo de unidad y DEJA EL RESTO INTACTO. ----------------
+--- "mass0:/POPS/Juego.VCD" -> "mass:/POPS/Juego.VCD".
+--- No confundir con NORM_DEV, que ademas pasa todo a minusculas porque sirve para
+--- comparar rutas; aqui eso destrozaria el nombre del fichero.
+--- Hace falta porque Enceladus 2025 monta los dispositivos como "mass0:", "mass1:",
+--- mientras que el homebrew anterior a BDM -POPStarter v13, Neutrino, RetroArch-
+--- solo conoce "mass:". La build de 2024 sobre la que se escribio RETROLauncher
+--- reportaba "mass:", y de ahi que aquello funcionara sin tocar nada.
+function DEV_SIN_NUM(ruta)
+	if ruta == nil then return nil end
+	local pos = string.find(ruta, ":", 1, true)
+	if pos == nil then return ruta end
+	local dev = string.sub(ruta, 1, pos-1)
+	while string.len(dev) > 0 and string.match(string.sub(dev, -1), "%d") ~= nil do
+		dev = string.sub(dev, 1, -2)
+	end
+	return dev ..":".. string.sub(ruta, pos+1)
+end
+
 --- Deteccion de la build: la tabla global "IOP" solo existe en Enceladus reciente. ----
 ENCELADUS_MODERNO = (IOP ~= nil)
 
@@ -229,6 +265,83 @@ function RAIZ(rel)
 	return RAICES[1]
 end
 
+--- PlayStation 1 / POPStarter. --------------------------------------------------------
+--- POPStarter lee siempre el .VCD y escribe la tarjeta de memoria virtual en
+--- "<unidad>/POPS/<nombre del juego>/", este donde este su ELF (por eso funciona el
+--- montaje con el ELF en "APPS/"). Aun asi se admite "<raiz>/Roms/psx-pops(vcd)/" como
+--- biblioteca, para no tener que separar los juegos del resto: el fichero se traslada a
+--- "POPS/" la primera vez que se lanza. Dentro de la misma unidad es un renombrado,
+--- instantaneo sea cual sea el tamano; entre unidades distintas hay que copiar.
+POPS_SUB = "/Roms/psx-pops(vcd)"
+
+--- Unidades que pueden tener una carpeta "POPS" en su raiz: el soporte de arranque
+--- y cada unidad BDM. La misma coleccion se usa para buscar y para lanzar.
+function POPS_UNIDADES()
+	local u = {}
+	local actual = System.currentDirectory()
+	local pos = string.find(actual, ":", 1, true)
+	if pos ~= nil then table.insert(u, string.sub(actual, 1, pos)) end
+	if BDM_DEVICES ~= nil then
+		for i = 1, #BDM_DEVICES do
+			local rep = false
+			for j = 1, #u do if u[j] == BDM_DEVICES[i] then rep = true end end
+			if rep == false then table.insert(u, BDM_DEVICES[i]) end
+		end
+	end
+	return u
+end
+
+--- Unidad cuyo "POPS/" contiene ese fichero. POPStarter exige que el .VCD, su ELF
+--- y la tarjeta de memoria esten en la MISMA unidad, asi que lanzar con POPS_RAIZ
+--- fallaba cuando el juego vivia en el otro soporte.
+function POPS_DE(nombre)
+	if nombre ~= nil then
+		local u = POPS_UNIDADES()
+		for i = 1, #u do
+			if doesFileExist(u[i] .."/POPS/".. nombre) then return u[i] end
+		end
+	end
+	return POPS_RAIZ
+end
+
+--- Ruta real del .VCD: primero "POPS/" de cada unidad, luego la biblioteca de cada
+--- raiz. nil si no esta en ninguna parte.
+function RUTA_VCD(nombre)
+	local u = POPS_UNIDADES()
+	for i = 1, #u do
+		if doesFileExist(u[i] .."/POPS/".. nombre) then
+			return u[i] .."/POPS/".. nombre
+		end
+	end
+	for i = 1, #RAICES do
+		if doesFileExist(RAICES[i] .. POPS_SUB .."/".. nombre) then
+			return RAICES[i] .. POPS_SUB .."/".. nombre
+		end
+	end
+	return nil
+end
+
+--- Lleva el .VCD a "POPS/" si todavia no esta ahi. Devuelve true si al final si esta.
+function VCD_A_POPS(nombre)
+	local destino = POPS_RAIZ .."/POPS/".. nombre
+	if doesFileExist(destino) then return true end
+	local origen = RUTA_VCD(nombre)
+	if origen == nil then return false end
+	-- Comparacion de unidad SIN normalizar: "mass0:" y "mass1:" son discos distintos.
+	local function unidad(p)
+		local pos = string.find(p, ":", 1, true)
+		if pos == nil then return "" end
+		return string.lower(string.sub(p, 1, pos))
+	end
+	if unidad(origen) == unidad(destino) and System.rename ~= nil then
+		pcall(System.rename, origen, destino)
+	end
+	if doesFileExist(destino) == false then
+		pcall(System.copyFile, origen, destino)
+	end
+	return doesFileExist(destino)
+end
+
 --- Inventario de lo que el launcher ve en cada raiz. Se anade a BDM_REPORT.txt. ------
 --- Poner INVENTARIO_ON a false cuando ya no haga falta.
 INVENTARIO_ON = false
@@ -309,21 +422,73 @@ LAUNCH_LOG_ON = true
 
 --- Reinicio del IOP antes de lanzar un core de RetroArch. ----------------------------
 --- 0 = no reiniciar (comportamiento original de RETROLauncher).
---- 1 = reiniciar: el core recibe un IOP limpio y carga sus propios drivers USB.
---- Con 0, el core hereda usbd/usbmass_bd/bdm/bdmfs_fatfs ya residentes (mas
---- dev9_ns y ata_bd), y su propia carga de drivers puede fallar -> pantalla negra.
-IOP_REBOOT_CORES = 1
+--- 1 = reiniciar antes de entregar el ELF.
+--- Se vuelve a 0. Razon: en esta consola Neutrino y POPStarter arrancan bien y ambos
+--- se lanzan con 0; lo unico que se lanzaba con 1 son los cores, y son lo unico que
+--- falla. Ademas RetroArch reinicia el IOP el mismo nada mas arrancar
+--- ("reset_IOP()" en frontend_ps2_init), asi que hacerlo dos veces no aporta nada y
+--- deja al cargador sin drivers para leer el propio ELF.
+IOP_REBOOT_CORES = 0
+
+--- Tamano maximo del historial. Al pasarlo se recorta por el PRINCIPIO, nunca por el
+--- final: lo interesante es siempre lo ultimo. A ~700 bytes por entrada esto guarda
+--- del orden de un centenar de lanzamientos, varias sesiones de pruebas.
+LAUNCH_LOG_MAX = 60000
+
+--- Marca de sesion: se escribe una vez por arranque, para separar en el fichero lo
+--- que viene de un encendido y lo que viene del siguiente.
+LAUNCH_LOG_SESION = false
 
 function log_lanzamiento(titulo, campos)
 	if LAUNCH_LOG_ON ~= true then return end
 	pcall(function()
-		local t = "RETROLauncher - ultimo intento de lanzamiento\n"
-		t = t .."============================================\n\n"
+		-- HISTORIAL CONTINUO. El fichero nunca se vacia: se lee, se le anade la
+		-- entrada nueva al final y se reescribe entero. Sobrevive por tanto a los
+		-- reinicios, que es justo lo que hace falta cuando cada prueba fallida
+		-- devuelve el control a uLaunchELF.
+		local previo = ""
+		pcall(function()
+			local ruta = System.currentDirectory() .."/LAUNCH_LOG.txt"
+			if doesFileExist(ruta) then
+				local f = System.openFile(ruta, FREAD)
+				local tam = System.sizeFile(f)
+				System.seekFile(f, 0, SET)
+				previo = System.readFile(f, tam)
+				System.closeFile(f)
+				if string.len(previo) > LAUNCH_LOG_MAX then
+					previo = "[...principio recortado...]\n"..
+						string.sub(previo, string.len(previo) - LAUNCH_LOG_MAX + 1000)
+				end
+			end
+		end)
+
+		local t = previo
+		if t == "" then
+			t = "RETROLauncher - historial de lanzamientos\n"
+			t = t .."=========================================\n"
+			t = t .."Se anade una entrada por lanzamiento y no se borra nunca.\n"
+			t = t .."LAUNCH_LOG_ON a false en system.lua lo desactiva.\n"
+		end
+		if LAUNCH_LOG_SESION == false then
+			LAUNCH_LOG_SESION = true
+			local sello = ""
+			-- La PS2 tiene reloj, pero "os.date" no siempre esta expuesto: si falla,
+			-- la marca se queda sin fecha y sigue sirviendo de separador.
+			pcall(function() sello = "  ".. os.date("%Y-%m-%d %H:%M:%S") end)
+			t = t .."\n============================================================\n"
+			t = t .."ARRANQUE".. sello .."\n"
+			t = t .."============================================================\n"
+		end
+		t = t .."\n------------------------------------------------------------\n"
 		t = t .. titulo .."\n\n"
 		for i = 1, #campos do
 			t = t .. campos[i] .."\n"
 		end
-		t = t .."\n(si esto es lo ultimo escrito, el fallo esta en el ELF de arriba)\n"
+		if MEDIA_DIAG ~= nil and #MEDIA_DIAG >= 1 then
+			t = t .."\nCaratula del juego seleccionado, rutas probadas en orden:\n"
+			for i = 1, #MEDIA_DIAG do t = t .."  ".. MEDIA_DIAG[i] .."\n" end
+		end
+		t = t .."\n(si esta es la ultima entrada, el fallo esta en el ELF de arriba)\n"
 		local f = System.openFile(System.currentDirectory() .."/LAUNCH_LOG.txt", FCREATE)
 		System.writeFile(f, t, string.len(t))
 		System.closeFile(f)
@@ -338,6 +503,573 @@ function log_existe(etiqueta, ruta)
 end
 
 --- Origen de cada juego encontrado: ORIGEN["identidad|nombre"] = raiz. ---------------
+--- Busqueda en el lector CD/DVD ("cdfs:"). -------------------------------------------
+--- Spaghetticode (autor del proyecto) reporta que el programa se cuelga si se lanza
+--- desde un wLaunchELF que ya haya cargado el modulo CD/DVD (consola Slim), y que el
+--- problema desaparece si se omite todo lo relacionado con la busqueda en el lector.
+--- false = no tocar el lector. true = comportamiento original.
+BUSCAR_CDVD = false
+
+--- Nombres de carpeta al estilo EmulationStation / Batocera, por sistema. ------------
+--- Se aceptan ademas de la estructura propia "Roms/Roms <sistema>", tanto en
+--- "<raiz>/roms/<alias>" como en "<unidad>/roms/<alias>" (disposicion Batocera).
+ES_ALIAS = {
+	{"megadrive", "genesis", "md"},
+	{"mastersystem", "sms"},
+	{"gamegear", "gg"},
+	{"nes", "famicom", "fds"},
+	{"gb", "gameboy"},
+	{"gbc", "gameboycolor"},
+	{"gba", "gameboyadvance"},
+	{"atari2600"},
+	{"lynx", "atarilynx"},
+	{"sg1000", "sg-1000"},
+	{"ngp", "ngpc", "neogeopocket"},
+	{"snes", "sfc", "supernintendo"},
+}
+
+--- Ruta real de una ROM: el directorio memorizado durante el scan si existe, si no
+--- la estructura propia resuelta sobre las raices.
+function RUTA_ROM(identidad, sistema, nombre)
+	local clave = tostring(identidad) .."|".. nombre
+	if ORIGEN_DIR ~= nil and ORIGEN_DIR[clave] ~= nil then
+		return ORIGEN_DIR[clave] .. nombre
+	end
+	return RUTA("/Roms/Roms ".. sistema .."/".. nombre)
+end
+
+--- Titulos reales de los juegos. TITULOS["identidad|fichero"] = titulo. -------------
+--- Los genera el script "HelperScripts/MediaCopier.py" en un "titles.txt" por
+--- carpeta, a partir del gamelist.xml de Batocera / Recalbox / EmulationStation.
+--- Formato de cada linea: nombre_de_fichero|Titulo del juego
+TITULOS = {}
+TITULOS_LEIDOS = {}
+
+function cargar_titulos(directorio, identidad)
+	if directorio == nil then return end
+	if TITULOS_LEIDOS[directorio] == true then return end
+	TITULOS_LEIDOS[directorio] = true
+
+	local ruta = directorio .."/titles.txt"
+	if doesFileExist(ruta) == false then return end
+	pcall(function()
+		local fd = System.openFile(ruta, FREAD)
+		local tam = System.sizeFile(fd)
+		System.seekFile(fd, 0, SET)
+		local datos = System.readFile(fd, tam)
+		System.closeFile(fd)
+		for linea in string.gmatch(datos, "[^\r\n]+") do
+			local corte = string.find(linea, "|", 1, true)
+			if corte ~= nil then
+				local fichero = string.sub(linea, 1, corte-1)
+				local titulo  = string.sub(linea, corte+1)
+				if fichero ~= "" and titulo ~= "" then
+					TITULOS[tostring(identidad) .."|".. fichero] = titulo
+				end
+			end
+		end
+	end)
+end
+
+--- Nombre a mostrar: el titulo real si se conoce, si no el nombre de fichero
+--- recortado de su extension como hace el programa de origen.
+function NOMBRE_VISIBLE(identidad, nombre, desde)
+	if nombre == nil then return "" end
+	local t = TITULOS[tostring(identidad) .."|".. nombre]
+	if t == nil then
+		local limpio = nombre
+		while string.sub(limpio, -1) == " " do limpio = string.sub(limpio, 1, -2) end
+		t = string.sub(limpio, 1, -CONTROL.EXTENSION)
+	end
+	if desde ~= nil and desde > 1 then return string.sub(t, desde) end
+	return t
+end
+
+--- Base de datos de lo que la consola ve realmente: "exfatdb.json", junto al ELF. ----
+--- Se rellena a medida que se recorren los sistemas y se reescribe en cada cambio.
+--- Sirve sobre todo para ajustar los scripts del PC: es la unica fuente fiable de
+--- lo que la PS2 encuentra, con los nombres de unidad tal como ella los ve.
+EXFATDB_ON = true
+EXFATDB = {}
+EXFATDB_SUCIA = false
+
+--- Escapa una cadena para JSON. -----------------------------------------------------
+function json_txt(s)
+	s = tostring(s)
+	s = string.gsub(s, "\\", "\\\\")
+	s = string.gsub(s, "\"", "\\\"")
+	s = string.gsub(s, "[\r\n\t]", " ")
+	return "\"".. s .."\""
+end
+
+--- Registra un directorio explorado y su contenido. ---------------------------------
+--- "clave" permite agrupar bajo otro nombre que el de ROMS_DIR[identidad]: PS1 usa
+--- una sola identidad para dos formatos ("psx-ember(bin and cue)" y "psx-pops(vcd)").
+function exfatdb_dir(identidad, sistema, directorio, entradas, clave)
+	if EXFATDB_ON ~= true or directorio == nil then return end
+	local reg = EXFATDB[directorio]
+	if reg == nil then
+		reg = {
+			identidad = identidad,
+			sistema   = sistema,
+			clave     = clave,
+			ata       = ES_RAIZ_ATA(directorio),
+			juegos    = {},
+		}
+		EXFATDB[directorio] = reg
+	end
+	-- FUSIONAR, no sustituir. Un mismo directorio aparece varias veces en la lista
+	-- de busqueda: con su nombre propio y otra vez como alias EmulationStation. En
+	-- la segunda pasada los juegos ya estan en "vistos", asi que la lista llega
+	-- vacia; sustituir el registro borraba todo lo encontrado en la primera.
+	for i = 1, #entradas do
+		reg.juegos[entradas[i].fichero] = entradas[i].titulo
+	end
+	EXFATDB_SUCIA = true
+end
+
+--- Vuelca el fichero. ---------------------------------------------------------------
+--- Agrupado por soporte ("USB" / "ATA") y por sistema, no por directorio: en un
+--- sistema de ficheros que ignora mayusculas, "Roms/nes" y "roms/nes" son la misma
+--- carpeta y aparecian dos veces. Aqui se fusionan, y los juegos repetidos tambien.
+function exfatdb_escribir()
+	if EXFATDB_ON ~= true or EXFATDB_SUCIA ~= true then return end
+	EXFATDB_SUCIA = false
+	pcall(function()
+		-- Reagrupar: soporte -> sistema -> conjunto de ficheros.
+		local grupo = {USB = {}, ATA = {}}
+		for ruta, info in pairs(EXFATDB) do
+			local soporte = "USB"
+			if info.ata == true then soporte = "ATA" end
+			local clave = info.clave or ROMS_DIR[info.identidad]
+			if clave == nil then clave = tostring(info.sistema) end
+			if grupo[soporte][clave] == nil then grupo[soporte][clave] = {} end
+			local destino = grupo[soporte][clave]
+			for fichero, titulo in pairs(info.juegos) do
+				destino[fichero] = titulo
+			end
+		end
+
+		local function bloque(soporte, sangria)
+			local sistemas = {}
+			for k, _v in pairs(grupo[soporte]) do table.insert(sistemas, k) end
+			table.sort(sistemas)
+			local s = ""
+			for i = 1, #sistemas do
+				local ficheros = {}
+				for f, _t in pairs(grupo[soporte][sistemas[i]]) do
+					table.insert(ficheros, f)
+				end
+				table.sort(ficheros)
+				-- "POPS" vive en la raiz de la unidad, no bajo "roms/".
+			local etiqueta = "roms/".. sistemas[i]
+			if sistemas[i] == "POPS" then etiqueta = "POPS" end
+			s = s .. sangria .."  ".. json_txt(etiqueta) ..": [\n"
+				for j = 1, #ficheros do
+					s = s .. sangria .."    ".. json_txt(ficheros[j])
+					if j < #ficheros then s = s .."," end
+					s = s .."\n"
+				end
+				s = s .. sangria .."  ]"
+				if i < #sistemas then s = s .."," end
+				s = s .."\n"
+			end
+			return s
+		end
+
+		--- Unidad asociada a cada soporte, para poder reconstruir la ruta completa.
+		local u_usb, u_ata = "", ""
+		local pos = string.find(System.currentDirectory(), ":", 1, true)
+		if pos ~= nil then u_usb = string.sub(System.currentDirectory(), 1, pos) end
+		for i = 1, #BDM_DEVICES do
+			if BDM_ATA[BDM_DEVICES[i]] == true and u_ata == "" then
+				u_ata = BDM_DEVICES[i]
+			end
+		end
+
+		local t = "{\n"
+		t = t .."  \"generado_por\": \"RETROLauncher fork - exFAT HDD\",\n"
+		t = t .."  \"nota\": \"Rutas relativas a la carpeta del launcher en cada unidad. "
+		t = t .."Solo aparecen los sistemas abiertos en el menu desde el ultimo arranque.\",\n"
+		t = t .."  \"launcher\": ".. json_txt(System.currentDirectory()) ..",\n"
+		t = t .."  \"USB\": {\n"
+		t = t .."    \"unidad\": ".. json_txt(u_usb) ..",\n"
+		t = t .."    \"juegos\": {\n".. bloque("USB", "    ") .."    }\n"
+		t = t .."  },\n"
+		t = t .."  \"ATA\": {\n"
+		t = t .."    \"unidad\": ".. json_txt(u_ata) ..",\n"
+		t = t .."    \"juegos\": {\n".. bloque("ATA", "    ") .."    }\n"
+		t = t .."  }\n}\n"
+
+		local f = System.openFile(System.currentDirectory() .."/exfatdb.json", FCREATE)
+		System.writeFile(f, t, string.len(t))
+		System.closeFile(f)
+	end)
+end
+
+--- Carpeta de medios por identidad, incluidos los sistemas sin alias EmulationStation
+--- (APPS, PS1, PS2). Es el nombre usado bajo "Roms/<aqui>/media/".
+--- Arranque de RetroArch a traves de "raboot.elf". ----------------------------------
+--- DESCARTADO, y el motivo esta en el codigo de RetroArch. "raboot.elf" es el
+--- Salamander, y en "frontend/drivers/platform_ps2.c" el bloque que pasa el juego al
+--- core esta dentro de un "#ifndef IS_SALAMANDER": el Salamander llama al core con
+--- CERO argumentos. Nunca podra arrancar una ROM, solo abrir el menu de RetroArch.
+--- Ademas reescribe "retroarch-salamander.cfg" con su propia eleccion, borrando la
+--- nuestra. Se deja el camino por si sirve para depurar, apagado.
+RABOOT_ON = false
+
+--- Devuelve la ruta de raboot.elf si esta disponible, si no nil. ---------------------
+function RUTA_RABOOT()
+	if RABOOT_ON ~= true or RAICES == nil then return nil end
+	for i = 1, #RAICES do
+		local cand = RAICES[i] .."/Retroarch Extracted Files/raboot.elf"
+		if doesFileExist(cand) then return cand end
+	end
+	return nil
+end
+
+--- Escribe el core elegido en el salamander que lee raboot. -------------------------
+--- Ruta del salamander que corresponde a un raboot.elf dado. -------------------------
+function RUTA_SALAMANDER(ruta_raboot)
+	if ruta_raboot == nil then return nil end
+	-- "raboot.elf" son 10 caracteres: hay que quitar 10, no 11. Con -12 se comia
+	-- tambien la barra y el fichero se escribia en una ruta inexistente, en silencio.
+	local base = string.sub(ruta_raboot, 1, string.len(ruta_raboot) - 10)
+	return base .."retroarch/retroarch-salamander.cfg"
+end
+
+--- Escribe el core elegido en el salamander que lee raboot. -------------------------
+--- Se relee despues: si el contenido no es el esperado, se devuelve false y el
+--- lanzamiento cae en la llamada directa en vez de arrancar el core anterior.
+function PREPARAR_RABOOT(ruta_raboot, ruta_core)
+	if ruta_raboot == nil or ruta_core == nil then return false end
+	local cfg = RUTA_SALAMANDER(ruta_raboot)
+	local linea = "libretro_path = \"".. ruta_core .."\"\n"
+	pcall(function()
+		local f = System.openFile(cfg, FCREATE)
+		System.writeFile(f, linea, string.len(linea))
+		System.closeFile(f)
+	end)
+	local leido = nil
+	pcall(function()
+		local f = System.openFile(cfg, FREAD)
+		local tam = System.sizeFile(f)
+		System.seekFile(f, 0, SET)
+		leido = System.readFile(f, tam)
+		System.closeFile(f)
+	end)
+	return leido ~= nil and string.find(leido, ruta_core, 1, true) ~= nil
+end
+
+--- Sobrecarga de cores RetroArch. ---------------------------------------------------
+--- "Retroarch Extracted Files/cores/" recibe una nightly descomprimida tal cual.
+--- Si un core esta ahi, sustituye al incluido en "System/RetroarchPS2/<sistema>/".
+--- No se comparan fechas: la API Lua de PS2 no expone la fecha de un fichero, solo
+--- nombre, tamano y tipo. La regla es "si esta aqui, gana".
+--- Se busca en TODAS las raices, asi que la carpeta puede estar en el disco exFAT.
+function RUTA_CORE(nombre_core, ruta_original)
+	if nombre_core == nil or nombre_core == " " then return ruta_original end
+	if RAICES ~= nil then
+		for i = 1, #RAICES do
+			local cand = RAICES[i] .."/Retroarch Extracted Files/cores/".. nombre_core
+			if doesFileExist(cand) then return cand end
+		end
+	end
+	return ruta_original
+end
+
+--- Nombres de carpeta de este fork, bajo "Roms/". -----------------------------------
+ROMS_DIR = {
+	"megadrive", "mastersystem", "gamegear", "nes", "gb", "gbc", "gba",
+	"atari2600", "lynx", "sg1000", "ngp", "snes",
+	"APPS-Media", "psx-ember(bin and cue)", "ps2-isos",
+}
+
+--- Ficheros de sistema, agrupados en "Bios/" en la raiz del launcher. ---------------
+--- Se conservan las ubicaciones historicas como respaldo.
+function RUTA_BIOS(fichero, respaldo)
+	local actual = System.currentDirectory()
+	local cand = actual .."/Bios/".. fichero
+	if doesFileExist(cand) then return cand end
+	if respaldo ~= nil and doesFileExist(respaldo) then return respaldo end
+	return cand
+end
+
+--- Nombre de fichero de una ruta. ---------------------------------------------------
+function nombre_fichero(ruta)
+	if ruta == nil then return "" end
+	local i = string.len(ruta)
+	while i > 0 and string.sub(ruta, i, i) ~= "/" do i = i - 1 end
+	return string.sub(ruta, i+1)
+end
+
+--- Extensiones reales de cada sistema, para cruzarlas con las que declara cada core.
+--- Faltan "zip" y "bin" a proposito: no distinguen nada. Ocho de los cores instalados
+--- declaran "bin" (stella2014, gpsp, o2em, gearcoleco, freeintv, smsplus...), asi que
+--- incluirlo daria por bueno casi cualquier core para casi cualquier sistema.
+SISTEMA_EXTEN = {
+	{"gen", "smd", "md"}, {"sms"}, {"gg"}, {"nes", "fds", "unf"},
+	{"gb"}, {"gbc"}, {"gba"}, {"a26"}, {"lnx", "lyx"}, {"sg"},
+	{"ngc", "ngp", "npc"}, {"sfc", "smc"},
+}
+
+--- Extensiones declaradas por un core, leidas de su ".info". ------------------------
+--- "picodrive_libretro_ps2.elf" -> "info/picodrive_libretro.info".
+function CORE_EXTENSIONES(ruta_core)
+	local n = nombre_fichero(ruta_core)
+	if string.len(n) < 9 or string.sub(n, -8) ~= "_ps2.elf" then return nil end
+	local info = string.sub(n, 1, -9) ..".info"
+	if RAICES == nil then return nil end
+	for i = 1, #RAICES do
+		local p = RAICES[i] .."/Retroarch Extracted Files/info/".. info
+		if doesFileExist(p) then
+			local txt = nil
+			pcall(function()
+				local f = System.openFile(p, FREAD)
+				local tam = System.sizeFile(f)
+				System.seekFile(f, 0, SET)
+				txt = System.readFile(f, tam)
+				System.closeFile(f)
+			end)
+			if txt ~= nil then
+				return string.match(txt, "supported_extensions%s*=%s*\"([^\"]*)\"")
+			end
+		end
+	end
+	return nil
+end
+
+--- Un core sirve para un sistema si declara alguna de sus extensiones. --------------
+function CORE_SIRVE(ruta_core, identidad)
+	local exts = SISTEMA_EXTEN[identidad]
+	if exts == nil then return true end
+	local sup = CORE_EXTENSIONES(ruta_core)
+	if sup == nil then return false end
+	sup = "|".. string.lower(sup) .."|"
+	for i = 1, #exts do
+		if string.find(sup, "|".. exts[i] .."|", 1, true) ~= nil then return true end
+	end
+	return false
+end
+
+--- Despliegue de Ember junto a los juegos. -------------------------------------------
+--- Ember resuelve el .cue RELATIVO a su propio directorio: el original le pasaba solo
+--- el nombre del fichero y lo lanzaba desde la carpeta de los juegos. Al mover el
+--- emulador a "Bios/" se rompio ese contrato, y Ember arrancaba en la pantalla del
+--- BIOS por no encontrar el disco. Se restaura el montaje de origen: "ember.elf" y
+--- "bios.bin" se colocan junto a los .cue, copiados desde "Bios/" la primera vez.
+--- Son dos ficheros pequenos y una sola vez por carpeta.
+--- Devuelve la ruta del ELF listo para lanzar, o nil.
+function EMBER_EN(carpeta)
+	if carpeta == nil then return nil end
+	local elf = carpeta .."/ember.elf"
+	local bios = carpeta .."/bios.bin"
+	if doesFileExist(elf) == false then
+		local origen = RUTA_BIOS("psx-ember.elf", "")
+		if doesFileExist(origen) == false then return nil end
+		pcall(System.copyFile, origen, elf)
+	end
+	if doesFileExist(bios) == false then
+		local origen = RUTA_BIOS("bios.bin", "")
+		if doesFileExist(origen) then pcall(System.copyFile, origen, bios) end
+	end
+	if doesFileExist(elf) then return elf end
+	return nil
+end
+
+--- Retardo de acceso al USB de POPStarter. -------------------------------------------
+--- POPStarter da por perdido el dispositivo si tarda en responder, y entonces escribe
+--- "Opening mass:/POPS/... FAILED / No POPS directory ? / Increase the USB access
+--- delay". El valor vive en un solo byte de su tabla de configuracion, en el offset
+--- 0x413, y por tanto hay que parchearlo en CADA copia "XX.<juego>.ELF", porque cada
+--- atajo es un POPStarter completo. De fabrica vale 3, que es poco para muchas llaves.
+--- 0 = no tocar nada.
+POPS_USB_DELAY = 20
+
+function PARCHE_USB_DELAY(ruta)
+	if POPS_USB_DELAY == nil or POPS_USB_DELAY <= 0 then return end
+	if ruta == nil or doesFileExist(ruta) == false then return end
+	pcall(function()
+		local f = System.openFile(ruta, FRDWR)
+		-- Comprobacion de firma: los bytes que rodean al retardo en la Rev 13.
+		System.seekFile(f, 0x410, SET)
+		local marco = System.readFile(f, 8)
+		if marco == nil or string.len(marco) < 8
+		   or string.byte(marco, 1) ~= 0 or string.byte(marco, 2) ~= 0
+		   or string.byte(marco, 3) ~= 0 or string.byte(marco, 5) ~= 0x40
+		   or string.byte(marco, 8) ~= 1 then
+			System.closeFile(f)
+			return
+		end
+		System.seekFile(f, 0x413, SET)
+		System.writeFile(f, string.char(POPS_USB_DELAY), 1)
+		System.closeFile(f)
+	end)
+end
+
+--- Reinicio del IOP para POPStarter y Ember. -----------------------------------------
+--- Al contrario que los cores de RetroArch, estos dos son homebrew antiguo que carga
+--- sus propios modulos. Este fork deja residentes "dev9_ns" y "ata_bd", que el
+--- original nunca cargaba: es la unica diferencia de entorno que queda respecto a la
+--- version de partida, y ambos son justamente los que dejaron de arrancar. Con 1 se
+--- les entrega un IOP limpio, sin esos modulos.
+IOP_REBOOT_POPS = 1
+IOP_REBOOT_EMBER = 1
+
+MEDIA_ALIAS = {
+	"megadrive", "mastersystem", "gamegear", "nes", "gb", "gbc", "gba",
+	"atari2600", "lynx", "sg1000", "ngp", "snes",
+	"APPS-Media", "psx-ember(bin and cue)", "ps2-isos",
+}
+
+--- Indice de las carpetas de medios. -------------------------------------------------
+--- El manual avisa (pagina 46): "comprobar si una imagen existe en una carpeta de 500
+--- elementos no es lo mismo que buscarla en una de mas de 1000". Cada cambio de
+--- seleccion preguntaba por hasta seis rutas distintas, una llamada al sistema de
+--- ficheros cada una, y este fork ha multiplicado las raices a explorar.
+--- Aqui la carpeta se lista UNA vez y despues la comprobacion es una busqueda en
+--- tabla, gratis. El indice se vacia al reconstruir una lista, que es cuando el
+--- contenido puede haber cambiado.
+MEDIA_INDICE = {}
+
+function media_indice(directorio)
+	local idx = MEDIA_INDICE[directorio]
+	if idx ~= nil then return idx end
+	idx = {}
+	local c = System.listDirectory(directorio)
+	if c ~= nil then
+		for i = 1, #c do
+			if c[i].directory == false then idx[c[i].name] = true end
+		end
+	end
+	MEDIA_INDICE[directorio] = idx
+	return idx
+end
+
+function media_indice_olvidar()
+	MEDIA_INDICE = {}
+end
+
+--- Localizacion de caratulas y capturas. --------------------------------------------
+--- Este fork busca PRIMERO junto a la propia ROM, lo que permite que los medios de
+--- los juegos del disco exFAT vivan en el disco exFAT:
+---   <carpeta de la rom>/media/covers/<fichero sin extension>.png
+---   <carpeta de la rom>/media/screenshots/<fichero sin extension>.png
+--- Si no hay nada, se usa la ubicacion historica del programa:
+---   <launcher>/Multimedia/Covers/Covers <Sistema>/<fichero sin extension>.png
+function RUTA_MEDIA(tipo, identidad, sistema, nombre, base)
+	if nombre == nil then return "" end
+	local carpeta = "covers"
+	local clasico = "Covers/Covers "
+	if tipo == "screenshot" then
+		carpeta = "screenshots"
+		clasico = "Screenshots/Screenshots "
+	end
+
+	-- 1. "Roms/<alias>/media/..." sobre cada raiz, EN ORDEN: RAICES[1] es siempre el
+	--    soporte de arranque, asi que el USB gana. Un juego que vive en el disco
+	--    exFAT usa la caratula del USB si esta ahi, lo que permite centralizar todas
+	--    las imagenes en la llave sin duplicarlas en el disco.
+	if tipo == "cover" then MEDIA_DIAG = {} end
+	local function probar(dir, fichero)
+		local hay = media_indice(dir)[fichero] == true
+		if tipo == "cover" and #MEDIA_DIAG < 8 then
+			table.insert(MEDIA_DIAG, (hay and "[ok]   " or "[FALTA] ") .. dir .."/".. fichero)
+		end
+		return hay
+	end
+
+	-- PS1 reune dos formatos bajo la misma identidad, y sus imagenes pueden estar en
+	-- la carpeta de cualquiera de los dos. Se prueban ambas.
+	local fichero = base ..".png"
+	local alias = {MEDIA_ALIAS[identidad]}
+	if identidad == 14 then table.insert(alias, "psx-pops(vcd)") end
+	if RAICES ~= nil then
+		for a = 1, #alias do
+			if alias[a] ~= nil then
+				for i = 1, #RAICES do
+					local dir = RAICES[i] .."/Roms/".. alias[a] .."/media/".. carpeta
+					if probar(dir, fichero) then return dir .."/".. fichero end
+				end
+			end
+		end
+	end
+
+	-- 2. Junto a la propia ROM, este donde este.
+	local orig = nil
+	if ORIGEN_DIR ~= nil then orig = ORIGEN_DIR[tostring(identidad) .."|".. nombre] end
+	if orig ~= nil then
+		local dir = orig .."media/".. carpeta
+		if probar(dir, fichero) then return dir .."/".. fichero end
+	end
+
+	-- 3. Ubicacion historica, por compatibilidad con instalaciones existentes.
+	local dir = base_launcher() .."/Multimedia/".. clasico .. sistema
+	probar(dir, fichero)
+	return dir .."/".. fichero
+end
+
+--- Rutas probadas para la ultima caratula. Se vuelcan en LAUNCH_LOG.txt al lanzar,
+--- que es la unica forma de ver desde el PC lo que la consola ha mirado de verdad.
+MEDIA_DIAG = {}
+
+--- Traza de la carga de imagenes. --------------------------------------------------
+--- "Graphics.loadImage" puede colgar la consola con un PNG que no le gusta o que no
+--- cabe en VRAM, y entonces no queda ni mensaje ni log. Aqui se escribe la ruta
+--- ANTES de cargarla: si la consola se congela, el ultimo renglon del fichero nombra
+--- la imagen culpable. Poner a false cuando ya no haga falta, escribe en cada
+--- cambio de seleccion.
+ART_LOG_ON = true
+
+function log_art(fase, ruta)
+	if ART_LOG_ON ~= true then return end
+	pcall(function()
+		local t = "RETROLauncher - carga de imagenes\n"
+		t = t .."=================================\n\n"
+		t = t .."Si este fichero termina en \"-> cargando\", la consola se colgo\n"
+		t = t .."al abrir esa imagen. Convertirla o reducirla resuelve el caso.\n\n"
+		t = t .. fase .." -> ".. tostring(ruta) .."\n"
+		local f = System.openFile(System.currentDirectory() .."/MEDIA_LOG.txt", FCREATE)
+		System.writeFile(f, t, string.len(t))
+		System.closeFile(f)
+	end)
+end
+
+--- Carpeta "ART" de OPL. Esta en la RAIZ de la unidad, NO dentro del launcher, y
+--- upstream solo miraba en el soporte de arranque. Aqui se recorren tambien las
+--- unidades BDM, para que "<disco exFAT>/ART" sirva a los juegos que viven ahi.
+function RUTA_ART(fichero)
+	local cand = {}
+	local actual = System.currentDirectory()
+	local pos = string.find(actual, ":", 1, true)
+	if pos ~= nil then table.insert(cand, string.sub(actual, 1, pos)) end
+	if BDM_DEVICES ~= nil then
+		for i = 1, #BDM_DEVICES do table.insert(cand, BDM_DEVICES[i]) end
+	end
+	-- "ART" de OPL puede tener cientos de imagenes: se indexa como las demas.
+	for i = 1, #cand do
+		if media_indice(cand[i] .."/ART")[fichero] == true then
+			return cand[i] .."/ART/".. fichero
+		end
+	end
+	if #cand >= 1 then return cand[1] .."/ART/".. fichero end
+	return actual .."/ART/".. fichero
+end
+
+--- Recursos globales (fondos, fuentes). Nueva ubicacion: "Roms/!Retrolauncher/",
+--- junto al resto del contenido. Se conserva "Multimedia/Others" como respaldo.
+function RUTA_GLOBAL(que)
+	local actual = System.currentDirectory()
+	local nuevo = actual .."/Roms/!Retrolauncher/".. que
+	if System.listDirectory(nuevo) ~= nil then return nuevo end
+	return actual .."/Multimedia/Others/".. que
+end
+
+--- Carpeta del launcher (soporte de arranque). --------------------------------------
+function base_launcher()
+	return System.currentDirectory()
+end
+
 ERROR_DETALLE = nil   -- detalle del ultimo fallo de "existe()"
 
 --- El cuadro de error solo dispone de UNA linea entre el titulo y el pie. Aqui se
@@ -397,7 +1129,10 @@ if true then
 	end
 	-- "mass1:" solo cuenta como segundo USB si NO la ha montado ata_bd.
 	local usb2 = (System.listDirectory("mass1:") ~= nil and BDM_ATA["mass1:"] ~= true)
-	if string.lower("libretro_path = \"".. actual .."/RETROLauncher.elf\"") ~= string.lower(temp_dir) or usb2 then
+	-- Comparacion normalizada: solo el prefijo de unidad puede diferir segun el
+	-- metodo de arranque, y eso no justifica reubicar nada.
+	local esperado = NORM_DEV("libretro_path = \"".. actual .."/RETROLauncher.elf\"")
+	if esperado ~= NORM_DEV(temp_dir) or usb2 then
 		require("System/relocation")
 	end
 	if doesFileExist("System/Respaldo/PAL") == false and doesFileExist("System/Respaldo/NTSC") == false then

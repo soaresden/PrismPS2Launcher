@@ -99,10 +99,18 @@ end
 
 --- Dibujar indicadores. ----------------------------------------------------------------
 function dibujar_indicadores()
-	-- Atajo L1+R1: rejilla de seleccion rapida de sistema, arriba a la izquierda,
-	-- por encima del logo del sistema.
-	dibujar_indicador(24, 2, "+", PAD_IMG.L1, 24, 24, 3, true)
-	dibujar_indicador(56, 2, "Quick System Selection", PAD_IMG.R1, 24, 24, 3, true)
+	-- Atajo L1+R1 (rejilla de sistemas). Solo con CIRCULO mantenido, y anclado a la
+	-- posicion del logo del sistema, que el usuario puede mover desde las opciones:
+	-- asi el indicador sigue el tema en vez de estar fijo en una esquina.
+	if Pads.check(PAD, PAD_CIRCLE) and CONTROL.LOGO_ANCHO ~= nil then
+		local ix = CONTROL.LOGO_ANCHO
+		local iy = CONTROL.LOGO_ALTO - 24
+		if iy < 2 then iy = CONTROL.LOGO_ALTO + (CONTROL.LOGO_Y or 0) + 4 end
+		if ix < 2 then ix = 2 end
+		if ix > 430 then ix = 430 end
+		dibujar_indicador(ix, iy, "+", PAD_IMG.L1, 22, 22, 3, true)
+		dibujar_indicador(ix + 30, iy, "System grid", PAD_IMG.R1, 22, 22, 3, true)
+	end
 	local message = {TEXT_M_PRI[2], TEXT_M_PRI[3], TEXT_M_PRI[4], TEXT_M_PRI[5], TEXT_M_PRI[6], TEXT_M_PRI[7], TEXT_M_PRI[8], TEXT_M_PRI[32], TEXT_M_PRI[34]}
 	if CONTROL.ESTILO == 6 then
 		message = {TEXT_GEN[7], TEXT_M_PRI[9], TEXT_M_PRI[10], TEXT_M_PRI[11], TEXT_M_PRI[12], TEXT_M_PRI[7], TEXT_M_PRI[31], TEXT_M_PRI[33], TEXT_M_PRI[34]}
@@ -405,9 +413,9 @@ function create_scroll(limite)
 	end
 	if CONTROL.ESPERA_CARGA_SCR == false then
 		if OPCIONES.GUI_LIMPIA_ON == 1 and CONTROL.ESTILO == 3 then
-			LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX, n_text .. string.sub(LISTAS.ROMS[LISTAS.INDICE], 1, -CONTROL.EXTENSION), 42)
+			LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX, n_text .. NOMBRE_VISIBLE(LISTAS.IDENTIDAD, LISTAS.ROMS[LISTAS.INDICE]), 42)
 		else
-			LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX, n_text .. string.sub(LISTAS.ROMS[LISTAS.INDICE], 1, -CONTROL.EXTENSION), limite)
+			LISTAS.SCROLL_TEX = scroll_texto(LISTAS.SCROLL_TEX, n_text .. NOMBRE_VISIBLE(LISTAS.IDENTIDAD, LISTAS.ROMS[LISTAS.INDICE]), limite)
 		end
 	end
 	if (LISTAS.IDENTIDAD == 15 or LISTAS.IDENTIDAD == 14) and string.match(string.sub(LISTAS.ROMS[LISTAS.INDICE], 1, 12), "%a+_%d+%.%d+%.") and LISTAS.SCROLL_TEX <= 13 then
@@ -430,11 +438,32 @@ function mostrar_lista(pos_linea, elemento, n_ele)
 	--   "[ATA]" : el juego viene del disco interno exFAT.
 	--   "[ZIP]" : archivo comprimido. Los cores de RetroArch en PS2 no siempre
 	--            saben abrirlos, aunque el launcher los liste.
+	-- Solo con CIRCULO mantenido, como el indicador de soporte de PS2. Mostrarlo
+	-- siempre alargaba el texto sin que "scroll_texto" lo supiera, y el desplazamiento
+	-- del titulo seleccionado dejaba de arrancar.
 	local function prefijo_lista(idx)
+		if Pads.check(PAD, PAD_CIRCLE) == false then return "" end
 		if LISTAS.ROMS == nil or LISTAS.ROMS[idx] == nil then return "" end
 		local nom = LISTAS.ROMS[idx]
 		local pre = ""
-		if ES_ATA ~= nil and ES_ATA(LISTAS.IDENTIDAD, nom) then pre = "[ATA]" end
+
+		-- APPS (identidad 13): la lista solo guarda el nombre, la ruta completa esta
+		-- en LISTAS.DIR_FULL_APP. Se etiqueta segun la unidad de esa ruta.
+		if LISTAS.IDENTIDAD == 13 and LISTAS.DIR_FULL_APP ~= nil
+		   and LISTAS.DIR_FULL_APP[idx] ~= nil then
+			local ruta = LISTAS.DIR_FULL_APP[idx]
+			if ES_RAIZ_ATA ~= nil and ES_RAIZ_ATA(ruta) then
+				pre = "[ATA]"
+			elseif string.sub(string.lower(ruta), 1, 4) == "mass" then
+				pre = "[USB]"
+			elseif string.sub(string.lower(ruta), 1, 2) == "mc" then
+				pre = "[MC]"
+			elseif string.sub(string.lower(ruta), 1, 4) == "cdfs" then
+				pre = "[CD]"
+			end
+		elseif ES_ATA ~= nil and ES_ATA(LISTAS.IDENTIDAD, nom) then
+			pre = "[ATA]"
+		end
 
 		-- El scan anade un espacio al final para las extensiones de 3 letras.
 		local limpio = nom
@@ -453,9 +482,9 @@ function mostrar_lista(pos_linea, elemento, n_ele)
 		if (LISTAS.IDENTIDAD == 15 or LISTAS.IDENTIDAD == 14) and string.match(string.sub(LISTAS.ROMS[elemento], 1, 12), "%a+_%d+%.%d+%.") then
 			fix_ini_name = 13
 		end
-		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(elemento) .. string.sub(LISTAS.ROMS[elemento], fix_ini_name, -CONTROL.EXTENSION), COLOR.BLANCO_LISTA)
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(elemento) .. NOMBRE_VISIBLE(LISTAS.IDENTIDAD, LISTAS.ROMS[elemento], fix_ini_name), COLOR.BLANCO_LISTA)
 	else
-		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(LISTAS.INDICE) .. string.sub(LISTAS.ROMS[LISTAS.INDICE], LISTAS.SCROLL_TEX, -CONTROL.EXTENSION), CAMBIOS_EMUS.COLOR_EMU)
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(LISTAS.INDICE) .. NOMBRE_VISIBLE(LISTAS.IDENTIDAD, LISTAS.ROMS[LISTAS.INDICE], LISTAS.SCROLL_TEX), CAMBIOS_EMUS.COLOR_EMU)
 	end
 end
 
