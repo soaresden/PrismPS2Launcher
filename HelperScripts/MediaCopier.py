@@ -70,12 +70,13 @@ SYSTEMS = [
     {"long": "Neo Geo Pocket", "dir": "ngp",
      "es": ["ngp", "ngpc", "neogeopocket"],
      "folders": ["ngp", "ngpc", "neogeopocket", "Roms Neo Geo Pocket"]},
-    {"long": "PlayStation", "dir": "psx-ember(bin and cue)",
+    {"long": "PlayStation", "dir": "psx-ember(bin and cue)", "media": "psx",
      "es": ["psx"],
      "folders": ["psx-ember(bin and cue)", "psx", "CUEs PlayStation 1"]},
     # Same games, other container: POPStarter takes .vcd, Ember takes .cue+.bin.
-    # The Batocera gamelist is indexed on the stem, so both resolve against "psx".
-    {"long": "PlayStation POPS", "dir": "psx-pops(vcd)",
+    # The Batocera gamelist is indexed on the stem, so both resolve against "psx",
+    # and both put their pictures in "Roms/psx" rather than one folder each.
+    {"long": "PlayStation POPS", "dir": "psx-pops(vcd)", "media": "psx",
      "es": ["psx"],
      "folders": ["psx-pops(vcd)", "psx-pops", "VCDs PlayStation 1"]},
     {"long": "PlayStation 2", "dir": "ps2-isos",
@@ -368,7 +369,12 @@ def handle_games(names, syst, es_root, usb_root, tag_cover, tag_screen,
     if index is None:
         return None
 
-    base_dir = usb_root / "Roms" / syst["dir"]
+    # "media" is where the pictures GO, "dir" is only where the ROMs were found.
+    # PlayStation has two dump formats in two folders - .cue in
+    # "psx-ember(bin and cue)", .vcd in "psx-pops(vcd)" - and it is the same
+    # game with the same cover either way, so both write into "Roms/psx" and
+    # the artwork is kept once. The launcher reads "Roms/psx" first for PS1.
+    base_dir = usb_root / "Roms" / syst.get("media", syst["dir"])
     d_cover = base_dir / "media" / "covers"
     d_screen = base_dir / "media" / "screenshots"
 

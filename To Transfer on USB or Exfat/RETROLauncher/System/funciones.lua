@@ -89,7 +89,7 @@ end
 --- elementos del editor de temas, la rama de "moverse" se disparaba sola en cada
 --- fotograma -- de ahi el sonido de seleccion sin fin -- y CRUZ y R1 no llegaban nunca
 --- a sus ramas, de ahi que no se pudiera encender ni apagar nada.
-function PALANCA(valor)
+function stick_moved(valor)
 	if valor == nil then return false end
 	return valor <= -90 or valor >= 90
 end
@@ -115,8 +115,8 @@ function repro_sfx(sonido, canal, vibrar, lado_vibrar)
 	if OPCIONES.SOUND_ON == 1 and sonido ~= nil then
 		-- La voz sale del sonido, no del numero que se pasa aqui: los 166 sitios que
 		-- llaman a esta funcion pasan "1", y una sola voz no puede reproducir dos
-		-- sonidos a la vez. Ver SFX_CANALES en system.lua.
-		Sound.playADPCM(SFX_VOZ(sonido, canal), sonido)
+		-- sonidos a la vez. Ver SFX_CHANNELS en system.lua.
+		Sound.playADPCM(sfx_voice(sonido, canal), sonido)
 	end
 	OPCIONES.VIBRATION = vibrar
 	OPCIONES.VIBRATION_MODE = lado_vibrar
@@ -4036,7 +4036,7 @@ function recargar_todas()
 			-- "USB scan <nom>" al abrir cada fuente. Una linea menos por sistema, y
 			-- cada linea cuesta una reescritura del journal y dos repintados.
 			nueva = crear_listas(contador, nueva)
-			CARGA_PASO(nom .."  ".. tostring(#nueva) .." found  (".. tostring(contador) .."/15)")
+			load_step(nom .."  ".. tostring(#nueva) .." found  (".. tostring(contador) .."/15)")
 		end
 		table.insert(crea, nueva)
 	end
@@ -4061,18 +4061,18 @@ end
 --- IZQUIERDA / DERECHA -- no con arriba / abajo, que aqui hacen falta para recorrer
 --- la lista, y en el resto del programa izquierda/derecha es siempre "cambiar el
 --- valor de esta linea".
-function VMC_LISTA_ELEGIR(nombre_iso)
-	local id = VMC_ID(nombre_iso)
+function vmc_pick_card(nombre_iso)
+	local id = vmc_id(nombre_iso)
 	if id == nil then return nil end
 
 	-- Una sola lectura de las carpetas: recorrer la lista no debe volver al disco.
-	local cand, propias = VMC_CANDIDATAS(id)
-	local unidades = VMC_UNIDADES()
+	local cand, propias = vmc_candidates(id)
+	local unidades = vmc_drives()
 	local ver_todo, num = false, 1
 	local rutas, etiquetas = {}, {}
 
 	local function nombre_nuevo()
-		return VMC_NOMBRE_NUEVO(nombre_iso, num) or (id .."-".. num ..".bin")
+		return vmc_new_name(nombre_iso, num) or (id .."-".. num ..".bin")
 	end
 
 	local function construir()
@@ -4148,10 +4148,12 @@ function VMC_LISTA_ELEGIR(nombre_iso)
 			elseif r == "-" then
 				JOYSTICK_LIMITE = control_FPS(1)
 			elseif string.sub(r, 1, 4) == "NEW:" then
-				elegida = VMC_CREAR(string.sub(r, 5), nombre_nuevo())
+				elegida = vmc_create(string.sub(r, 5), nombre_nuevo())
+				log_event("VMC", "created ".. tostring(elegida) .." for ".. tostring(id))
 				abierto = false
 			else
 				elegida = r
+				log_event("VMC", "picked ".. tostring(elegida) .." for ".. tostring(id))
 				abierto = false
 			end
 		elseif (Pads.check(PAD, PAD_TRIANGLE) or Pads.check(PAD, PAD_CIRCLE))
@@ -4189,25 +4191,25 @@ end
 --- del juego. Un juego de PS2 no se lanza a ciegas: aqui se ve, antes de arrancar, en
 --- que tarjeta se va a guardar la partida, de que fichero sale, y con que lanzador.
 --- Devuelve true si hay que lanzar, false si se ha cancelado.
-function menu_lanzamiento(nombre_iso)
+function launch_menu(nombre_iso)
 	if nombre_iso == nil then return false end
-	VMC_CFG_LEER()
-	LANZADOR_LEER()
-	local id = VMC_ID(nombre_iso)
+	vmc_cfg_load()
+	launcher_cfg_load()
+	local id = vmc_id(nombre_iso)
 
 	-- Estado de partida, tal y como quedo la ultima vez. VMC.cfg es la memoria del
 	-- "last vmc for this game": una linea "<ID>=<ruta>".
 	local usar_vmc = true
-	if id == nil or VMC_JUEGOS[id] == "none" then usar_vmc = false end
+	if id == nil or VMC_GAMES[id] == "none" then usar_vmc = false end
 
 	local elegida = nil
 	if id ~= nil then
-		local v = VMC_JUEGOS[id]
+		local v = VMC_GAMES[id]
 		if v ~= nil and v ~= "none" and doesFileExist(v) then
 			elegida = v
 		else
 			-- Ninguna eleccion guardada: se propone la primera tarjeta DE ESTE JUEGO.
-			local cand, propias = VMC_CANDIDATAS(id)
+			local cand, propias = vmc_candidates(id)
 			if propias >= 1 then elegida = cand[1] end
 		end
 	end
@@ -4222,7 +4224,7 @@ function menu_lanzamiento(nombre_iso)
 		return "VMC file    : ".. elegida
 	end
 	local function et_lanzador()
-		if LANZADOR_ES_OPL(nombre_iso) then return "Launch with : OPL" end
+		if launcher_is_opl(nombre_iso) then return "Launch with : OPL" end
 		return "Launch with : Neutrino"
 	end
 
@@ -4238,16 +4240,19 @@ function menu_lanzamiento(nombre_iso)
 	local function guardar()
 		if id == nil then return end
 		if usar_vmc == false then
-			VMC_JUEGOS[id] = "none"
+			VMC_GAMES[id] = "none"
 		elseif elegida ~= nil then
-			VMC_JUEGOS[id] = elegida
+			VMC_GAMES[id] = elegida
 		else
-			VMC_JUEGOS[id] = nil
+			VMC_GAMES[id] = nil
 		end
-		VMC_CFG_GUARDAR()
+		vmc_cfg_save()
 	end
 
 	local sel, abierto, lanzar = 1, true, false
+	log_event("MENU", "launch menu opened for ".. tostring(nombre_iso)
+		.."  card=".. (usar_vmc and tostring(elegida) or "real")
+		.."  launcher=".. (launcher_is_opl(nombre_iso) and "opl" or "neutrino"))
 	JOYSTICK_LIMITE = control_FPS(1)
 	while abierto do
 		CONTROL.FPS = Screen.getFPS(1)
@@ -4262,7 +4267,7 @@ function menu_lanzamiento(nombre_iso)
 		if Pads.check(PAD, PAD_CROSS) and CONTROL.JOYSTICK_ON == false then
 			repro_sfx(S_EJECUTAR, 1, false, nil)
 			if sel == I_FICHERO and usar_vmc == true then
-				local escogida = VMC_LISTA_ELEGIR(nombre_iso)
+				local escogida = vmc_pick_card(nombre_iso)
 				if escogida ~= nil then elegida = escogida end
 				repintar()
 				JOYSTICK_LIMITE = control_FPS(1)
@@ -4275,10 +4280,14 @@ function menu_lanzamiento(nombre_iso)
 					JOYSTICK_LIMITE = control_FPS(1)
 				else
 					guardar()
+					log_event("LANZA", "start: ".. tostring(nombre_iso)
+						.."  card=".. (usar_vmc and tostring(elegida) or "real PS2 card")
+						.."  launcher=".. (launcher_is_opl(nombre_iso) and "OPL" or "Neutrino"))
 					lanzar = true
 					abierto = false
 				end
 			elseif sel == I_CANCEL then
+				log_event("MENU", "launch menu cancelled")
 				abierto = false
 			else
 				JOYSTICK_LIMITE = control_FPS(1)
@@ -4298,12 +4307,12 @@ function menu_lanzamiento(nombre_iso)
 		       and (Pads.check(PAD, PAD_LEFT) or Pads.check(PAD, PAD_RIGHT)
 		            or Left_X <= -90 or Left_X >= 90) then
 			repro_sfx(S_MOVER, 1, false, nil)
-			if LANZADOR_ES_OPL(nombre_iso) then
-				LANZADOR_JUEGOS[nombre_iso] = nil
+			if launcher_is_opl(nombre_iso) then
+				LAUNCHER_GAMES[nombre_iso] = nil
 			else
-				LANZADOR_JUEGOS[nombre_iso] = "opl"
+				LAUNCHER_GAMES[nombre_iso] = "opl"
 			end
-			LANZADOR_GUARDAR()
+			launcher_cfg_save()
 			repintar()
 			JOYSTICK_LIMITE = control_FPS(1)
 		elseif (Pads.check(PAD, PAD_UP) or Left_Y <= -90) and CONTROL.JOYSTICK_ON == false then
@@ -4328,7 +4337,7 @@ end
 --- Ahora TRIANGULO abre esta lista: el intercambio de arte sigue ahi, acompanado de lo
 --- que aplique al sistema en curso, y del borrado. Las combinaciones antiguas siguen
 --- funcionando para quien las conozca.
-function menu_juego()
+function game_menu()
 	if LISTAS.ROMS == nil or LISTAS.ROMS[LISTAS.INDICE] == nil then return end
 	local etiquetas, acciones = {}, {}
 
@@ -4352,6 +4361,34 @@ function menu_juego()
 			anadir("PS1 settings", function()
 				animaciones(nil, true); menu_pops(LISTAS.ROMS[LISTAS.INDICE]) end)
 		end
+		-- Este juego existe en las dos formas: una linea para elegir con cual arranca.
+		-- Solo aparece cuando de verdad hay las dos, para no ofrecer una eleccion que
+		-- no lo es.
+		local ps1_clave = ps1_key(LISTAS.ROMS[LISTAS.INDICE])
+		if PS1_ALT_EMBER ~= nil and PS1_ALT_EMBER[ps1_clave] ~= nil
+		   and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".emb" then
+			ps1_cfg_load()
+			anadir("", function() end)
+			local idx_ps1 = #etiquetas
+			local function et_ps1()
+				if PS1_GAMES[ps1_clave] == "ember" then
+					return "Play with: Ember  (".. PS1_ALT_EMBER[ps1_clave] ..")"
+				end
+				return "Play with: POPStarter"
+			end
+			etiquetas[idx_ps1] = et_ps1()
+			acciones[idx_ps1] = function()
+				local antes = PS1_GAMES[ps1_clave] or "pops"
+				if PS1_GAMES[ps1_clave] == "ember" then
+					PS1_GAMES[ps1_clave] = nil
+				else
+					PS1_GAMES[ps1_clave] = "ember"
+				end
+				ps1_cfg_save()
+				log_event("SET", "PS1 backend for ".. ps1_clave ..": ".. antes .." -> "
+					.. (PS1_GAMES[ps1_clave] or "pops"))
+			end
+		end
 	elseif LISTAS.IDENTIDAD == 15 then
 		if string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) ~= ".elf" then
 			anadir("PS2 settings", function()
@@ -4372,8 +4409,8 @@ function menu_juego()
 	end
 
 	-- El borrado va en ultimo lugar, lejos del cursor al abrir el menu.
-	if RUTA_JUEGO_ACTUAL() ~= nil then
-		anadir("Delete this game", borrar_juego_actual)
+	if current_game_path() ~= nil then
+		anadir("Delete this game", delete_current_game)
 	end
 
 	if #etiquetas == 0 then return end
@@ -4423,7 +4460,7 @@ end
 --- Cada sistema guarda su origen de forma distinta, de ahi el reparto.
 --- Devuelve nil cuando no se puede establecer con certeza: mas vale no ofrecer el
 --- borrado que borrar el fichero equivocado.
-function RUTA_JUEGO_ACTUAL()
+function current_game_path()
     local identidad = LISTAS.IDENTIDAD
     local nombre = LISTAS.ROMS[LISTAS.INDICE]
     if nombre == nil then return nil end
@@ -4454,10 +4491,10 @@ end
 --- otro con el mismo nombre en otra unidad.
 --- La respuesta por defecto es NO, y se exige mantener SELECT: un borrado no debe
 --- poder ocurrir por un boton pulsado sin querer.
-function borrar_juego_actual()
+function delete_current_game()
     local nombre = LISTAS.ROMS[LISTAS.INDICE]
     if nombre == nil then return false end
-    local ruta = RUTA_JUEGO_ACTUAL()
+    local ruta = current_game_path()
 
     local titulo = "Delete this game?"
     local lineas = {}
@@ -4503,7 +4540,7 @@ function borrar_juego_actual()
     local ok = pcall(System.removeFile, ruta)
     ok = ok and (doesFileExist(ruta) == false)
     boot_log("BORRA  ".. tostring(ruta) .." -> ".. tostring(ok))
-    boot_escribir()
+    boot_flush()
     if ok == false then
         repro_sfx(S_CANCELAR, 1, false, nil)
         return false
@@ -6039,7 +6076,7 @@ function menu_config()
 						-- que contenga un digito de mas o de menos para que todo lo que
 						-- viene detras se lea corrido. No es sitio para un interruptor.
 						OPCIONES.SEE_INDEX = on_index
-						SEE_INDEX_GUARDAR(on_index)
+						see_index_save(on_index)
 						JOYSTICK_LIMITE = control_FPS(1)
 					elseif Pads.check(PAD, PAD_TRIANGLE) then
 						repro_sfx(S_CANCELAR, 1, false, nil)
@@ -6389,7 +6426,7 @@ function menu_config()
 			OPCIONES.SEE_INDEX = on_index
 			-- Tambien por esta via: el interruptor se guarda tanto si se pulsa como si
 			-- se confirma el menu entero. Su fichero propio es la unica fuente fiable.
-			SEE_INDEX_GUARDAR(on_index)
+			see_index_save(on_index)
 			CAMBIOS_EMUS.TRAS = tras_demo
 			if OPCIONES.VIDEO_MODE == 1 then
 				CONTROL.ALTO_F = 512
@@ -6869,9 +6906,9 @@ function crear_listas(identidad, lista)
 				-- "ATA scan snes" -- todas las lineas empezaban igual.
 				local sistema = string.upper(tostring(ROMS_DIR[identidad]))
 				if fuente == "ATA" then
-					CARGA_PASO(sistema .." - Exfat", "exfat")
+					load_step(sistema .." - Exfat", "exfat")
 				else
-					CARGA_PASO(sistema .." - USB", "usb")
+					load_step(sistema .." - USB", "usb")
 				end
 			end
 			local buscar = System.listDirectory(dirs[i_dir])
@@ -6950,10 +6987,10 @@ function crear_listas(identidad, lista)
 		-- esta definido en Lua: puede devolver 4 y saltarse el resto. Se recorre a 8.
 		for buscar_apps = 1, 8 do
 			if buscar_directorio[buscar_apps] ~= nil then
-				CARGA_PASO("APPS: listing ".. buscar_directorio[buscar_apps])
+				load_step("APPS: listing ".. buscar_directorio[buscar_apps])
 				local buscar = System.listDirectory(buscar_directorio[buscar_apps])
 				if buscar ~= nil then
-					CARGA_PASO("APPS: listing ".. buscar_directorio[buscar_apps]
+					load_step("APPS: listing ".. buscar_directorio[buscar_apps]
 					           .."  ".. tostring(#buscar) .." entries")
 					for contador = 1, #buscar do
 						local recursiva = nil
@@ -6981,7 +7018,7 @@ function crear_listas(identidad, lista)
 							end
 						end
 						if recursiva ~= nil then
-							CARGA_PASO("APPS:   into ".. buscar[contador].name
+							load_step("APPS:   into ".. buscar[contador].name
 							           .."  ".. tostring(#recursiva) .." entries")
 							for contador2 = 1, #recursiva do
 								if recursiva[contador2].directory == false and string.lower(string.sub(recursiva[contador2].name, -4)) == ".elf" and string.lower(string.sub(recursiva[contador2].name, 1, 3)) ~= "xx." and string.lower(string.sub(recursiva[contador2].name, 1, 3)) ~= "sb." then
@@ -7066,7 +7103,68 @@ function crear_listas(identidad, lista)
 					"psx-pops(vcd)")
 			end
 		end
-		-- Scan Ember: independiente de POPS y sobre TODAS las raices. -----------------
+		-- Scan Ember Beta 1: "<raiz>/Ember/games/<carpeta>". -------------------------
+		--
+		-- Un juego de Ember es un DIRECTORIO, no un fichero, asi que se lista con una
+		-- extension inventada, ".emb". El resto del programa recorta cuatro caracteres
+		-- para quedarse con el nombre visible y para buscar la caratula, de modo que
+		-- "Spyro.emb" se ve como "Spyro" y busca "Spyro.png" sin ningun caso especial.
+		--
+		-- Y NO se lista lo que ya esta como .VCD. El mismo juego puede existir en las
+		-- dos formas -- son dos maneras de arrancar una sola cosa -- y verlo dos veces
+		-- en la lista no ayuda a nadie. Con que arranca cada uno se elige en su menu,
+		-- como Neutrino y OPL en PS2.
+		PS1_EMBER = {}
+		PS1_WARNING = {}
+		-- Un juego que existe en las DOS formas no desaparece: se lista una vez, y la
+		-- otra queda apuntada aqui para que el menu del juego pueda ofrecerla. Sin
+		-- esto, "no duplicar" acabaria queriendo decir "la version de Ember no se
+		-- puede lanzar", que no es lo mismo.
+		PS1_ALT_EMBER = {}
+		local claves_vcd = {}
+		for i_e = 1, #encontrados do
+			claves_vcd[ps1_key(encontrados[i_e])] = encontrados[i_e]
+		end
+
+		local raices_ember = ember_roots()
+		for i_e = 1, #raices_ember do
+			local dir_juegos = raices_ember[i_e] .."/games"
+			local buscar_emb = System.listDirectory(dir_juegos)
+			if buscar_emb ~= nil then
+				local db_emb = {}
+				for contador = 1, #buscar_emb do
+					local nom = buscar_emb[contador].name
+					if buscar_emb[contador].directory == true
+					   and nom ~= "." and nom ~= ".." then
+						local clave = ps1_key(nom)
+						local ya = claves_vcd[clave]
+						local que = ember_contents(dir_juegos .."/".. nom)
+						if ya ~= nil and que ~= nil and que ~= "chd" then
+							-- Ya esta en la lista como .VCD: no se repite, se apunta.
+							PS1_ALT_EMBER[clave] = nom
+							PS1_EMBER["14|".. nom ..".emb"] = dir_juegos .."/".. nom
+						elseif ya == nil and que ~= nil then
+							local etiqueta = nom ..".emb"
+							claves_vcd[clave] = etiqueta
+							table.insert(encontrados, etiqueta)
+							ORIGEN["14|".. etiqueta] = raices_ember[i_e]
+							PS1_EMBER["14|".. etiqueta] = dir_juegos .."/".. nom
+							-- Un .chd no le sirve a Ember. Se lista igual, marcado,
+							-- porque una carpeta que desaparece sin decir por que es
+							-- peor que una carpeta que avisa.
+							if que == "chd" then PS1_WARNING["14|".. etiqueta] = "chd" end
+							table.insert(db_emb, {fichero = etiqueta,
+								titulo = NOMBRE_VISIBLE(14, etiqueta)})
+						end
+					end
+				end
+				exfatdb_dir(14, "PlayStation", dir_juegos, db_emb, "Ember")
+			end
+		end
+
+		-- Scan Ember (disposicion antigua): independiente de POPS y sobre TODAS las
+		-- raices. Se conserva porque una instalacion existente sigue teniendo sus .cue
+		-- sueltos junto a ember.elf, como pedia la demo.
 		local vistos_ps1 = {}
 		for i_raiz = 1, #RAICES do
 			local sub = "/Roms/psx-ember(bin and cue)"
@@ -7091,6 +7189,10 @@ function crear_listas(identidad, lista)
 		-- Titulos reales de PS1: los dos formatos comparten la lista, asi que se leen
 		-- los "titles.txt" de las dos carpetas y en todas las raices.
 		for i_raiz = 1, #RAICES do
+			-- "Roms/psx" primero: es la carpeta unica de imagenes y titulos de
+			-- PS1, valga el juego en .cue o en .vcd. Las dos de antes se leen
+			-- despues para no obligar a mover nada.
+			cargar_titulos(RAICES[i_raiz] .."/Roms/psx", 14)
 			cargar_titulos(RAICES[i_raiz] .."/Roms/psx-ember(bin and cue)", 14)
 			cargar_titulos(RAICES[i_raiz] .. POPS_SUB, 14)
 		end
@@ -7364,10 +7466,10 @@ function existe(identidad, nombre_juego, alternativo)
 		-- lleva el core del ultimo juego lanzado. Con lo cual el disco podia tener los
 		-- sesenta cores y la respuesta seguia siendo "Games or RetroArch not found".
 		-- Si el core previsto no esta pero hay otro que declara la extension, ese vale:
-		-- es exactamente lo que elegir_core hara dos lineas despues.
+		-- es exactamente lo que pick_core hara dos lineas despues.
 		local defecto = name_cores[identidad]
 		if alternativo == true then defecto = name_cores_alt[identidad] end
-		local rutas = CORES_DEL_SISTEMA(identidad, RUTA_CORE_MAESTRO(defecto, defecto))
+		local rutas = system_cores(identidad, core_master_path(defecto, defecto))
 		if #rutas >= 1 then return true end
 		ERROR_DETALLE = "No core for ".. dir_sistemas[identidad]
 		return false
@@ -7392,6 +7494,25 @@ function existe(identidad, nombre_juego, alternativo)
 		-- exigirlo rechazaba montajes USB perfectamente validos.
 		elseif exten == ".vcd" and RUTA_VCD(nombre_juego) ~= nil and doesFileExist(POPS_DE(nombre_juego) .."/POPS/POPS_IOX.PAK") then
 			return true
+		-- Ember Beta 1: basta con que exista la carpeta del juego y con que el ELF y la
+		-- BIOS esten en la carpeta "Ember", que es autocontenida. No se copia nada a
+		-- ningun sitio, al reves que en la disposicion antigua.
+		elseif exten == ".emb" then
+			local raiz_emb = ember_game(string.sub(nombre_juego, 1, -5))
+			-- ember_bios copies bios.bin from Bios/ the first time; after that it only
+			-- checks. So "missing" here means missing from Bios/ as well.
+			if raiz_emb ~= nil and ember_bios(raiz_emb) then
+				return true
+			end
+			local faltan = {}
+			if raiz_emb == nil then
+				table.insert(faltan, "games/".. string.sub(nombre_juego, 1, -5) .."/")
+			elseif doesFileExist(raiz_emb .."/bios.bin") == false then
+				table.insert(faltan, "bios.bin  (put a PS1 BIOS in Bios/bios.bin, it is copied from there)")
+			end
+			ERROR_DETALLE = detalle_falta("Ember",
+				(raiz_emb or (RAICES[1] .. EMBER_SUB)) .."/", faltan)
+			return false
 		elseif exten == ".cue" and doesFileExist(RUTA("/Roms/psx-ember(bin and cue)/".. nombre_juego))
 		and doesFileExist(RUTA_BIOS("psx-ember.elf", ""))
 		and doesFileExist(RUTA_BIOS("bios.bin", "")) then
@@ -7630,7 +7751,7 @@ function ejecutar_iso(nombre)
 		-- Se crea en la unidad real y solo despues se reescribe el prefijo.
 		local vmc_auto = nil
 		if vmc == nil then
-			vmc = VMC_AUTO(nombre, unidad_real)
+			vmc = vmc_auto(nombre, unidad_real)
 			if vmc ~= nil and selector_bsd == 3 then
 				local pv = string.find(vmc, ":", 1, true)
 				if pv ~= nil then vmc = "-mc0=mass:".. string.sub(vmc, pv+1) end
@@ -7647,7 +7768,7 @@ function ejecutar_iso(nombre)
 			log_existe("neutrino.elf", actual .."/Neutrino/neutrino.elf"),
 			"",
 			"argumento -dvd= : ".. tostring(directorio_iso) .. tostring(nombre_final),
-			"VMC por juego   : ".. tostring(vmc_auto) .."  (ID: ".. tostring(VMC_ID(nombre)) ..")",
+			"VMC por juego   : ".. tostring(vmc_auto) .."  (ID: ".. tostring(vmc_id(nombre)) ..")",
 			"NOTA: con -bsd=ata el disco interno es la unica unidad y Neutrino la ve",
 			"como mass:, de ahi la reescritura del prefijo.",
 		})
@@ -7698,7 +7819,7 @@ CORES_CACHE = {}
 --- preguntarle que hay disponible responde siempre "uno". Aqui se responde con los
 --- sesenta del disco, filtrados por las extensiones que cada uno declara en su ".info".
 --- Devuelve dos tablas paralelas: rutas y nombres para mostrar.
-function CORES_DEL_SISTEMA(identidad, ruta_defecto)
+function system_cores(identidad, ruta_defecto)
 	local cache = CORES_CACHE[identidad]
 	if cache ~= nil then return cache.rutas, cache.nombres end
 
@@ -7714,7 +7835,7 @@ function CORES_DEL_SISTEMA(identidad, ruta_defecto)
 	end
 
 	anadir(ruta_defecto)
-	local dir_ra = RUTA_LIBRETRO_MAESTRA()
+	local dir_ra = libretro_master_path()
 	if dir_ra ~= nil then
 		local dir = dir_ra .."/cores"
 		local c = System.listDirectory(dir)
@@ -7731,8 +7852,8 @@ function CORES_DEL_SISTEMA(identidad, ruta_defecto)
 	return rutas, nombres
 end
 
-function elegir_core(ruta_defecto, identidad)
-	local rutas, nombres = CORES_DEL_SISTEMA(identidad, ruta_defecto)
+function pick_core(ruta_defecto, identidad)
+	local rutas, nombres = system_cores(identidad, ruta_defecto)
 	-- Sin alternativas reales no hay nada que preguntar. Pero "el unico que hay" y "el
 	-- que venia por defecto" no son lo mismo: "ruta_defecto" es un nombre de fichero a
 	-- secas cuando RUTA_CORE no ha sabido resolverlo, y devolverlo entonces era mandar
@@ -7764,7 +7885,7 @@ function elegir_core(ruta_defecto, identidad)
 				local marca = "   "
 				if i == sel then marca = ">  " end
 				table.insert(vista, marca .. nombres[i])
-				if CORE_EN_LLAVE(nombre_fichero(rutas[i])) then
+				if core_on_usb(nombre_fichero(rutas[i])) then
 					if COLOR.VERDE_LISTA == nil then COLOR.VERDE_LISTA = Color.new(0, 128, 45) end
 					colores[#vista] = COLOR.VERDE_LISTA
 				end
@@ -7830,25 +7951,25 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		if alternativo == true then nucleo = name_cores_alt[identidad] end
 
 		-- 1 y 2. Los cores del sistema, y el que se usa. -------------------------------
-		LANZA_PASO("Checking cores for ".. dir_sistemas[identidad])
+		launch_step("Checking cores for ".. dir_sistemas[identidad])
 		-- En la MAESTRA: es la que tiene todos los cores. La de la llave se consulta
 		-- despues, cuando ya se sabe cual hace falta.
-		local ruta_core = RUTA_CORE_MAESTRO(nucleo, nucleo)
+		local ruta_core = core_master_path(nucleo, nucleo)
 		-- Eleccion de core al lanzar, solo para la ejecucion normal.
 		if alternativo ~= true then
-			local elegido = elegir_core(ruta_core, identidad)
+			local elegido = pick_core(ruta_core, identidad)
 			if elegido == nil then return end
 			ruta_core = elegido
 		end
 		if doesFileExist(ruta_core) == false then
 			-- Ni el core por defecto ni ninguna alternativa existen en la instalacion.
 			boot_log("LANZA  ningun core para ".. dir_sistemas[identidad] .." (buscado: ".. tostring(nucleo) ..")")
-			boot_escribir()
-			LANZA_PASO("No core for ".. dir_sistemas[identidad])
+			boot_flush()
+			launch_step("No core for ".. dir_sistemas[identidad])
 			System.sleep(3)
 			return
 		end
-		LANZA_PASO("Core: ".. nombre_fichero(ruta_core))
+		launch_step("Core: ".. nombre_fichero(ruta_core))
 		black_blur()
 		local ruta_rom  = RUTA_ROM(identidad, dir_sistemas[identidad], nombre_juego)
 		-- Reglas que el lanzador impone a RetroArch: carpetas de partidas y modo de
@@ -7857,13 +7978,13 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		-- Si la instalacion de RetroArch esta en el disco interno, el core no sabra
 		-- leerla: se pone en la llave lo que ESTE juego necesita, y nada mas.
 		-- 3 y 4. En la llave: comprobar, y copiar solo lo que falte. -------------------
-		LANZA_PASO("Checking ".. nombre_fichero(ruta_core) .." on USB")
+		launch_step("Checking ".. nombre_fichero(ruta_core) .." on USB")
 		local base_ra = LIBRETRO_PREPARAR_PARA(nombre_fichero(ruta_core))
 		if base_ra ~= nil then ruta_core = RUTA_CORE(nombre_fichero(ruta_core), ruta_core) end
 		if doesFileExist(ruta_core) == false then
 			boot_log("LANZA  el core no ha llegado a su destino: ".. tostring(ruta_core))
-			boot_escribir()
-			LANZA_PASO("Core not ready: ".. nombre_fichero(ruta_core))
+			boot_flush()
+			launch_step("Core not ready: ".. nombre_fichero(ruta_core))
 			System.sleep(3)
 			return
 		end
@@ -7879,13 +8000,13 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		local saves_ida = 0
 		if ES_RAIZ_ATA(ruta_rom) and lee_ata == false then
 			local consola = CARPETA_DE_RUTA(ruta_rom)
-			LANZA_PASO("Copying ROM")
+			launch_step("Copying ROM")
 			local nueva, donde = ROM_TRANSBORDO(ruta_rom, nombre_juego)
 			transbordo = tostring(donde)
 			if string.find(tostring(donde), "cache", 1, true) ~= nil then
-				LANZA_REEMPLAZAR("ROM already on USB")
+				launch_replace("ROM already on USB")
 				LANZA_VERDE[#LANZA_LINEAS] = true
-				LANZA_PINTAR()
+				launch_paint()
 			end
 			if nueva ~= nil then
 				-- La partida de este juego viaja con la ROM. Sin esto el juego
@@ -7894,7 +8015,7 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 				-- copian los ficheros que empiezan por el nombre de ESTE juego.
 				saves_ida = SAVES_DESPLEGAR(DEV_DE_RUTA(nueva), consola, SIN_EXTENSION(nombre_juego))
 				if saves_ida > 0 then
-					LANZA_PASO("Saves: ".. tostring(saves_ida) .." file(s)")
+					launch_step("Saves: ".. tostring(saves_ida) .." file(s)")
 				end
 				ruta_rom = nueva
 			end
@@ -7943,7 +8064,7 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 			"transbordo      : ".. tostring(transbordo),
 			"partidas llevadas : ".. tostring(saves_ida) .."  (vuelven solas al arrancar el lanzador)",
 		})
-		LANZA_PASO("Launching ".. tostring(nombre_juego))
+		launch_step("Launching ".. tostring(nombre_juego))
 		-- Preferir "raboot.elf" cuando esta disponible: es el bootstrap oficial de
 		-- las nightlies, y funciona donde la llamada directa al core falla.
 		local raboot = RUTA_RABOOT()
@@ -7980,6 +8101,17 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 	-- Ejecutar sistema de PlayStation 1. -----------------------------------------------
 	elseif identidad == 14 then
 		guardar()
+		-- Si este juego existe tambien como carpeta de Ember y el usuario lo ha pedido
+		-- asi en el menu del juego, se cambia aqui y todo lo de abajo se comporta como
+		-- si se hubiera elegido la entrada de Ember. Una sola linea en la lista, dos
+		-- maneras de arrancarla.
+		if PS1_ALT_EMBER ~= nil and string.lower(string.sub(nombre_juego, -4)) ~= ".emb" then
+			ps1_cfg_load()
+			local clave = ps1_key(nombre_juego)
+			if PS1_GAMES[clave] == "ember" and PS1_ALT_EMBER[clave] ~= nil then
+				nombre_juego = PS1_ALT_EMBER[clave] ..".emb"
+			end
+		end
 		local nombre_temp = string.sub(nombre_juego, 1, -5)
 		local nombre_temp_2 = nombre_temp
 		if string.len(nombre_temp_2) >= 13 and string.match(string.sub(nombre_temp_2, 1, 12), "%a+_%d+%.%d+%.") then
@@ -7992,13 +8124,57 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 		-- Misma cautela que con Ember: reiniciar el IOP descarga "ata_bd".
 		local reboot_pops = IOP_REBOOT_POPS
 		if ES_RAIZ_ATA(pops_u) then reboot_pops = 0 end
-		if string.lower(string.sub(nombre_juego, -4)) == ".cue" then
+		if string.lower(string.sub(nombre_juego, -4)) == ".emb" then
+			-- Ember Beta 1. El argumento es el NOMBRE DE LA CARPETA dentro de "games",
+			-- no un fichero, y todo lo demas lo resuelve Ember relativo a su propio
+			-- ELF. De ahi que no haya que copiar ni ember.elf ni bios.bin a ninguna
+			-- parte: la carpeta "Ember" es autocontenida y portatil.
+			local carpeta = string.sub(nombre_juego, 1, -5)
+			local raiz_emb, dir_juego = ember_game(carpeta)
+			if raiz_emb == nil then
+				ERROR_DETALLE = detalle_falta("Ember", RAICES[1] .. EMBER_SUB .."/games/",
+					{carpeta .."/"})
+				return
+			end
+			-- Reiniciar el IOP se lleva por delante "ata_bd" y con el el disco interno.
+			-- Si Ember vive ahi, no se reinicia: dejaria de ver su propia carpeta.
+			local reboot_emb = IOP_REBOOT_EMBER
+			if ES_RAIZ_ATA(raiz_emb) then reboot_emb = 0 end
+			local que = ember_contents(dir_juego)
+			log_lanzamiento("PS1  Ember Beta 1", {
+				"juego     : ".. tostring(carpeta),
+				"carpeta   : ".. tostring(dir_juego),
+				"contenido : ".. tostring(que),
+				"desde disco interno (ATA) : ".. tostring(ES_RAIZ_ATA(raiz_emb)),
+				"",
+				log_existe("ember.elf   ", raiz_emb .."/ember.elf"),
+				log_existe("bios.bin    ", raiz_emb .."/bios.bin"),
+				log_existe("settings.txt", raiz_emb .."/settings.txt"),
+				"",
+				"argumento : ".. tostring(carpeta) .."  (nombre de la carpeta, no un fichero)",
+				"reinicio del IOP : ".. tostring(reboot_emb) .."  (ajuste: ".. tostring(IOP_REBOOT_EMBER) ..")",
+			})
+			if que == "chd" then
+				-- Ember no abre un .chd, y sin aviso el usuario aterriza en el shell de
+				-- la BIOS sin saber por que. Descomprimirlo aqui no es una opcion: el
+				-- formato v5 lleva el mapa de sectores comprimido en Huffman y los
+				-- bloques en zlib/LZMA/FLAC, y son cientos de megas a escribir.
+				chd_warning_screen(carpeta)
+				return
+			end
+			black_blur()
+			if doesFileExist(actual .."/System/Intros/PS1/intro_ps1.lua") then
+				require("System/Intros/PS1/intro_ps1")
+				ps1_startup()
+			end
+			System.loadELF(raiz_emb .."/ember.elf", reboot_emb, raiz_emb .."/", carpeta)
+		elseif string.lower(string.sub(nombre_juego, -4)) == ".cue" then
 			local raiz_ps1 = RAIZ("/Roms/psx-ember(bin and cue)/".. nombre_juego)
 			local carpeta_ps1 = raiz_ps1 .."/Roms/psx-ember(bin and cue)"
 			-- Ember se lanza DESDE la carpeta de los juegos y recibe solo el nombre
 			-- del fichero, como en el original: resuelve el .cue relativo a su
 			-- directorio, no acepta una ruta completa.
-			local ember = EMBER_EN(carpeta_ps1)
+			local ember = ember_in(carpeta_ps1)
 			-- Un IOP limpio se lleva por delante "ata_bd", y con el, el disco interno.
 			-- Si el juego vive ahi NO se puede reiniciar: Ember dejaria de ver su
 			-- propia carpeta. Se reinicia solo cuando el juego esta en el arranque.
@@ -8051,7 +8227,9 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 				require("System/Intros/PS1/intro_ps1")
 				ps1_startup()
 			end
-			System.loadELF(pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF", reboot_pops, pops_u .."/APPS/".. nombre_temp_2 .."/", "--nr")
+				discs_screen(pops_u .."/APPS/".. nombre_temp_2 .."/DISCS.TXT",
+					NOMBRE_VISIBLE(14, nombre_juego, 1))
+				System.loadELF(pops_u .."/APPS/".. nombre_temp_2 .."/XX.".. nombre_temp ..".ELF", reboot_pops, pops_u .."/APPS/".. nombre_temp_2 .."/", "--nr")
 		elseif doesFileExist(pops_u .."/POPS/XX.".. nombre_temp ..".ELF") then
 			PARCHE_USB_DELAY(pops_u .."/POPS/XX.".. nombre_temp ..".ELF")
 			log_lanzamiento("PS1  POPStarter (atajo en POPS)", {
@@ -8076,7 +8254,9 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 				require("System/Intros/PS1/intro_ps1")
 				ps1_startup()
 			end
-			System.loadELF(pops_u .."/POPS/XX.".. nombre_temp ..".ELF", reboot_pops, pops_u .."/POPS/", "--nr")
+				discs_screen(pops_u .."/POPS/".. nombre_temp .."/DISCS.TXT",
+					NOMBRE_VISIBLE(14, nombre_juego, 1))
+				System.loadELF(pops_u .."/POPS/XX.".. nombre_temp ..".ELF", reboot_pops, pops_u .."/POPS/", "--nr")
 		else
 			JOYSTICK_LIMITE = control_FPS(1)-30
 			local pregunta, selector_dir = true, 1
@@ -8209,7 +8389,7 @@ end
 
 --- Determina el volumen de los sonidos y la música. ------------------------------------
 function set_volume()
-	SFX_VOLUMEN(OPCIONES.SOUND_VOLUME)
+	sfx_volume(OPCIONES.SOUND_VOLUME)
 	Sound.setADPCMVolume(3, OPCIONES.SOUND_VOLUME)
 	if OPCIONES.SOUND_VOLUME >= 10 then
 		Sound.setADPCMVolume(2, OPCIONES.SOUND_VOLUME-9)
@@ -8222,9 +8402,9 @@ end
 function pantalla_reiniciar_conf(FONDO, estado, limpiar, indi_rest)
 	-- Durante el arranque manda la lista de pasos, y solo ella. Las dos se pintaban
 	-- por turnos -- pantalla de progreso, panel negro, pantalla de progreso -- y el
-	-- resultado era un parpadeo sin sentido. Fuera del arranque CARGA_FONDO ya es nil
+	-- resultado era un parpadeo sin sentido. Fuera del arranque LOAD_BG ya es nil
 	-- y esta pantalla vuelve a funcionar, que es la que usa "reiniciar configuracion".
-	if CARGA_FONDO ~= nil then return end
+	if LOAD_BG ~= nil then return end
 	Screen.clear(COLOR.NEGRO)
 	local res_x, res_y_tex, res_y = 640, 0, 448
 	if doesFileExist("System/Defaults/PAL") then
@@ -8462,7 +8642,7 @@ function cargar_config()
 
 	-- Cargar opciones guardadas. -------------------------------------------------------
 	local actual = System.currentDirectory()
-	CARGA_PASO("reading System/Config/System.cfg")
+	load_step("reading System/Config/System.cfg")
 	pantalla_reiniciar_conf(LISTAS.FONDO, 20, false, 21)
 	if doesFileExist(actual .."/System/Config/System.cfg") then
 		local carga_de_config2 = System.openFile(actual .."/System/Config/System.cfg", FREAD)
@@ -8597,19 +8777,19 @@ function cargar_config()
 	else
 		default_config()
 	end
-	CARGA_PASO("locating OPL")
+	load_step("locating OPL")
 	cargar_directorio_elf(true)
 	pantalla_reiniciar_conf(LISTAS.FONDO, 44, false, 21)
-	CARGA_PASO("checking RetroArch availability")
+	load_step("checking RetroArch availability")
 	-- Antes de recargar_todas, que es quien recorre los quince sistemas: si no hay
 	-- forma de arrancar un core, los doce libretro se apagan y ni se rastrean.
 	LIBRETRO_APAGAR_SI_IMPOSIBLE()
 	if LIBRETRO_SISTEMAS_OFF == true then
-		CARGA_PASO("libretro OFF: ".. tostring(LIBRETRO_SISTEMAS_MOTIVO))
+		load_step("libretro OFF: ".. tostring(LIBRETRO_SISTEMAS_MOTIVO))
 	end
-	CARGA_PASO("building game lists")
+	load_step("building game lists")
 	recargar_todas()
-	CARGA_PASO("game lists built")
+	load_step("game lists built")
 	pantalla_reiniciar_conf(LISTAS.FONDO, 64, false, 21)
 
 	-- Cargar último juego y sistema usado. ---------------------------------------------
@@ -8645,18 +8825,18 @@ function cargar_config()
 		list_default_config()
 	end
 	pantalla_reiniciar_conf(LISTAS.FONDO, 74, false, 21)
-	CARGA_PASO("applying settings")
+	load_step("applying settings")
 	-- El interruptor del numero de orden manda sobre lo que diga System.cfg.
-	local si = SEE_INDEX_LEER()
+	local si = see_index_load()
 	if si ~= nil then OPCIONES.SEE_INDEX = si end
 	desactivados(nil)
 	indices_extras()
 	color_emu(LISTAS.IDENTIDAD, OPCIONES.FONDO_RGB_ON, OPCIONES.FONDO_RGB_FIJO_ON)
 	Font.ftSetPixelSize(CONTROL.fontARCA, OPCIONES.FONT_PIXEL_X, OPCIONES.FONT_PIXEL_Y)
 	Font.ftSetPixelSize(CONTROL.fontABC, 70, 70)
-	CARGA_PASO("loading animations")
+	load_step("loading animations")
 	animaciones(nil, false)
-	CARGA_PASO("configuration loaded")
+	load_step("configuration loaded")
 end
 
 --- Identidad de cada sistema a partir de su nombre. ------------------------------------
@@ -8774,7 +8954,7 @@ function restaurar_conf_retroarch(pal)
 	-- Las carpetas si se recrean: RetroArch no crea las que le faltan, se limita a no
 	-- escribir en ellas.
 	directorios_faltantes(nil, nil)
-	boot_escribir()
+	boot_flush()
 	return true
 end
 
@@ -8829,7 +9009,140 @@ LANZA_VERDE_COL = nil
 --- borde: se perdia el principio de cada linea. Centrada -- x=320, que es lo que hace
 --- LIBRETRO_PANTALLA -- no depende de cuanto recorte la pantalla, y las lineas son
 --- cortas de todas formas.
-function LANZA_PINTAR()
+--- Un .chd en una carpeta de Ember: se explica, no se intenta. -------------------------
+--- Ember lee ".cue" o ".bin". Un ".chd" lo deja donde estaba y arranca en el shell de la
+--- BIOS de PS1, sin decir nada -- el usuario se queda mirando una pantalla azul sin
+--- saber que ha pasado.
+---
+--- Y descomprimirlo aqui no es una alternativa razonable, por mucho que la idea tiente:
+--- un CHD v5 lleva el mapa de sectores comprimido en Huffman y cada bloque en zlib,
+--- LZMA o FLAC. Escribir esos tres descompresores en Lua, sobre un R5900, para volcar
+--- entre 300 y 700 MB a USB, son horas por juego y un fichero a medias si algo falla.
+--- Treinta segundos en el PC contra una tarde en la consola.
+function chd_warning_screen(carpeta)
+    local seguir = true
+    JOYSTICK_LIMITE = control_FPS(1)
+    while seguir do
+        CONTROL.FPS = Screen.getFPS(1)
+        capturar(JOYSTICK_LIMITE)
+        dibujar_fondos()
+        Graphics.drawRect(40, 90 + CONTROL.Y_FIX_PAL, CONTROL.ANCHO - 80, 250, COLOR.NEGRO_T)
+        Font.ftPrint(CONTROL.fontARCA, CONTROL.ANCHO // 2, 104 + CONTROL.Y_FIX_PAL, 8,
+            520, 25, "-.CHD NOT SUPPORTED BY EMBER-", Color.new(230, 60, 60))
+        local lineas = {
+            carpeta,
+            "",
+            "Ember reads .cue or .bin. A .chd is left alone and the",
+            "game drops to the PS1 BIOS screen.",
+            "",
+            "Convert it on the PC - about thirty seconds with chdman -",
+            "and put the .cue and .bin in this folder. The .chd can stay,",
+            "Ember simply ignores it.",
+            "",
+            "Doing it on the console would take hours: a CHD packs its",
+            "sector map with Huffman and its blocks with zlib, LZMA or",
+            "FLAC, and there are hundreds of megabytes to write.",
+        }
+        for i = 1, #lineas do
+            Font.ftPrint(CONTROL.fontARCA, 60, 134 + ((i - 1) * 16) + CONTROL.Y_FIX_PAL,
+                0, 500, 18, lineas[i], COLOR.BLANCO_LISTA)
+        end
+        dibujar_indicador(CONTROL.ANCHO // 2 - 40, 310 + CONTROL.Y_FIX_PAL,
+            TEXT_GEN[6], PAD_IMG.CIRCLE, 20, 20, 5, true)
+        refrescar(false)
+        if (Pads.check(PAD, PAD_CIRCLE) or Pads.check(PAD, PAD_CROSS)
+            or Pads.check(PAD, PAD_TRIANGLE)) and CONTROL.JOYSTICK_ON == false then
+            repro_sfx(S_CANCELAR, 1, false, nil)
+            seguir = false
+        end
+    end
+    JOYSTICK_LIMITE = control_FPS(1)
+end
+
+--- Las combinaciones de cambio de disco, antes de ceder la mano a POPStarter. ----------
+--- POPStarter no las ensena en ninguna parte, y un juego de varios discos se queda
+--- parado al final del primero si no se conocen: no hay menu, se simula la tapa de la
+--- consola con el mando. Se muestran cinco segundos justo antes de arrancar, que es el
+--- ultimo instante en que este programa dibuja algo -- despues ya no existe.
+---
+--- Solo cuando hay un DISCS.TXT con dos discos o mas, para no estorbar en el 90% de los
+--- juegos. CRUZ o START lo saltan.
+---
+--- Las flechas van escritas y no dibujadas: PAD_IMG no trae la cruceta, y una flecha
+--- inventada con rectangulos se lee peor que la palabra.
+DISCS_SECONDS = 5
+
+function discs_screen(fichero_discs, titulo)
+	if fichero_discs == nil or doesFileExist(fichero_discs) == false then return end
+
+	local discos = {}
+	pcall(function()
+		local h = System.openFile(fichero_discs, FREAD)
+		System.seekFile(h, 0, SET)
+		local t = System.readFile(h, System.sizeFile(h))
+		System.closeFile(h)
+		if t == nil then return end
+		-- La variable de un "for" generico es constante en Lua 5.4, de ahi la copia.
+		for linea in string.gmatch(t .."\n", "([^\r\n]*)[\r\n]") do
+			local limpia = string.gsub(linea, "%s+$", "")
+			if string.len(limpia) > 0 then discos[#discos + 1] = limpia end
+		end
+	end)
+	if #discos < 2 then return end
+
+	local filas = {{"Open the lid", PAD_IMG.TRIANGLE, nil}}
+	local flechas = {"UP", "RIGHT", "DOWN", "LEFT"}
+	for i = 1, #discos do
+		if i > 4 then break end
+		filas[#filas + 1] = {"Insert Disc ".. i, nil, flechas[i]}
+	end
+	filas[#filas + 1] = {"Close the lid", PAD_IMG.SQUARE, nil}
+
+	local alto = 34
+	local y0 = (CONTROL.ALTO_F // 2) - ((#filas * alto) // 2) + 10
+	local total = DISCS_SECONDS * 60
+	if CONTROL.Y_FIX_PAL ~= nil and CONTROL.Y_FIX_PAL > 0 then
+		total = DISCS_SECONDS * 50
+	end
+
+	local n = 0
+	while n < total do
+		n = n + 1
+		local mando = Pads.get(0)
+		if Pads.check(mando, PAD_CROSS) or Pads.check(mando, PAD_START) then break end
+
+		Screen.clear(Color.new(0, 0, 0))
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.ANCHO // 2, 24 + CONTROL.Y_FIX_PAL, 8,
+			600, 25, "-".. tostring(#discos) .." DISCS-", CAMBIOS_EMUS.COLOR_EMU)
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.ANCHO // 2, 50 + CONTROL.Y_FIX_PAL, 8,
+			600, 25, tostring(titulo), COLOR.BLANCO)
+
+		for i = 1, #filas do
+			local y = y0 + ((i - 1) * alto)
+			Font.ftPrint(CONTROL.fontARCA, 40, y, 0, 260, 25, filas[i][1], COLOR.BLANCO_LISTA)
+			local x = 300
+			Graphics.drawScaleImage(PAD_IMG.SELECT_S, x, y - 2, 40, 24); x = x + 44
+			Font.ftPrint(CONTROL.fontARCA, x, y, 0, 20, 25, "+", COLOR.BLANCO_LISTA); x = x + 16
+			Graphics.drawScaleImage(PAD_IMG.L2, x, y - 3, 32, 26); x = x + 36
+			Font.ftPrint(CONTROL.fontARCA, x, y, 0, 20, 25, "+", COLOR.BLANCO_LISTA); x = x + 16
+			Graphics.drawScaleImage(PAD_IMG.R2, x, y - 3, 32, 26); x = x + 36
+			Font.ftPrint(CONTROL.fontARCA, x, y, 0, 20, 25, "+", COLOR.BLANCO_LISTA); x = x + 16
+			if filas[i][2] ~= nil then
+				Graphics.drawScaleImage(filas[i][2], x, y - 2, 26, 26)
+			else
+				Font.ftPrint(CONTROL.fontARCA, x, y, 0, 90, 25, filas[i][3], CAMBIOS_EMUS.COLOR_EMU)
+			end
+		end
+
+		Font.ftPrint(CONTROL.fontARCA, CONTROL.ANCHO // 2,
+			CONTROL.ALTO_F - 34 + CONTROL.Y_FIX_PAL, 8, 600, 25,
+			"POPStarter has no disc menu: you open and close the lid yourself.",
+			COLOR.GRIS)
+		Screen.flip()
+	end
+end
+
+function launch_paint()
 	if LANZA_VERDE_COL == nil then LANZA_VERDE_COL = Color.new(0, 128, 45) end
 	pcall(function()
 		for pasada = 1, 2 do
@@ -8847,7 +9160,7 @@ function LANZA_PINTAR()
 end
 
 --- Un paso. "verde" para lo que ya estaba en su sitio y no hay que copiar. ------------
-function LANZA_PASO(texto, verde)
+function launch_step(texto, verde)
 	LANZA_LINEAS[#LANZA_LINEAS + 1] = tostring(texto)
 	LANZA_VERDE[#LANZA_LINEAS] = (verde == true)
 	while #LANZA_LINEAS > 8 do
@@ -8855,22 +9168,22 @@ function LANZA_PASO(texto, verde)
 		table.remove(LANZA_VERDE, 1)
 	end
 	boot_log("LANZA  ".. tostring(texto))
-	boot_escribir()
-	LANZA_PINTAR()
+	boot_flush()
+	launch_paint()
 end
 
 --- Sustituye la ultima linea en vez de anadir una. Para el progreso de una copia, que
 --- si no llenaria la pantalla y el journal con una linea por cada 256 KB.
-function LANZA_REEMPLAZAR(texto)
-	if #LANZA_LINEAS == 0 then return LANZA_PASO(texto) end
+function launch_replace(texto)
+	if #LANZA_LINEAS == 0 then return launch_step(texto) end
 	LANZA_LINEAS[#LANZA_LINEAS] = tostring(texto)
 	LANZA_VERDE[#LANZA_LINEAS] = false
-	LANZA_PINTAR()
+	launch_paint()
 end
 
---- El gancho que llama COPIAR_CON_PROGRESO entre trozo y trozo. -----------------------
-function COPIA_PROGRESO(etiqueta, hechos, total)
-	LANZA_REEMPLAZAR("Copying ".. tostring(etiqueta) .."  "
+--- El gancho que llama copy_with_progress entre trozo y trozo. -----------------------
+function copy_progress(etiqueta, hechos, total)
+	launch_replace("Copying ".. tostring(etiqueta) .."  "
 		.. tostring(hechos // 1024) .." / ".. tostring(total // 1024) .." KB")
 end
 
@@ -8897,7 +9210,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	-- El ORIGEN de la copia es la maestra: es la unica que tiene el core que se pide.
 	-- Con RUTA_LIBRETRO aqui, en cuanto existia una copia en la llave se copiaba desde
 	-- ella hacia ella misma, y el core que faltaba seguia faltando.
-	local casa = RUTA_LIBRETRO_MAESTRA()
+	local casa = libretro_master_path()
 	if casa == nil then return nil end
 	-- Ya esta donde el core sabra leerla: nada que preparar.
 	if ES_RAIZ_ATA(casa) == false then return casa end
@@ -8912,7 +9225,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	end
 	if dev == nil then
 		boot_log("RETROARCH  sin llave USB: este juego no puede arrancar.")
-		boot_escribir()
+		boot_flush()
 		LIBRETRO_PANTALLA(COPIA_TITULO, "No USB stick: this game cannot start", 0, nil)
 		System.sleep(3)
 		return nil
@@ -8920,7 +9233,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 
 	-- En "<llave>/RETROLauncher/LibretroPS2Files", el mismo sitio que en el disco.
 	-- Estuvo bajo "TempUSB/" para que RUTA_LIBRETRO no la eligiera como instalacion
-	-- maestra -- solo lleva un core -- pero eso ya lo resuelve RUTA_LIBRETRO_MAESTRA,
+	-- maestra -- solo lleva un core -- pero eso ya lo resuelve libretro_master_path,
 	-- que reconoce la maestra por estar junto al lanzador.
 	local destino = dev .."/".. CARPETA_LANZADOR .."/LibretroPS2Files"
 
@@ -8956,15 +9269,15 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	end
 	if faltan ~= "" then
 		boot_log("RETROARCH  NO se han podido crear:".. faltan)
-		boot_escribir()
-		LANZA_PASO("Cannot create folders on USB")
+		boot_flush()
+		launch_step("Cannot create folders on USB")
 	end
 
 	-- "retroarch.cfg" se MACHACA, sin mirar si coincide. RetroArch reescribe el suyo
 	-- cada vez que sale, en la llave: sin esto la copia de la llave se aleja del
 	-- fichero del proyecto en cuanto se toca un ajuste desde el menu del core, y lo
 	-- que se edita en el PC no llega nunca. El disco manda.
-	LANZA_PASO("Writing retroarch.cfg")
+	launch_step("Writing retroarch.cfg")
 	if doesFileExist(casa .."/retroarch/retroarch.cfg") then
 		pcall(System.copyFile, casa .."/retroarch/retroarch.cfg",
 		      destino .."/retroarch/retroarch.cfg")
@@ -8977,7 +9290,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	-- RETROLauncher, que es como se comprueba una instalacion cuando algo va mal.
 	-- Son 300 KB y se copia una sola vez.
 	if doesFileExist(casa .."/raboot.elf") and doesFileExist(destino .."/raboot.elf") == false then
-		COPIAR_CON_PROGRESO(casa .."/raboot.elf", destino .."/raboot.elf", "raboot.elf")
+		copy_with_progress(casa .."/raboot.elf", destino .."/raboot.elf", "raboot.elf")
 	end
 
 	-- El core del juego y su ".info", nada mas.
@@ -8988,10 +9301,10 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 		and ROM_TAMANO(core_destino) ~= nil
 		and ROM_TAMANO(core_destino) == ROM_TAMANO(core_origen))
 	if ya_esta == true then
-		LANZA_PASO("Core already on USB", true)
+		launch_step("Core already on USB", true)
 	else
-		LANZA_PASO("Copying core")
-		COPIAR_CON_PROGRESO(core_origen, core_destino, "core")
+		launch_step("Copying core")
+		copy_with_progress(core_origen, core_destino, "core")
 	end
 	local info = CORE_A_INFO(nombre_core)
 	if info ~= nil then
@@ -9000,7 +9313,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 
 	if doesFileExist(destino .."/cores/".. nombre_core) == false then
 		boot_log("RETROARCH  no se ha podido poner ".. nombre_core .." en ".. destino)
-		boot_escribir()
+		boot_flush()
 		LIBRETRO_PANTALLA(COPIA_TITULO, "Could not copy ".. nombre_core, 0, nil)
 		System.sleep(3)
 		return nil
@@ -9008,7 +9321,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 
 	if COPIA_HECHOS > 0 then
 		boot_log("RETROARCH  ".. tostring(COPIA_HECHOS) .." fichero(s) preparados en ".. destino)
-		boot_escribir()
+		boot_flush()
 	end
 	-- A partir de aqui, TODO -- config, BIOS, partidas -- apunta a la llave.
 	LIBRETRO_FORZADO = destino
@@ -10118,7 +10431,7 @@ function editor_tema()
 				ver_controles(true)
 
 			-- Cambia las posiciones y tamaños de los elementos. ------------------------
-			elseif (Pads.check(PAD, PAD_DOWN) or Pads.check(PAD, PAD_UP) or Pads.check(PAD, PAD_LEFT) or Pads.check(PAD, PAD_RIGHT) or PALANCA(Left_Y) or PALANCA(Left_X) or Pads.check(PAD, PAD_L2) or Pads.check(PAD, PAD_R2)) and CONTROL.JOYSTICK_ON == false then
+			elseif (Pads.check(PAD, PAD_DOWN) or Pads.check(PAD, PAD_UP) or Pads.check(PAD, PAD_LEFT) or Pads.check(PAD, PAD_RIGHT) or stick_moved(Left_Y) or stick_moved(Left_X) or Pads.check(PAD, PAD_L2) or Pads.check(PAD, PAD_R2)) and CONTROL.JOYSTICK_ON == false then
 				-- Cambiar el salto de píxeles. -----------------------------------------
 				if Pads.check(PAD, PAD_R2) then
 					velocidad = cambiar_valor(velocidad, 1, 10, 1, true)
@@ -10152,7 +10465,7 @@ function editor_tema()
 				if cambio_tama_pos == true then
 					set_aspect()
 				end
-				local kabal = 1 if (PALANCA(Left_Y) or PALANCA(Left_X)) and not (Pads.check(PAD, PAD_R2) or Pads.check(PAD, PAD_L2)) then
+				local kabal = 1 if (stick_moved(Left_Y) or stick_moved(Left_X)) and not (Pads.check(PAD, PAD_R2) or Pads.check(PAD, PAD_L2)) then
 					kabal = 2
 				end
 				if Pads.check(PAD, PAD_R2) or Pads.check(PAD, PAD_L2) then
@@ -10232,7 +10545,7 @@ function editor_tema()
 				JOYSTICK_LIMITE = control_FPS(1)
 
 			-- Moverse entre los elementos del submenú. ---------------------------------
-			elseif (Pads.check(PAD, PAD_DOWN) or Pads.check(PAD, PAD_UP) or PALANCA(Left_Y)) and CONTROL.JOYSTICK_ON == false then
+			elseif (Pads.check(PAD, PAD_DOWN) or Pads.check(PAD, PAD_UP) or stick_moved(Left_Y)) and CONTROL.JOYSTICK_ON == false then
 				if (Pads.check(PAD, PAD_UP) or Left_Y <= -90) then
 					selector_submenu = cambiar_valor(selector_submenu, 1, #nombres_opciones, 1, false)
 				elseif (Pads.check(PAD, PAD_DOWN) or Left_Y >= 90) then
@@ -10262,7 +10575,7 @@ function editor_tema()
 				JOYSTICK_LIMITE = control_FPS(1)
 
 			-- Cambiar el estado de los elementos del submenú. --------------------------
-			elseif (Pads.check(PAD, PAD_CROSS) or Pads.check(PAD, PAD_LEFT) or Pads.check(PAD, PAD_RIGHT) or PALANCA(Left_X)) and CONTROL.JOYSTICK_ON == false then
+			elseif (Pads.check(PAD, PAD_CROSS) or Pads.check(PAD, PAD_LEFT) or Pads.check(PAD, PAD_RIGHT) or stick_moved(Left_X)) and CONTROL.JOYSTICK_ON == false then
 				-- Activar / desactivar elemento. ---------------------------------------
 				repro_sfx(S_EJECUTAR, 1, false, nil)
 				if ((Pads.check(PAD, PAD_LEFT) or Left_X <= -90) or (Pads.check(PAD, PAD_RIGHT) or Left_X >= 90) or Pads.check(PAD, PAD_CROSS)) and selector_submenu <= 13 then

@@ -1,0 +1,24 @@
+One folder per game.
+
+    games/
+    |- Spyro/
+    |  |- Spyro.cue
+    |  `- Spyro.bin
+    `- Crash Bandicoot (USA)/
+       |- Crash Bandicoot (USA).cue
+       `- Crash Bandicoot (USA).bin
+
+The folder name is what RETROLauncher passes to ember.elf, and it is also the
+name the artwork is looked up under: games/Spyro/ wants
+Roms/psx/media/covers/Spyro.png
+
+Name the folder exactly like the .VCD of the same game, without the extension,
+and the launcher will treat the two as one game with a choice of emulator
+rather than listing it twice.
+
+Ember creates MC1.vmc and MC2.vmc here on first run - one pair per game, so
+one game can never overwrite another's saves. Back a game up by copying its
+folder.
+
+A folder holding only a .chd is shown in red: Ember cannot read it. Convert on
+the PC with chdman and drop the .cue and .bin in beside it.

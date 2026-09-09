@@ -270,13 +270,13 @@ function run_game()
 	-- partida sigue ahi manana. Lanzar primero y descubrir despues en que tarjeta se ha
 	-- guardado no es una opcion: el menu se abre siempre, dice de que fichero sale la
 	-- partida y con que lanzador arranca, y solo entonces se lanza.
-	if LISTAS.IDENTIDAD == 15 and menu_lanzamiento ~= nil
+	if LISTAS.IDENTIDAD == 15 and launch_menu ~= nil
 	   and string.lower(string.sub(LISTAS.ROMS[LISTAS.INDICE], -4)) == ".iso" then
-		if menu_lanzamiento(LISTAS.ROMS[LISTAS.INDICE]) == false then
+		if launch_menu(LISTAS.ROMS[LISTAS.INDICE]) == false then
 			JOYSTICK_LIMITE = control_FPS(1)
 			return
 		end
-		alt = LANZADOR_ES_OPL(LISTAS.ROMS[LISTAS.INDICE])
+		alt = launcher_is_opl(LISTAS.ROMS[LISTAS.INDICE])
 	elseif (((Pads.check(PAD, PAD_CROSS) and Pads.check(PAD, PAD_CIRCLE)) or OPCIONES.RUN_DEFAULT == 1) and (LISTAS.IDENTIDAD == 1 or (LISTAS.IDENTIDAD >= 4 and LISTAS.IDENTIDAD <= 6) or LISTAS.IDENTIDAD == 13)) then
 		alt = alt_run(LISTAS.IDENTIDAD)
 	end
@@ -497,9 +497,17 @@ function mostrar_lista(pos_linea, elemento, n_ele)
 		-- Verde: la ROM ya esta en la llave, arrancarla no copia nada. Es un aviso de
 		-- cuanto va a tardar el lanzamiento, que en USB 1.1 no es indiferente.
 		local col = COLOR.BLANCO_LISTA
-		if EN_CACHE_USB ~= nil and EN_CACHE_USB(LISTAS.IDENTIDAD, LISTAS.ROMS[elemento]) then
+		if usb_cached ~= nil and usb_cached(LISTAS.IDENTIDAD, LISTAS.ROMS[elemento]) then
 			if COLOR.VERDE_LISTA == nil then COLOR.VERDE_LISTA = Color.new(0, 128, 45) end
 			col = COLOR.VERDE_LISTA
+		end
+		-- Rojo: una carpeta de Ember que solo tiene un .chd. Ember no lo abre, y el
+		-- juego caeria en el shell de la BIOS sin explicacion. Mejor verlo en la lista
+		-- que descubrirlo despues de pulsar.
+		if PS1_WARNING ~= nil
+		   and PS1_WARNING[tostring(LISTAS.IDENTIDAD) .."|".. tostring(LISTAS.ROMS[elemento])] ~= nil then
+			if COLOR.ROJO_LISTA == nil then COLOR.ROJO_LISTA = Color.new(220, 60, 60) end
+			col = COLOR.ROJO_LISTA
 		end
 		Font.ftPrint(CONTROL.fontARCA, CONTROL.LISTA_ANCHO+3, pos_linea, 0, largo-6, 25, n_text .. prefijo_lista(elemento) .. NOMBRE_VISIBLE(LISTAS.IDENTIDAD, LISTAS.ROMS[elemento], fix_ini_name), col)
 	else
@@ -688,7 +696,7 @@ function dibujar()
 	if Pads.check(PAD, PAD_TRIANGLE) and CONTROL.JOYSTICK_ON == false
 	   and LISTAS.ROMS ~= nil and #LISTAS.ROMS >= 1 then
 		repro_sfx(S_EJECUTAR, 1, false, nil)
-		menu_juego()
+		game_menu()
 	end
 
 	-- Mostrar arte a pantalla completa. ------------------------------------------------

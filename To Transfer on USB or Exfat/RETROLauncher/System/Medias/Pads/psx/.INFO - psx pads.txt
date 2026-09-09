@@ -1,0 +1,11 @@
+PlayStation-style button icons, 32 px high, transparent background.
+
+  ps-cross.png     blue     ps-l1.png / ps-r1.png     grey pills
+  ps-circle.png    red      ps-l2.png / ps-r2.png
+  ps-triangle.png  green    ps-l3.png / ps-r3.png
+  ps-square.png    pink     ps-select.png / ps-start.png
+
+Filled disc in the symbol's colour, white glyph - the convention of the
+PlayStation-X theme for EmulationStation by pajarorrojo (CC BY-NC-SA 4.0),
+redrawn here rather than copied. Generated at 4x and downscaled with Lanczos
+so the edges stay clean at 16 px in a help bar.

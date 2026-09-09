@@ -6,6 +6,8 @@
 # (BDM_REPORT, BOOT_LOG, LAUNCH_LOG, MEDIA_LOG, PREBOOT_LOG), and the old names
 # stay listed so an existing clone does not suddenly want to commit them.
 RETROLauncher.log
+# One file per session now: log/Debug_YYYY-MM-DD_HHMMSS.log
+To Transfer on USB or Exfat/RETROLauncher/log/
 BDM_REPORT.txt
 LAUNCH_LOG.txt
 MEDIA_LOG.txt
@@ -107,3 +109,5 @@ To Transfer on USB or Exfat/RETROLauncher/SyncGithubFolder-HDD.ffs_gui
 To Transfer on USB or Exfat/RETROLauncher/SyncGithubFolder-HDD.ffs_gui
 To Transfer on USB or Exfat/RETROLauncher/SyncGithubFolder-HDD.ffs_gui
 *.ffs_gui
+PR-MESSAGE.md
+/HelperScripts/PopsWork

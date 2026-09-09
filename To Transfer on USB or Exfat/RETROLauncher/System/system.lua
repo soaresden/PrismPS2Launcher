@@ -196,45 +196,53 @@ BOOT_LOG_ON = true
 BOOT_FLUSH = true
 BOOT_LOG_DESTINO = nil
 
---- Cuanto historial de sesiones anteriores se conserva por delante. -------------------
---- No es un lujo: un lanzamiento fallido devuelve el control a uLaunchELF, y sin
---- historial la prueba siguiente borraria la unica traza de la anterior. Se recorta por
---- el principio, porque lo interesante es siempre lo ultimo.
---- Y no mas: cada volcado reescribe el fichero ENTERO, historial incluido. Con 24 KB y
---- setenta volcados por arranque eso son casi dos megas escritos en exFAT antes de ver
---- el menu. Ocho mil caracteres son dos o tres sesiones, que es lo que hace falta.
-LOG_HISTORIAL_MAX = 8000
-LOG_PREVIO = ""
+--- ONE FILE PER SESSION, in log/. -----------------------------------------------------
+--- "log/Debug_YYYY-MM-DD_HHMMSS.log", stamped with the moment the program started, so
+--- two boots can never share a file and a failed launch that drops back to uLaunchELF
+--- leaves its trace intact for the next attempt to sit beside, not on top of.
+---
+--- This also retires the history prefix the single-file journal needed: every line
+--- used to rewrite the WHOLE file, previous sessions included, which on exFAT came to
+--- nearly two megabytes of writes before the menu appeared. A session file starts
+--- empty and only ever carries its own lines.
+---
+--- The folder is trimmed to LOG_KEEP files, oldest first by name - the name IS the
+--- date - so the drive does not fill up with a thousand boots.
+LOG_DIR = "log"
+LOG_KEEP = 20
 BOOT_LOG_TXT = ""
+LOG_FILE = nil
 
 if true then
-	-- Lo que hubiera de antes, recortado, pasa a ser el prefijo del fichero.
-	local ruta = System.currentDirectory() .."/RETROLauncher.log"
+	local sello, nombre = "", "Debug_unknown.log"
 	pcall(function()
-		if doesFileExist(ruta) then
-			local f = System.openFile(ruta, FREAD)
-			local tam = System.sizeFile(f)
-			System.seekFile(f, 0, SET)
-			local t = System.readFile(f, tam)
-			System.closeFile(f)
-			if t ~= nil then
-				if string.len(t) > LOG_HISTORIAL_MAX then
-					t = "[...principio recortado...]\n".. string.sub(t, string.len(t) - LOG_HISTORIAL_MAX)
-				end
-				LOG_PREVIO = t
-			end
+		sello = os.date("%Y-%m-%d %H:%M:%S")
+		nombre = "Debug_".. os.date("%Y-%m-%d_%H%M%S") ..".log"
+	end)
+	LOG_FILE = nombre
+	BOOT_LOG_TXT = "RETROLauncher - session ".. sello .."\n"
+		.."One line per event, category first. BOOT_LOG_ON = false in\n"
+		.."System/system.lua turns this off.\n"
+		.."============================================================\n"
+
+	-- The pre-boot (System/index.lua, run from the memory card before any of this
+	-- exists) still writes its PRE lines to RETROLauncher.log beside the ELF. They are
+	-- the only trace of the IRX loading, so they are pulled into this session's file
+	-- and the old file goes - consumed, not lost.
+	pcall(function()
+		local previo = System.currentDirectory() .."/RETROLauncher.log"
+		if doesFileExist(previo) == false then return end
+		local f = System.openFile(previo, FREAD)
+		local tam = System.sizeFile(f)
+		System.seekFile(f, 0, SET)
+		local t = System.readFile(f, tam)
+		System.closeFile(f)
+		if t ~= nil and string.len(t) > 0 then
+			if string.len(t) > 12000 then t = "[...]\n".. string.sub(t, -12000) end
+			BOOT_LOG_TXT = BOOT_LOG_TXT .."--- pre-boot (from RETROLauncher.log) ---\n"
+				.. t .."--- end of pre-boot ---\n"
 		end
 	end)
-	local sello = ""
-	pcall(function() sello = "  ".. os.date("%Y-%m-%d %H:%M:%S") end)
-	BOOT_LOG_TXT = "\n============================================================\n"
-		.."ARRANQUE".. sello .."\n"
-		.."============================================================\n"
-	if LOG_PREVIO == "" then
-		LOG_PREVIO = "RETROLauncher - journal\n=======================\n"
-			.."Una linea por suceso, categoria delante. BOOT_LOG_ON a false en\n"
-			.."System/system.lua lo desactiva por completo.\n"
-	end
 end
 
 --- La ultima imagen abierta. No se acumula: se sustituye. -----------------------------
@@ -242,31 +250,58 @@ end
 --- por la lista. Ahora es una linea que vive al final del journal y se pisa a si misma.
 ART_ULTIMA = nil
 
-function boot_escribir()
+--- Old sessions beyond LOG_KEEP, dropped oldest first. --------------------------------
+local function log_rotate(dir)
+	pcall(function()
+		local lista = System.listDirectory(dir)
+		if lista == nil then return end
+		local nombres = {}
+		for i = 1, #lista do
+			local n = lista[i].name
+			if lista[i].directory == false and string.sub(n, 1, 6) == "Debug_"
+			   and string.sub(n, -4) == ".log" then
+				nombres[#nombres + 1] = n
+			end
+		end
+		table.sort(nombres)
+		for i = 1, #nombres - LOG_KEEP do
+			pcall(System.removeFile, dir .."/".. nombres[i])
+		end
+	end)
+end
+
+function boot_flush()
 	if BOOT_LOG_ON ~= true then return end
 	pcall(function()
-		local texto = LOG_PREVIO .. BOOT_LOG_TXT
+		local texto = BOOT_LOG_TXT
 		if ART_ULTIMA ~= nil then texto = texto .."ART    ".. ART_ULTIMA .."\n" end
 		if BOOT_LOG_DESTINO == nil then
-			local cand = {System.currentDirectory() .."/RETROLauncher.log",
-				"mc0:/RETROLauncher.log", "mc1:/RETROLauncher.log"}
-			for i = 1, #cand do
+			-- Beside the ELF if it takes writes, else mc0:, else mc1:. The journal has
+			-- to exist even when the boot medium turns out unreadable halfway.
+			local actual = System.currentDirectory()
+			local dirs = {actual .."/".. LOG_DIR, "mc0:/".. LOG_DIR, "mc1:/".. LOG_DIR}
+			for i = 1, #dirs do
+				if System.listDirectory(dirs[i]) == nil then
+					pcall(System.createDirectory, dirs[i])
+				end
+				local cand = dirs[i] .."/".. LOG_FILE
 				local ok = pcall(function()
-					local f = System.openFile(cand[i], FCREATE)
+					local f = System.openFile(cand, FCREATE)
 					System.writeFile(f, texto, string.len(texto))
 					System.closeFile(f)
 				end)
-				if ok == true and doesFileExist(cand[i]) then
-					BOOT_LOG_DESTINO = cand[i]
+				if ok == true and doesFileExist(cand) then
+					BOOT_LOG_DESTINO = cand
+					log_rotate(dirs[i])
 					break
 				end
 			end
 			if BOOT_LOG_DESTINO == nil then return end
-			-- Los cuatro ficheros de antes, ya inutiles.
-			local viejos = {"BOOT_LOG.txt", "LAUNCH_LOG.txt", "MEDIA_LOG.txt",
-			                "BDM_REPORT.txt", "PREBOOT_LOG.txt"}
+			-- The journals of earlier designs, now just clutter.
+			local viejos = {"RETROLauncher.log", "BOOT_LOG.txt", "LAUNCH_LOG.txt",
+			                "MEDIA_LOG.txt", "BDM_REPORT.txt", "PREBOOT_LOG.txt"}
 			for i = 1, #viejos do
-				local v = System.currentDirectory() .."/".. viejos[i]
+				local v = actual .."/".. viejos[i]
 				if doesFileExist(v) then pcall(System.removeFile, v) end
 			end
 			return
@@ -280,12 +315,24 @@ end
 function boot_log(linea)
 	if BOOT_LOG_ON ~= true then return end
 	BOOT_LOG_TXT = BOOT_LOG_TXT .. linea .. "\n"
-	if BOOT_FLUSH == true then boot_escribir() end
+	if BOOT_FLUSH == true then boot_flush() end
+end
+
+--- log_event(category, text): the one call new code should use. -----------------------
+--- Same file, same line format, a timestamp in front so a freeze can be timed against
+--- the last thing that happened. Categories seen so far: PRE BOOT CARGA CONF SAVES
+--- LANZA ART LLAVE SONIDO, and from here on MENU (a screen opened or closed), SET (a
+--- setting changed, with old and new value), VMC (a card chosen or created), FILE
+--- (something copied, moved, deleted).
+function log_event(categoria, texto)
+	local hora = ""
+	pcall(function() hora = os.date("%H:%M:%S ") end)
+	boot_log(hora .. string.format("%-6s ", tostring(categoria)) .. tostring(texto))
 end
 
 --- Alias historicos: parte del codigo llama todavia irx_log / irx_escribir. -----------
 irx_log = boot_log
-irx_escribir = boot_escribir
+irx_escribir = boot_flush
 
 --- Identidad del soporte de arranque. -------------------------------------------------
 --- El comportamiento depende de DESDE DONDE se ha lanzado el programa:
@@ -612,7 +659,7 @@ end
 boot_log("")
 boot_log("Fin del arranque del sistema. Lo que sigue se anade sin flush por linea.")
 BOOT_FLUSH = false
-boot_escribir()
+boot_flush()
 
 --- Primera raiz donde exista la ruta relativa dada (empieza por "/"). ------------------
 function RAIZ(rel)
@@ -824,7 +871,7 @@ function log_lanzamiento(titulo, campos)
 	end
 	-- Esto sale justo antes de un loadELF, que no vuelve nunca. Si es la ultima
 	-- entrada del fichero, el fallo esta en el ELF que nombra.
-	boot_escribir()
+	boot_flush()
 end
 
 --- Verifica que un fichero existe y lo describe para el journal. ---------------------
@@ -1250,7 +1297,7 @@ function LIBRETRO_REPARAR()
 	local cfg = base .."/retroarch/retroarch.cfg"
 	if doesFileExist(cfg) == false then
 		boot_log("CONF   sin ".. cfg .." : se escribira al lanzar el primer juego")
-		boot_escribir()
+		boot_flush()
 	end
 	return true
 end
@@ -1297,7 +1344,7 @@ function BIOS_LIBRETRO(lee_ata)
 			else
 				boot_log("BIOS   ".. fichero .." AUSENTE en Bios/")
 			end
-			boot_escribir()
+			boot_flush()
 		end
 	end
 end
@@ -1309,7 +1356,7 @@ end
 function LIBRETRO_POSIBLE()
 	-- "Hay instalacion?" se pregunta a la maestra; "podra leerla un core?" tambien,
 	-- porque de ella se copia lo que acabe en la llave.
-	local base = RUTA_LIBRETRO_MAESTRA()
+	local base = libretro_master_path()
 	if base == nil then return false, "no RetroArch installation found" end
 	if ES_RAIZ_ATA(base) == false then return true, base end
 	local destinos = ROM_DESTINOS()
@@ -1333,11 +1380,11 @@ function LIBRETRO_APAGAR_SI_IMPOSIBLE()
 	LIBRETRO_SISTEMAS_MOTIVO = motivo
 	if ok == true then
 		boot_log("SISTEMAS  libretro disponibles: ".. tostring(motivo))
-		boot_escribir()
+		boot_flush()
 		return false
 	end
 	boot_log("SISTEMAS  libretro DESACTIVADOS: ".. tostring(motivo))
-	boot_escribir()
+	boot_flush()
 	SISTEMAS.MEGADRIVE_ON = 0
 	SISTEMAS.MASTERSYSTEM_ON = 0
 	SISTEMAS.GAMEGEAR_ON = 0
@@ -1425,13 +1472,13 @@ RETROARCH_VIDEO = {
 function FORZAR_CONF_RETROARCH(pal, lee_ata)
 	if RETROARCH_FORZAR_ON ~= true then
 		boot_log("CONF   desactivado (RETROARCH_FORZAR_ON = false)")
-		boot_escribir()
+		boot_flush()
 		return false
 	end
 	local base = RUTA_LIBRETRO()
 	if base == nil then
 		boot_log("CONF   carpeta de RetroArch no encontrada, sin ajustes que forzar")
-		boot_escribir()
+		boot_flush()
 		return false
 	end
 	-- No hay copia de fabrica de la que sacarlo: si falta, se crea vacio y las claves
@@ -1449,7 +1496,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		boot_log("CONF   ".. cfg .." no existia, creado")
 		if doesFileExist(cfg) == false then
 			boot_log("CONF   imposible crearlo: soporte de solo lectura?")
-			boot_escribir()
+			boot_flush()
 			return false
 		end
 	end
@@ -1549,7 +1596,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 	end)
 	if txt == nil then
 		boot_log("CONF   ilegible: ".. cfg)
-		boot_escribir()
+		boot_flush()
 		return false
 	end
 
@@ -1583,7 +1630,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 
 	if cambios == 0 then
 		boot_log("CONF   ".. modo .." ya correcto  ".. tostring(quiero["savefile_directory"]))
-		boot_escribir()
+		boot_flush()
 		return true
 	end
 
@@ -1599,7 +1646,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 	boot_log("       ".. tostring(quiero["savefile_directory"]) .." , ".. tostring(quiero["savestate_directory"]))
 	-- Esto sale justo antes de loadELF, que no vuelve nunca: si no se vuelca ahora,
 	-- el diagnostico se pierde con el proceso.
-	boot_escribir()
+	boot_flush()
 	return ok
 end
 
@@ -1615,7 +1662,7 @@ end
 --- podra leer tras el SifIopReset. Preguntarle "tienes handy?" da que no, y el juego
 --- se rechazaba antes de intentar nada -- que es el "Games or RetroArch not found" de
 --- Lynx, GBA, GB, GBC y NES con los sesenta cores presentes en el disco.
-function RUTA_LIBRETRO_MAESTRA()
+function libretro_master_path()
 	local propia = System.currentDirectory() .."/LibretroPS2Files"
 	if System.listDirectory(propia .."/cores") ~= nil then return propia end
 	if RAICES ~= nil then
@@ -1630,9 +1677,9 @@ function RUTA_LIBRETRO_MAESTRA()
 end
 
 --- Resuelve un core en la instalacion maestra. ---------------------------------------
-function RUTA_CORE_MAESTRO(nombre_core, ruta_original)
+function core_master_path(nombre_core, ruta_original)
 	if nombre_core == nil or nombre_core == " " then return ruta_original end
-	local base = RUTA_LIBRETRO_MAESTRA()
+	local base = libretro_master_path()
 	if base ~= nil then
 		local cand = base .."/cores/".. nombre_core
 		if doesFileExist(cand) then return cand end
@@ -1699,7 +1746,7 @@ SISTEMA_EXTEN = {
 
 --- Extensiones declaradas por un core, leidas de su ".info". ------------------------
 --- "picodrive_libretro_ps2.elf" -> "info/picodrive_libretro.info".
-function CORE_EXTENSIONES(ruta_core)
+function core_extensions(ruta_core)
 	local n = nombre_fichero(ruta_core)
 	if string.len(n) < 9 or string.sub(n, -8) ~= "_ps2.elf" then return nil end
 	local info = string.sub(n, 1, -9) ..".info"
@@ -1709,7 +1756,7 @@ function CORE_EXTENSIONES(ruta_core)
 	-- extensiones declaradas, CORE_SIRVE los daba por inutiles, y la lista de cores de
 	-- cada sistema se quedaba vacia. Los sesenta cores del disco eran invisibles.
 	local sitios = {}
-	local maestra = RUTA_LIBRETRO_MAESTRA()
+	local maestra = libretro_master_path()
 	if maestra ~= nil then table.insert(sitios, maestra) end
 	if RAICES ~= nil then
 		for i = 1, #RAICES do
@@ -1744,7 +1791,7 @@ end
 function CORE_SIRVE(ruta_core, identidad)
 	local exts = SISTEMA_EXTEN[identidad]
 	if exts == nil then return true end
-	local sup = CORE_EXTENSIONES(ruta_core)
+	local sup = core_extensions(ruta_core)
 	if sup == nil then return false end
 	sup = "|".. string.lower(sup) .."|"
 	for i = 1, #exts do
@@ -1761,7 +1808,7 @@ end
 --- "bios.bin" se colocan junto a los .cue, copiados desde "Bios/" la primera vez.
 --- Son dos ficheros pequenos y una sola vez por carpeta.
 --- Devuelve la ruta del ELF listo para lanzar, o nil.
-function EMBER_EN(carpeta)
+function ember_in(carpeta)
 	if carpeta == nil then return nil end
 	local elf = carpeta .."/ember.elf"
 	local bios = carpeta .."/bios.bin"
@@ -1776,6 +1823,147 @@ function EMBER_EN(carpeta)
 	end
 	if doesFileExist(elf) then return elf end
 	return nil
+end
+
+--- Ember Beta 1: carpeta propia, un directorio por juego. ------------------------------
+--- La version demo se lanzaba desde la carpeta de las ROM y recibia el nombre del .cue.
+--- Beta 1 cambia las dos cosas:
+---
+---     Ember/
+---     |- ember.elf          el emulador
+---     |- bios.bin           lo pone el usuario
+---     |- settings.txt       opcional:  display: 480  |  display: 240
+---     `- games/
+---        `- Spyro/          UN DIRECTORIO POR JUEGO, con el nombre que sea
+---           |- Spyro.cue
+---           |- Spyro.bin
+---           |- MC1.vmc      las crea Ember sola, una pareja por juego
+---           |- MC2.vmc
+---           `- SharedMC.txt opcional, una linea: el nombre de otra carpeta
+---
+--- Y el argumento ya no es un fichero sino el NOMBRE DE LA CARPETA dentro de "games".
+--- Todo lo demas lo resuelve Ember relativo a donde este su propio ELF, asi que la
+--- carpeta entera es portatil: vale en el USB, en el disco interno o en una MMCE.
+EMBER_SUB = "/Ember"
+
+--- Las carpetas "Ember" que existen de verdad, en orden de raiz. ----------------------
+function ember_roots()
+    local out = {}
+    if RAICES == nil then return out end
+    for i = 1, #RAICES do
+        local dir = RAICES[i] .. EMBER_SUB
+        if doesFileExist(dir .."/ember.elf") then out[#out + 1] = dir end
+    end
+    return out
+end
+
+--- Donde vive un juego de Ember, o nil. -----------------------------------------------
+--- "carpeta" es el nombre del directorio dentro de "games", que es exactamente lo que
+--- se le pasa como argumento al ELF.
+function ember_game(carpeta)
+    if carpeta == nil then return nil, nil end
+    local raices = ember_roots()
+    for i = 1, #raices do
+        local dir = raices[i] .."/games/".. carpeta
+        if System.listDirectory(dir) ~= nil then return raices[i], dir end
+    end
+    return nil, nil
+end
+
+--- bios.bin beside ember.elf: copied from Bios/ once, and never touched again. ---------
+--- Ember wants the BIOS next to its own ELF and nowhere else. The launcher keeps one
+--- copy of every system file in Bios/, so the first launch puts a copy where Ember
+--- looks; from then on the file is Ember's and the launcher only checks it is there.
+--- Returns true when Ember has what it needs.
+function ember_bios(raiz_emb)
+	if raiz_emb == nil then return false end
+	local dest = raiz_emb .."/bios.bin"
+	if doesFileExist(dest) then return true end
+	local origen = RUTA_BIOS("bios.bin", "")
+	if doesFileExist(origen) == false then
+		log_event("FILE", "Ember: no bios.bin in ".. raiz_emb .." and none in Bios/ to copy")
+		return false
+	end
+	log_event("FILE", "Ember: copying ".. origen .." -> ".. dest)
+	pcall(System.copyFile, origen, dest)
+	return doesFileExist(dest)
+end
+
+--- Que hay dentro de una carpeta de juego: ".cue", ".bin", ".chd" o nil. --------------
+--- Ember toma el .cue si lo hay y si no el .bin. Un .chd NO le sirve, y conviene saberlo
+--- antes de arrancar en vez de aterrizar en el shell de la BIOS sin explicacion.
+function ember_contents(dir)
+    local c = System.listDirectory(dir)
+    if c == nil then return nil end
+    local tiene_cue, tiene_bin, tiene_chd = false, false, false
+    for i = 1, #c do
+        if c[i].directory == false then
+            local ext = string.lower(string.sub(c[i].name, -4))
+            if ext == ".cue" then tiene_cue = true
+            elseif ext == ".bin" then tiene_bin = true
+            elseif ext == ".chd" then tiene_chd = true end
+        end
+    end
+    if tiene_cue then return "cue" end
+    if tiene_bin then return "bin" end
+    if tiene_chd then return "chd" end
+    return nil
+end
+
+--- Clave de un juego de PS1, para no listarlo dos veces. ------------------------------
+--- El mismo juego puede estar como .VCD para POPStarter y como carpeta para Ember, y
+--- son dos formas de arrancar UNA cosa. Se comparan sin extension, sin el prefijo de
+--- OPL ("SCES_009.84.") y sin nada que no sea letra o cifra, porque los dos nombres
+--- vienen de sitios distintos y rara vez coinciden al caracter.
+function ps1_key(nombre)
+    if nombre == nil then return nil end
+    local n = nombre
+    n = string.gsub(n, "%.[A-Za-z]%.?[A-Za-z]?[A-Za-z]?$", "")
+    n = string.gsub(n, "^%a%a%a%a[_%- ]%d%d%d%.%d%d%.", "")
+    n = string.lower(n)
+    n = string.gsub(n, "[^%a%d]", "")
+    if n == "" then return string.lower(nombre) end
+    return n
+end
+
+--- Con que arranca ESTE juego de PS1: "ember" o "pops". -------------------------------
+--- Un fichero por decision, como Launcher.cfg para PS2 y VMC.cfg para las tarjetas.
+PS1_GAMES = {}
+ps1_cfg_loaded = false
+
+function ps1_cfg_path()
+    return System.currentDirectory() .."/System/Config/PS1.cfg"
+end
+
+function ps1_cfg_load()
+    if ps1_cfg_loaded == true then return end
+    ps1_cfg_loaded = true
+    local f = ps1_cfg_path()
+    if doesFileExist(f) == false then return end
+    pcall(function()
+        local h = System.openFile(f, FREAD)
+        System.seekFile(h, 0, SET)
+        local t = System.readFile(h, System.sizeFile(h))
+        System.closeFile(h)
+        if t == nil then return end
+        for linea in string.gmatch(t .."\n", "([^\n]*)\n") do
+            local clave, valor = string.match(linea, "^([^=]+)=(.*)$")
+            if clave ~= nil then
+                local v = string.gsub(valor, "%s+$", "")
+                if v ~= "" then PS1_GAMES[clave] = v end
+            end
+        end
+    end)
+end
+
+function ps1_cfg_save()
+    pcall(function()
+        local t = ""
+        for k, v in pairs(PS1_GAMES) do t = t .. k .."=".. v .."\n" end
+        local h = System.openFile(ps1_cfg_path(), FCREATE)
+        System.writeFile(h, t, string.len(t))
+        System.closeFile(h)
+    end)
 end
 
 --- Retardo de acceso al USB de POPStarter. -------------------------------------------
@@ -1937,7 +2125,7 @@ ROM_SHUTTLE_ON = true
 --- carpeta "TempUSB/" en medio, y era un parche a un problema que ya no existe --
 --- RUTA_LIBRETRO elegia la copia de trabajo como instalacion maestra, y esconderla
 --- bajo otro nombre lo evitaba. Ahora la maestra se reconoce por estar junto al
---- lanzador (RUTA_LIBRETRO_MAESTRA), asi que la copia puede volver a su sitio y las
+--- lanzador (libretro_master_path), asi que la copia puede volver a su sitio y las
 --- dos mitades del montaje se leen igual.
 -- Del nombre REAL de la carpeta del lanzador, no del literal "RETROLauncher": si
 -- alguien la renombra, el transbordo y la instalacion que se copia a su lado tienen
@@ -1982,12 +2170,12 @@ end
 --- "%d+": si esa ruta trae un digito de mas o de menos, TODO lo que viene detras se
 --- lee corrido. Un interruptor de si/no no tiene por que depender de eso, asi que
 --- vive en su propio fichero de un caracter.
-function SEE_INDEX_FICHERO()
+function see_index_path()
 	return System.currentDirectory() .."/System/Config/SeeIndex.cfg"
 end
 
-function SEE_INDEX_LEER()
-	local f = SEE_INDEX_FICHERO()
+function see_index_load()
+	local f = see_index_path()
 	if doesFileExist(f) == false then return nil end
 	local v = nil
 	pcall(function()
@@ -2000,10 +2188,10 @@ function SEE_INDEX_LEER()
 	return v
 end
 
-function SEE_INDEX_GUARDAR(valor)
+function see_index_save(valor)
 	pcall(function()
 		local t = tostring(valor)
-		local h = System.openFile(SEE_INDEX_FICHERO(), FCREATE)
+		local h = System.openFile(see_index_path(), FCREATE)
 		System.writeFile(h, t, string.len(t))
 		System.closeFile(h)
 	end)
@@ -2016,7 +2204,7 @@ end
 CACHE_USB_IDX = nil
 CACHE_USB_ID = nil
 
-function CACHE_USB_REFRESCAR(identidad)
+function usb_cache_refresh(identidad)
 	CACHE_USB_ID = identidad
 	CACHE_USB_IDX = {}
 	-- Sin puente no hay copia que evitar: nada esta "en cache", todo arranca igual.
@@ -2034,11 +2222,11 @@ function CACHE_USB_REFRESCAR(identidad)
 	end
 end
 
---- Que cores estan YA en la llave. Mismo principio que EN_CACHE_USB, y un solo
+--- Que cores estan YA en la llave. Mismo principio que usb_cached, y un solo
 --- listado: la carpeta lleva a lo sumo un punado de cores.
 CORES_LLAVE_IDX = nil
 
-function CORE_EN_LLAVE(nombre_core)
+function core_on_usb(nombre_core)
 	if nombre_core == nil then return false end
 	if CORES_LLAVE_IDX == nil then
 		CORES_LLAVE_IDX = {}
@@ -2058,9 +2246,9 @@ function CORE_EN_LLAVE(nombre_core)
 	return CORES_LLAVE_IDX[nombre_core] == true
 end
 
-function EN_CACHE_USB(identidad, nombre)
+function usb_cached(identidad, nombre)
 	if nombre == nil or identidad == nil or identidad > 12 then return false end
-	if CACHE_USB_ID ~= identidad then CACHE_USB_REFRESCAR(identidad) end
+	if CACHE_USB_ID ~= identidad then usb_cache_refresh(identidad) end
 	if CACHE_USB_IDX == nil then return false end
 	-- El rastreo anade un espacio al final para las extensiones de tres letras.
 	local limpio = nombre
@@ -2076,7 +2264,7 @@ end
 --- transferencia, no los bytes.
 COPIA_TROZO = 262144
 
-function COPIAR_CON_PROGRESO(origen, destino, etiqueta)
+function copy_with_progress(origen, destino, etiqueta)
 	local tam = ROM_TAMANO(origen)
 	if tam == nil then return false end
 	-- Por debajo de un trozo no hay nada que mostrar: copia directa.
@@ -2098,8 +2286,8 @@ function COPIAR_CON_PROGRESO(origen, destino, etiqueta)
 			if largo <= 0 then break end
 			System.writeFile(fd, datos, largo)
 			hechos = hechos + largo
-			if COPIA_PROGRESO ~= nil then
-				pcall(COPIA_PROGRESO, etiqueta, hechos, tam)
+			if copy_progress ~= nil then
+				pcall(copy_progress, etiqueta, hechos, tam)
 			end
 		end
 		System.closeFile(fd)
@@ -2160,7 +2348,7 @@ function ROM_TRANSBORDO(ruta_rom, nombre)
 					end
 				end
 			end
-			COPIAR_CON_PROGRESO(ruta_rom, dest, "ROM")
+			copy_with_progress(ruta_rom, dest, "ROM")
 			if doesFileExist(dest) and ROM_TAMANO(dest) == tam then
 				return dest, destinos[i] .." (copiada, ".. tostring(tam) .." bytes)"
 			end
@@ -2347,7 +2535,7 @@ end
 --- recorre ROMS_DIR buscando una ROM cuyo nombre sin extension coincida; si aparece,
 --- la partida va a "<carpeta>/<consola>/", que es donde habria caido con la ordenacion
 --- por contenido activa. Si no aparece, se queda en la raiz como antes.
-function SAVES_RECOLOCAR(origen, casa)
+function saves_relocate(origen, casa)
 	local lista = System.listDirectory(origen)
 	if lista == nil then return 0 end
 	local actual = System.currentDirectory()
@@ -2415,7 +2603,7 @@ function SAVES_RECUPERAR()
 				-- "SaveStates/". En vez de traerlos sueltos al disco, se busca a que
 				-- consola pertenece cada uno preguntando por la ROM en "Roms/", y se
 				-- guardan donde deberian haber estado.
-				total = total + SAVES_RECOLOCAR(raiz, casa)
+				total = total + saves_relocate(raiz, casa)
 				-- Y una carpeta por consola.
 				local subs = System.listDirectory(raiz)
 				if subs ~= nil then
@@ -2431,7 +2619,7 @@ function SAVES_RECUPERAR()
 	end
 	if total > 0 then
 		boot_log("SAVES  ".. tostring(total) .." partida(s) devueltas al disco interno")
-		boot_escribir()
+		boot_flush()
 	end
 	return total
 end
@@ -2454,17 +2642,17 @@ VMC_AUTO_ON = true
 --- La eleccion existia ya, pero habia que MANTENER CRUZ+CIRCULO al lanzar, o poner
 --- RUN_DEFAULT a 1 para que preguntara en cada juego. Ninguna de las dos se descubre
 --- sola, y una combinacion de botones no es un ajuste.
-LANZADOR_JUEGOS = {}
-LANZADOR_LEIDO = false
+LAUNCHER_GAMES = {}
+launcher_cfg_loaded = false
 
-function LANZADOR_FICHERO()
+function launcher_cfg_path()
 	return System.currentDirectory() .."/System/Config/Launcher.cfg"
 end
 
-function LANZADOR_LEER()
-	if LANZADOR_LEIDO == true then return end
-	LANZADOR_LEIDO = true
-	local f = LANZADOR_FICHERO()
+function launcher_cfg_load()
+	if launcher_cfg_loaded == true then return end
+	launcher_cfg_loaded = true
+	local f = launcher_cfg_path()
 	if doesFileExist(f) == false then return end
 	pcall(function()
 		local h = System.openFile(f, FREAD)
@@ -2476,29 +2664,29 @@ function LANZADOR_LEER()
 			local clave, valor = string.match(linea, "^([^=]+)=(.*)$")
 			if clave ~= nil then
 				valor = string.gsub(valor, "%s+$", "")
-				if valor ~= "" then LANZADOR_JUEGOS[clave] = valor end
+				if valor ~= "" then LAUNCHER_GAMES[clave] = valor end
 			end
 		end
 	end)
 end
 
-function LANZADOR_GUARDAR()
+function launcher_cfg_save()
 	pcall(function()
 		local t = ""
-		for juego, valor in pairs(LANZADOR_JUEGOS) do
+		for juego, valor in pairs(LAUNCHER_GAMES) do
 			t = t .. juego .."=".. valor .."\n"
 		end
-		local h = System.openFile(LANZADOR_FICHERO(), FCREATE)
+		local h = System.openFile(launcher_cfg_path(), FCREATE)
 		System.writeFile(h, t, string.len(t))
 		System.closeFile(h)
 	end)
 end
 
 --- True si ESTE juego debe lanzarse con OPL en vez de Neutrino. -----------------------
-function LANZADOR_ES_OPL(nombre)
+function launcher_is_opl(nombre)
 	if nombre == nil then return false end
-	LANZADOR_LEER()
-	return LANZADOR_JUEGOS[nombre] == "opl"
+	launcher_cfg_load()
+	return LAUNCHER_GAMES[nombre] == "opl"
 end
 
 --- Tarjeta virtual: UN solo ajuste, por juego, sin ambiguedad. -----------------------
@@ -2514,17 +2702,17 @@ end
 --- Habia aqui un ajuste global "donde crear las tarjetas" ademas de esto, y un segundo
 --- selector de fichero que duplicaba el de Boon. Tres formas de decidir la misma cosa,
 --- ninguna de las cuales decia que fichero se iba a usar de verdad. Queda una.
-VMC_JUEGOS = {}
-VMC_CFG_LEIDO = false
+VMC_GAMES = {}
+vmc_cfg_loaded = false
 
-function VMC_CFG_FICHERO()
+function vmc_cfg_path()
 	return System.currentDirectory() .."/System/Config/VMC.cfg"
 end
 
-function VMC_CFG_LEER()
-	if VMC_CFG_LEIDO == true then return end
-	VMC_CFG_LEIDO = true
-	local f = VMC_CFG_FICHERO()
+function vmc_cfg_load()
+	if vmc_cfg_loaded == true then return end
+	vmc_cfg_loaded = true
+	local f = vmc_cfg_path()
 	if doesFileExist(f) == false then return end
 	pcall(function()
 		local h = System.openFile(f, FREAD)
@@ -2537,26 +2725,26 @@ function VMC_CFG_LEER()
 			if clave ~= nil then
 				clave = string.gsub(clave, "%s+$", "")
 				valor = string.gsub(valor, "%s+$", "")
-				if valor ~= "" then VMC_JUEGOS[clave] = valor end
+				if valor ~= "" then VMC_GAMES[clave] = valor end
 			end
 		end
 	end)
 end
 
-function VMC_CFG_GUARDAR()
+function vmc_cfg_save()
 	pcall(function()
 		local t = ""
-		for id, valor in pairs(VMC_JUEGOS) do
+		for id, valor in pairs(VMC_GAMES) do
 			t = t .. id .."=".. valor .."\n"
 		end
-		local h = System.openFile(VMC_CFG_FICHERO(), FCREATE)
+		local h = System.openFile(vmc_cfg_path(), FCREATE)
 		System.writeFile(h, t, string.len(t))
 		System.closeFile(h)
 	end)
 end
 
 --- Las unidades donde puede vivir una carpeta VMC. ------------------------------------
-function VMC_UNIDADES()
+function vmc_drives()
 	local out, vistos = {}, {}
 
 	local function anadir(dev)
@@ -2588,7 +2776,7 @@ end
 --- "SLES-51191" es la convencion de las tarjetas, "SLES_511.91" la de las ISO de OPL,
 --- y por el camino aparecen las dos con el otro separador. Comparar con una sola forma
 --- es lo que dejaba la lista vacia aunque la carpeta tuviera las tarjetas delante.
-function VMC_ID_VARIANTES(id)
+function vmc_id_variants(id)
 	if id == nil then return {} end
 	local reg, num = string.match(id, "^(%a%a%a%a)%-(%d%d%d%d%d)")
 	if reg == nil then return {string.lower(id)} end
@@ -2605,10 +2793,10 @@ end
 --- desaparecer. Una lista vacia frente a una carpeta llena no informa de nada, y
 --- ademas hay quien nombra sus tarjetas a mano, sin ningun ID.
 --- Devuelve dos tablas: rutas, y si cada una corresponde al juego.
-function VMC_CANDIDATAS(id)
+function vmc_candidates(id)
 	local propias, otras = {}, {}
-	local variantes = VMC_ID_VARIANTES(id)
-	local unidades = VMC_UNIDADES()
+	local variantes = vmc_id_variants(id)
+	local unidades = vmc_drives()
 	for i = 1, #unidades do
 		local dir = unidades[i] .."/VMC"
 		local c = System.listDirectory(dir)
@@ -2643,7 +2831,7 @@ end
 --- Crea una tarjeta vacia de 8 MB y devuelve su ruta, o nil. --------------------------
 --- "fichero" es el nombre COMPLETO con su ".bin". Antes se recibia el ID y se le
 --- pegaba la extension aqui, lo que impedia elegir el nombre desde el menu.
-function VMC_CREAR(dev, fichero)
+function vmc_create(dev, fichero)
 	if dev == nil or fichero == nil then return nil end
 	local dir = dev .."/VMC"
 	if System.listDirectory(dir) == nil then pcall(System.createDirectory, dir) end
@@ -2660,7 +2848,7 @@ end
 --- ID normalizado del juego a partir del nombre del fichero de la ISO. ----------------------------
 --- "SCES_502.40.Extermination.iso" -> "SCES-50240", la convencion de OPL y de las
 --- carpetas de guardado. nil si el nombre no lleva un ID reconocible.
-function VMC_ID(nombre)
+function vmc_id(nombre)
 	if nombre == nil then return nil end
 	local reg, n1, n2 = string.match(nombre, "^(%a%a%a%a)_(%d%d%d)%.(%d%d)")
 	if reg ~= nil then return reg .."-".. n1 .. n2 end
@@ -2673,8 +2861,8 @@ end
 --- El ID tal y como lo escribe OPL: "SCES_502.95". ------------------------------------
 --- Es la forma que llevan las ISO, y la que se usa para bautizar una tarjeta nueva, de
 --- modo que el nombre del fichero se parezca al del juego que tiene al lado.
-function VMC_ID_OPL(nombre)
-	local id = VMC_ID(nombre)
+function vmc_id_opl(nombre)
+	local id = vmc_id(nombre)
 	if id == nil then return nil end
 	local reg, num = string.match(id, "^(%a%a%a%a)%-(%d%d%d%d%d)")
 	if reg == nil then return id end
@@ -2684,7 +2872,7 @@ end
 --- El titulo que va detras del ID en el nombre de la ISO. -----------------------------
 --- "SCES_502.95.Dark Cloud.iso" -> "Dark Cloud". Devuelve "" si no se reconoce nada,
 --- y en ese caso la tarjeta se queda solo con el ID y el numero.
-function VMC_TITULO(nombre)
+function vmc_title(nombre)
 	if nombre == nil then return "" end
 	local t = nombre
 	t = string.gsub(t, "%.[Ii][Ss][Oo]$", "")
@@ -2701,11 +2889,11 @@ end
 --- Nombre propuesto para una tarjeta nueva: "SCES_502.95_Dark Cloud-1.bin". -----------
 --- El numero del final lo mueve el usuario con arriba / abajo, para poder tener varias
 --- partidas del mismo juego sin que una pise a la otra.
-function VMC_NOMBRE_NUEVO(nombre, n)
-	local idopl = VMC_ID_OPL(nombre)
+function vmc_new_name(nombre, n)
+	local idopl = vmc_id_opl(nombre)
 	if idopl == nil then return nil end
 	if n == nil or n < 1 then n = 1 end
-	local titulo = VMC_TITULO(nombre)
+	local titulo = vmc_title(nombre)
 	if titulo == "" then return idopl .."-".. n ..".bin" end
 	return idopl .."_".. titulo .."-".. n ..".bin"
 end
@@ -2713,13 +2901,13 @@ end
 --- Devuelve el argumento "-mc0=<ruta>" para el juego, creando la tarjeta si falta.
 --- "unidad_iso" es el prefijo de unidad donde Neutrino leera la ISO, para poner la
 --- tarjeta en el MISMO soporte (con -bsd=ata todo es "mass:"). nil si no procede.
-function VMC_AUTO(nombre, unidad_iso)
+function vmc_auto(nombre, unidad_iso)
 	if VMC_AUTO_ON ~= true then return nil end
-	VMC_CFG_LEER()
-	local id = VMC_ID(nombre)
+	vmc_cfg_load()
+	local id = vmc_id(nombre)
 	if id == nil then return nil end
 
-	local elegido = VMC_JUEGOS[id]
+	local elegido = VMC_GAMES[id]
 
 	-- "none" quiere decir NINGUNA tarjeta, y tiene que ganar sobre todo lo demas.
 	-- Aqui estaba el sinsentido: desactivar la tarjeta en el menu de Boon deja el
@@ -2735,12 +2923,12 @@ function VMC_AUTO(nombre, unidad_iso)
 
 	-- Automatico: la primera tarjeta que sea DE ESTE JUEGO.
 	--
-	-- VMC_CANDIDATAS devuelve ahora todos los ".bin" de las carpetas, para que la
+	-- vmc_candidates devuelve ahora todos los ".bin" de las carpetas, para que la
 	-- lista del menu no aparezca vacia delante de una carpeta llena. Pero aqui no se
 	-- elige a ciegas: el segundo valor dice cuantas de las primeras llevan el ID del
 	-- juego, y solo esas pueden usarse sin que el usuario lo haya pedido. Coger la
 	-- primera de la carpeta seria arrancar con la partida de otro juego.
-	local cand, propias = VMC_CANDIDATAS(id)
+	local cand, propias = vmc_candidates(id)
 	if propias >= 1 then return "-mc0=".. cand[1] end
 
 	-- Ninguna tarjeta, y ninguna eleccion: el juego arranca SIN "-mc0=".
@@ -2828,8 +3016,20 @@ function RUTA_MEDIA(tipo, identidad, sistema, nombre, base)
 	-- PS1 reune dos formatos bajo la misma identidad, y sus imagenes pueden estar en
 	-- la carpeta de cualquiera de los dos. Se prueban ambas.
 	local fichero = base ..".png"
+	-- PlayStation: UNA sola carpeta de imagenes para los dos formatos.
+	--
+	-- Un juego de PS1 puede estar aqui como .cue en "psx-ember(bin and cue)" o
+	-- como .vcd en "psx-pops(vcd)" o en "POPS/", y es el mismo juego con la
+	-- misma caratula. Tener las imagenes repartidas segun el formato del volcado
+	-- obliga a duplicarlas, y a acordarse de cual toca.
+	--
+	-- "Roms/psx/media" es ahora el sitio, y se prueba primero. Las dos carpetas
+	-- de antes se siguen leyendo detras, asi que una instalacion existente no
+	-- tiene que mover nada.
 	local alias = {MEDIA_ALIAS[identidad]}
-	if identidad == 14 then table.insert(alias, "psx-pops(vcd)") end
+	if identidad == 14 then
+		alias = {"psx", "psx-ember(bin and cue)", "psx-pops(vcd)"}
+	end
 	if RAICES ~= nil then
 		for a = 1, #alias do
 			if alias[a] ~= nil then
@@ -2874,7 +3074,7 @@ ART_LOG_ON = false
 
 function log_art(fase, ruta)
 	ART_ULTIMA = tostring(fase) .." -> ".. tostring(ruta)
-	if ART_LOG_ON == true then boot_escribir() end
+	if ART_LOG_ON == true then boot_flush() end
 end
 
 --- Carpeta "ART" de OPL. Esta en la RAIZ de la unidad, NO dentro del launcher, y
@@ -2987,7 +3187,7 @@ if true then
 		boot_log("")
 		boot_log("RETROARCH  ".. base_ra .."  (soporte legible por los cores)")
 	end
-	boot_escribir()
+	boot_flush()
 end
 
 --- Que hay en la llave, al arrancar. --------------------------------------------------
@@ -2995,7 +3195,7 @@ end
 --- de verdad a la llave", y hasta ahora habia que apagar, sacarla y mirarla en el PC.
 --- Aqui queda escrito. Son cuatro listados de carpetas pequenas: la raiz del lanzador
 --- en la llave, los cores que hay, la ROM en cache y las partidas.
-function INVENTARIO_LLAVE()
+function usb_inventory()
 	local destinos = ROM_DESTINOS()
 	for d = 1, #destinos do
 		local dev = destinos[d]
@@ -3064,10 +3264,10 @@ function INVENTARIO_LLAVE()
 			end
 		end
 	end
-	boot_escribir()
+	boot_flush()
 end
 
-INVENTARIO_LLAVE()
+usb_inventory()
 
 --- Vuelta del puente de partidas: se llama justo al arrancar, que es cuando se
 --- vuelve de un juego. Necesita RAICES y BDM_DEVICES, de ahi que este aqui.
@@ -3079,10 +3279,10 @@ SAVES_RECUPERAR()
 --- segundos, lanzado justo en el momento en que la pantalla ya no se refresca. El
 --- diagnostico de RetroArch sigue estando, entero, en RETROLauncher.log, que es su sitio.
 --- Estas dos lineas se leen de variables ya calculadas: no cuestan nada.
---- En ingles como el resto de la interfaz. MOSTRAR_ORIGEN a false para quitarlo.
-MOSTRAR_ORIGEN = true
+--- En ingles como el resto de la interfaz. SHOW_ORIGIN a false para quitarlo.
+SHOW_ORIGIN = true
 
-function ORIGEN_TEXTO()
+function origin_text()
 	if BOOT_ES_ATA ~= true then
 		return "Booted from USB / external media", tostring(BOOT_DEV)
 	end
@@ -3094,15 +3294,15 @@ end
 --- y=247..282 de una imagen de 480 de alto. Se tapa con negro y se escribe encima el
 --- paso en curso, para que un arranque que no llega al menu diga DONDE se ha parado en
 --- vez de quedarse en una frase fija. Lo mismo va al journal, con volcado inmediato.
-CARGA_FONDO, CARGA_LOADING, CARGA_FUENTE = nil, nil, nil
-CARGA_RES_X, CARGA_RES_Y = 640, 448
+LOAD_BG, LOAD_IMG, LOAD_FONT = nil, nil, nil
+LOAD_RES_X, LOAD_RES_Y = 640, 448
 
 --- Las ultimas lineas, no una sola. ---------------------------------------------------
 --- Una banda con el paso en curso no dice nada cuando el arranque se para: se ve DONDE
 --- se ha quedado pero no por donde habia pasado. Con una lista que se desplaza se lee
 --- de un vistazo lo que ya esta hecho, y la ultima linea, marcada con ">", es
 --- exactamente aquello que no ha terminado.
-CARGA_LINEAS = {}
+LOAD_LINES = {}
 
 --- El texto va en los HUECOS de la imagen, sin taparla. --------------------------------
 --- LOADING.png mide 640x480 y se dibuja a 640x448. Midiendo sus pixeles opacos, lo que
@@ -3125,28 +3325,28 @@ CARGA_LINEAS = {}
 --- Asi que la lista se reparte en esas dos franjas: el origen arriba y los pasos abajo
 --- en dos columnas. Caben diez pasos en vez de veintidos -- el historico entero sigue
 --- estando en RETROLauncher.log, que es su sitio; esto es solo por donde va.
-CARGA_LINEA_ALTO = 12
+LOAD_LINE_H = 12
 
-CARGA_ORIGEN_BANDA_Y, CARGA_ORIGEN_BANDA_ALTO = 194, 32
-CARGA_ORIGEN_Y = 198
+LOAD_ORIGIN_BAND_Y, LOAD_ORIGIN_BAND_H = 194, 32
+LOAD_ORIGIN_Y = 198
 
-CARGA_PASOS_BANDA_Y, CARGA_PASOS_BANDA_ALTO = 264, 64
-CARGA_PASOS_Y = 268
-CARGA_PASOS_FILAS = 5
-CARGA_COLUMNAS = {20, 330}
-CARGA_COL_ANCHO = 290
+LOAD_STEPS_BAND_Y, LOAD_STEPS_BAND_H = 264, 64
+LOAD_STEPS_Y = 268
+LOAD_STEPS_ROWS = 5
+LOAD_COLUMNS = {20, 330}
+LOAD_COL_W = 290
 
-CARGA_MAX_LINEAS = CARGA_PASOS_FILAS * #CARGA_COLUMNAS
+LOAD_MAX_LINES = LOAD_STEPS_ROWS * #LOAD_COLUMNS
 
 --- El soporte de cada paso, en paralelo con el texto: "exfat", "usb" o nil. ------------
-CARGA_TIPOS = {}
+LOAD_KINDS = {}
 
-function CARGA_PINTAR()
-	if CARGA_FONDO == nil then return end
+function load_paint()
+	if LOAD_BG == nil then return end
 	Screen.clear(Color.new(0, 0, 0))
-	Graphics.drawScaleImage(CARGA_FONDO, -5, 0, CARGA_RES_X+5, CARGA_RES_Y, Color.new(0, 80, 120))
-	Graphics.drawScaleImage(CARGA_LOADING, 0, 0, CARGA_RES_X, CARGA_RES_Y)
-	if CARGA_FUENTE == nil then return end
+	Graphics.drawScaleImage(LOAD_BG, -5, 0, LOAD_RES_X+5, LOAD_RES_Y, Color.new(0, 80, 120))
+	Graphics.drawScaleImage(LOAD_IMG, 0, 0, LOAD_RES_X, LOAD_RES_Y)
+	if LOAD_FONT == nil then return end
 	pcall(function()
 		local blanco = Color.new(255, 255, 255)
 		local gris = Color.new(160, 160, 160)
@@ -3166,69 +3366,69 @@ function CARGA_PINTAR()
 		-- Un velo oscuro SOLO sobre las dos franjas libres, para que el texto tenga
 		-- contraste sin tapar nada de la imagen.
 		local velo = Color.new(0, 0, 0, 150)
-		Graphics.drawRect(0, CARGA_ORIGEN_BANDA_Y, CARGA_RES_X, CARGA_ORIGEN_BANDA_ALTO, velo)
-		Graphics.drawRect(0, CARGA_PASOS_BANDA_Y, CARGA_RES_X, CARGA_PASOS_BANDA_ALTO, velo)
+		Graphics.drawRect(0, LOAD_ORIGIN_BAND_Y, LOAD_RES_X, LOAD_ORIGIN_BAND_H, velo)
+		Graphics.drawRect(0, LOAD_STEPS_BAND_Y, LOAD_RES_X, LOAD_STEPS_BAND_H, velo)
 
-		Font.ftSetPixelSize(CARGA_FUENTE, 9, 9)
+		Font.ftSetPixelSize(LOAD_FONT, 9, 9)
 
-		if MOSTRAR_ORIGEN == true then
-			local l1, l2 = ORIGEN_TEXTO()
+		if SHOW_ORIGIN == true then
+			local l1, l2 = origin_text()
 			local col = cian
 			if BOOT_ES_ATA == true then col = amarillo end
-			Font.ftPrint(CARGA_FUENTE, 20, CARGA_ORIGEN_Y, 6, 600, CARGA_LINEA_ALTO, l1, col)
-			Font.ftPrint(CARGA_FUENTE, 20, CARGA_ORIGEN_Y + CARGA_LINEA_ALTO, 6, 600,
-				CARGA_LINEA_ALTO, l2, gris)
+			Font.ftPrint(LOAD_FONT, 20, LOAD_ORIGIN_Y, 6, 600, LOAD_LINE_H, l1, col)
+			Font.ftPrint(LOAD_FONT, 20, LOAD_ORIGIN_Y + LOAD_LINE_H, 6, 600,
+				LOAD_LINE_H, l2, gris)
 		end
 
 		-- Los pasos, por columnas: se llena la primera de arriba abajo y se sigue en la
 		-- siguiente.
-		for i = 1, #CARGA_LINEAS do
-			local col_n = ((i - 1) // CARGA_PASOS_FILAS) + 1
-			local fila = (i - 1) % CARGA_PASOS_FILAS
-			local x = CARGA_COLUMNAS[col_n]
+		for i = 1, #LOAD_LINES do
+			local col_n = ((i - 1) // LOAD_STEPS_ROWS) + 1
+			local fila = (i - 1) % LOAD_STEPS_ROWS
+			local x = LOAD_COLUMNS[col_n]
 			if x ~= nil then
-				local tipo = CARGA_TIPOS[i]
+				local tipo = LOAD_KINDS[i]
 				local marca, col = "  ", gris
-				if i == #CARGA_LINEAS then marca, col = "> ", blanco end
+				if i == #LOAD_LINES then marca, col = "> ", blanco end
 				if tipo == "exfat" then col = amarillo
 				elseif tipo == "usb" then col = cian end
-				Font.ftPrint(CARGA_FUENTE, x, CARGA_PASOS_Y + (fila * CARGA_LINEA_ALTO), 6,
-					CARGA_COL_ANCHO, CARGA_LINEA_ALTO, marca .. CARGA_LINEAS[i], col)
+				Font.ftPrint(LOAD_FONT, x, LOAD_STEPS_Y + (fila * LOAD_LINE_H), 6,
+					LOAD_COL_W, LOAD_LINE_H, marca .. LOAD_LINES[i], col)
 			end
 		end
-		Font.ftSetPixelSize(CARGA_FUENTE, 14, 14)
+		Font.ftSetPixelSize(LOAD_FONT, 14, 14)
 	end)
 end
 
 --- Un paso del arranque: al log (volcado ya) y a la pantalla. -------------------------
 --- "tipo" pinta la linea: "exfat" en amarillo, "usb" en cian, nil en gris. -------------
-function CARGA_PASO(texto, tipo)
+function load_step(texto, tipo)
 	-- Solo durante el arranque. Varias de las funciones instrumentadas -- recargar_todas
 	-- sobre todo -- se vuelven a llamar desde el menu, y sin esto el log creceria sin
 	-- fin y cada refresco de lista repintaria la pantalla de carga sobre el menu.
-	if CARGA_FONDO == nil then return end
-	CARGA_LINEAS[#CARGA_LINEAS + 1] = tostring(texto)
-	CARGA_TIPOS[#CARGA_LINEAS] = tipo
-	while #CARGA_LINEAS > CARGA_MAX_LINEAS do
-		table.remove(CARGA_LINEAS, 1)
-		table.remove(CARGA_TIPOS, 1)
+	if LOAD_BG == nil then return end
+	LOAD_LINES[#LOAD_LINES + 1] = tostring(texto)
+	LOAD_KINDS[#LOAD_LINES] = tipo
+	while #LOAD_LINES > LOAD_MAX_LINES do
+		table.remove(LOAD_LINES, 1)
+		table.remove(LOAD_KINDS, 1)
 	end
 	boot_log("CARGA  ".. tostring(texto))
-	boot_escribir()
+	boot_flush()
 	-- Los dos buffers, para que lo que se ve sea lo mismo tras cualquier flip ajeno.
 	pcall(function()
-		CARGA_PINTAR()
+		load_paint()
 		Screen.flip()
-		CARGA_PINTAR()
+		load_paint()
 	end)
 end
 
-function CARGA_FIN()
+function load_end()
 	-- Las imagenes se liberan; la FUENTE no. Y no es un descuido.
 	--
 	-- "Font.ftInit()" se llama dos veces: una aqui arriba, para poder escribir en la
 	-- pantalla de carga, y otra dentro de la tabla CONTROL, que es la del programa
-	-- original. CARGA_FUENTE se obtiene ANTES de esa segunda inicializacion, asi que
+	-- original. LOAD_FONT se obtiene ANTES de esa segunda inicializacion, asi que
 	-- descargarla aqui destruye una referencia que ya no pertenece al FreeType en
 	-- curso -- y con ella se lleva el estado de "fontARCA" y "fontABC".
 	--
@@ -3239,10 +3439,10 @@ function CARGA_FIN()
 	--
 	-- Una cara de fuente sin liberar no cuesta casi nada. Un menu invisible, todo.
 	pcall(function()
-		if CARGA_FONDO ~= nil then Graphics.freeImage(CARGA_FONDO) end
-		if CARGA_LOADING ~= nil then Graphics.freeImage(CARGA_LOADING) end
+		if LOAD_BG ~= nil then Graphics.freeImage(LOAD_BG) end
+		if LOAD_IMG ~= nil then Graphics.freeImage(LOAD_IMG) end
 	end)
-	CARGA_FUENTE, CARGA_FONDO, CARGA_LOADING = nil, nil, nil
+	LOAD_FONT, LOAD_BG, LOAD_IMG = nil, nil, nil
 end
 
 --- Pantalla de carga y comprobación de directorio. -------------------------------------
@@ -3267,23 +3467,23 @@ if true then
 	-- Nada de esto es local: la pantalla de carga tiene que poder repintarse desde
 	-- cualquier punto del arranque para decir en que paso va. Se libera al final,
 	-- justo antes de entrar en el menu.
-	CARGA_RES_X, CARGA_RES_Y = res_x, res_y
-	CARGA_FONDO = Graphics.loadImage("System/Medias/Default/FONDO.png")
-	CARGA_LOADING = Graphics.loadImage("System/Medias/Default/LOADING.png")
+	LOAD_RES_X, LOAD_RES_Y = res_x, res_y
+	LOAD_BG = Graphics.loadImage("System/Medias/Default/FONDO.png")
+	LOAD_IMG = Graphics.loadImage("System/Medias/Default/LOADING.png")
 
 	-- La fuente se carga UNA vez: la pantalla se repinta decenas de veces y no tiene
 	-- sentido releer el TTF cada vez.
 	-- Todo entre pcall: esto es informacion, no puede tumbar el arranque.
-	CARGA_FUENTE = nil
+	LOAD_FONT = nil
 	pcall(function()
 		Font.ftInit()
-		CARGA_FUENTE = Font.ftLoad("System/Medias/Font/PublicPixel.ttf")
-		Font.ftSetPixelSize(CARGA_FUENTE, 14, 14)
+		LOAD_FONT = Font.ftLoad("System/Medias/Font/PublicPixel.ttf")
+		Font.ftSetPixelSize(LOAD_FONT, 14, 14)
 	end)
 
-	CARGA_PASO("loading screen ready")
+	load_step("loading screen ready")
 	boot_log("BOOT   pantalla de carga pintada")
-	boot_escribir()
+	boot_flush()
 	if doesFileExist("System/Medias/Sound/Background/music.adp") == true and doesFileExist("System/Medias/Sound/Background/music0.adp") == true then
 		System.removeFile("System/Medias/Sound/Background/music.adp")
 	end
@@ -3323,7 +3523,7 @@ end
 -- Los ficheros "2" son el juego de sonidos en uso. Los originales de Boon siguen
 -- en la carpeta y se cargan solos si los "2" faltan, asi que borrar un fichero "2"
 -- basta para volver al sonido de antes.
-function sonido_preferido(sonido, preferido, respaldo)
+function preferred_sound(sonido, preferido, respaldo)
 	local elegido = verificar_sonidos(sonido, preferido)
 	if elegido == nil then
 		elegido = verificar_sonidos(sonido, respaldo)
@@ -3332,10 +3532,10 @@ function sonido_preferido(sonido, preferido, respaldo)
 end
 
 -- Carga de sonidos. --------------------------------------------------------------------
-S_MOVER = sonido_preferido(S_MOVER, "System/Medias/Sound/Menu/move2.adp", "System/Medias/Sound/Menu/move.adp");
-S_EJECUTAR = sonido_preferido(S_EJECUTAR, "System/Medias/Sound/Menu/run2.adp", "System/Medias/Sound/Menu/run.adp");
-S_CANCELAR = sonido_preferido(S_CANCELAR, "System/Medias/Sound/Menu/back2.adp", "System/Medias/Sound/Menu/back.adp");
-S_NETX = sonido_preferido(S_NETX, "System/Medias/Sound/Menu/next2.adp", "System/Medias/Sound/Menu/next.adp");
+S_MOVER = preferred_sound(S_MOVER, "System/Medias/Sound/Menu/move2.adp", "System/Medias/Sound/Menu/move.adp");
+S_EJECUTAR = preferred_sound(S_EJECUTAR, "System/Medias/Sound/Menu/run2.adp", "System/Medias/Sound/Menu/run.adp");
+S_CANCELAR = preferred_sound(S_CANCELAR, "System/Medias/Sound/Menu/back2.adp", "System/Medias/Sound/Menu/back.adp");
+S_NETX = preferred_sound(S_NETX, "System/Medias/Sound/Menu/next2.adp", "System/Medias/Sound/Menu/next.adp");
 S_MUSICA = verificar_sonidos(S_MUSICA, "System/Medias/Sound/Background/music.adp");
 if boot_log ~= nil and S_MUSICA == nil then
 	-- El nombre importa: "music0.adp" es el nombre que tiene la pista cuando esta
@@ -3362,24 +3562,24 @@ end
 --- La voz 2 es la musica y la 3 las intros, asi que los sonidos del menu van de la 4 en
 --- adelante. El volumen hay que ponerlo en TODAS: audsrv_adpcm_init deja las 24 voces a
 --- 0x3fff, de modo que una voz a la que nadie le baja el volumen suena al maximo.
-SFX_CANALES = {}
-SFX_VOCES = {1, 4, 5, 6, 7}
+SFX_CHANNELS = {}
+SFX_VOICES = {1, 4, 5, 6, 7}
 
-function SFX_VOZ(sonido, canal)
-	if sonido ~= nil and SFX_CANALES[sonido] ~= nil then return SFX_CANALES[sonido] end
+function sfx_voice(sonido, canal)
+	if sonido ~= nil and SFX_CHANNELS[sonido] ~= nil then return SFX_CHANNELS[sonido] end
 	return canal
 end
 
-function SFX_VOLUMEN(volumen)
-	for i = 1, #SFX_VOCES do
-		pcall(Sound.setADPCMVolume, SFX_VOCES[i], volumen)
+function sfx_volume(volumen)
+	for i = 1, #SFX_VOICES do
+		pcall(Sound.setADPCMVolume, SFX_VOICES[i], volumen)
 	end
 end
 
-if S_MOVER ~= nil then SFX_CANALES[S_MOVER] = 4 end
-if S_EJECUTAR ~= nil then SFX_CANALES[S_EJECUTAR] = 5 end
-if S_CANCELAR ~= nil then SFX_CANALES[S_CANCELAR] = 6 end
-if S_NETX ~= nil then SFX_CANALES[S_NETX] = 7 end
+if S_MOVER ~= nil then SFX_CHANNELS[S_MOVER] = 4 end
+if S_EJECUTAR ~= nil then SFX_CHANNELS[S_EJECUTAR] = 5 end
+if S_CANCELAR ~= nil then SFX_CHANNELS[S_CANCELAR] = 6 end
+if S_NETX ~= nil then SFX_CHANNELS[S_NETX] = 7 end
 
 --- Cargar variables y configuraciones. -------------------------------------------------
 require("System/language")
@@ -3387,7 +3587,7 @@ lang_select()
 require("System/menu")
 require("System/funciones")
 boot_log("BOOT   modulos cargados (language, menu, funciones)")
-boot_escribir()
+boot_flush()
 
 -- Guarda las listas / últimos movimientos / límite de captura. -------------------------
 PRE_CARGADAS = {}
@@ -3403,7 +3603,7 @@ function verif_img(dir)
 	return dir
 end
 
-CARGA_PASO("preloading console logos")
+load_step("preloading console logos")
 -- Precargar logos. ---------------------------------------------------------------------
 LOGOS = {
 	DEFAULT = Graphics.loadImage(verif_img("System/Medias/Logos/Default.png"));
@@ -3425,7 +3625,7 @@ LOGOS = {
 	PLAYSTATION2 = Graphics.loadImage(verif_img("System/Medias/Logos/PlayStation2.png"));
 };
 
-CARGA_PASO("preloading pad images")
+load_step("preloading pad images")
 -- Precargar imágenes de los pads. ------------------------------------------------------
 PAD_IMG = {
 	CIRCLE = Graphics.loadImage(verif_img("System/Medias/Pads/circle.png"));
@@ -3441,7 +3641,7 @@ PAD_IMG = {
 	START = Graphics.loadImage(verif_img("System/Medias/Pads/start.png"));
 };
 
-CARGA_PASO("preloading sprites")
+load_step("preloading sprites")
 -- Precargar imágenes de los sprites. ---------------------------------------------------
 SPRITES = {
 	MEGADRIVE = nil;
@@ -3524,7 +3724,7 @@ SPRITES = {
 };
 TEML(true)
 
-CARGA_PASO("defining colours")
+load_step("defining colours")
 -- Define colores básicos. --------------------------------------------------------------
 COLOR = {
 	BLANCO = Color.new(128, 128, 128);
@@ -3536,7 +3736,7 @@ COLOR = {
 	CC_BACK = {0, 0, 0, 85};
 };
 
-CARGA_PASO("defining options")
+load_step("defining options")
 -- Define opciones y configuraciones. ---------------------------------------------------
 OPCIONES = {
 	RGB_ON = 1;
@@ -3579,7 +3779,7 @@ OPCIONES = {
 	RUN_DEFAULT = 0
 };
 
-CARGA_PASO("defining emulator states")
+load_step("defining emulator states")
 -- Define el estado de los emuladores (Activado / Desactivado). -------------------------
 SISTEMAS = {
 	MEGADRIVE_ON = 1;
@@ -3599,7 +3799,7 @@ SISTEMAS = {
 	PLAYSTATION2_ON = 1;
 };
 
-CARGA_PASO("loading fonts")
+load_step("loading fonts")
 -- Define las variables usadas para la ejecución del programa. --------------------------
 CONTROL = {
 	ANCHO = 640;
@@ -3653,7 +3853,7 @@ CONTROL = {
 	ACT_FONTABC = false;
 };
 
-CARGA_PASO("preparing list images")
+load_step("preparing list images")
 -- Define las variables usadas para la ejecución de las listas. -------------------------
 LISTAS = {
 	FONDO = Graphics.loadImage(verif_img("System/Medias/Default/FONDO.png"));
@@ -3695,7 +3895,7 @@ LISTAS = {
 	ART_ZOOM = 2;
 };
 
-CARGA_PASO("defining system colours")
+load_step("defining system colours")
 -- Define los colores usados para cada sistema. -----------------------------------------
 CAMBIOS_EMUS = {
 	COLOR_EMU = Color.new(0, 0, 0);
@@ -3712,18 +3912,18 @@ CAMBIOS_EMUS = {
 };
 
 --- Cargar variables y configuraciones. -------------------------------------------------
-CARGA_PASO("reading configuration")
+load_step("reading configuration")
 cargar_config()
 
 --- Ejecutar RETROLauncher. -------------------------------------------------------------
 -- El valor con el que se entra al menu, para no volver a preguntarse si el
 -- interruptor guarda o no: aqui queda escrito, junto con lo que dice su fichero.
 boot_log("BOOT   SEE_INDEX = ".. tostring(OPCIONES.SEE_INDEX)
-	.."   SeeIndex.cfg = ".. tostring(SEE_INDEX_LEER()))
-CARGA_PASO("entering menu")
+	.."   SeeIndex.cfg = ".. tostring(see_index_load()))
+load_step("entering menu")
 boot_log("BOOT   listas construidas, entrando en el menu")
-boot_escribir()
-CARGA_FIN()
+boot_flush()
+load_end()
 while true do
 	dibujar()
 	refrescar(false)

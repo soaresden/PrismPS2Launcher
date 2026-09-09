@@ -1,0 +1,101 @@
+Ember - PS1 emulation on the PS2 itself
+=======================================
+
+Ember is by Gageformer.  https://github.com/Gageformer/Ember
+Beta 1, released 28 August 2026. Closed source for now, free to use and to
+build a front-end for. It ships no BIOS and never will - you supply your own.
+
+
+What goes in this folder
+------------------------
+
+    Ember/
+    |- ember.elf          the emulator, from the Beta 1 release
+    |- bios.bin           a PS1 BIOS dump from your own console
+    |- settings.txt       optional, see below
+    `- games/
+       `- Spyro/          ONE FOLDER PER GAME, named however you like
+          |- Spyro.cue
+          |- Spyro.bin
+          |- MC1.vmc      Ember creates these itself, on first run
+          |- MC2.vmc
+          `- SharedMC.txt optional, one line: the name of another game folder
+
+Everything is resolved relative to ember.elf, so the whole folder is portable:
+it works from the USB stick, the internal drive or an MMCE, and it can be
+copied between them without editing anything.
+
+
+How RETROLauncher launches it
+-----------------------------
+Beta 1 takes the NAME OF THE GAME FOLDER as its argument, not a file:
+
+    ember.elf "Crash Bandicoot (USA)"   ->  games/Crash Bandicoot (USA)/
+
+Inside the folder Ember takes the .cue if there is one, otherwise the .bin.
+Spaces are fine and need no quoting - Ember stitches the argument back
+together itself.
+
+This is a change from the demo, which lived inside the ROM folder and took a
+.cue filename. The old layout, Roms/psx-ember(bin and cue)/ with ember.elf and
+bios.bin beside the games, still works: the launcher reads both.
+
+
+.CHD does not work, and the launcher says so
+--------------------------------------------
+Ember reads .cue or .bin. A .chd is ignored and the game drops to the PS1 BIOS
+screen with no explanation.
+
+A game folder holding only a .chd is therefore shown IN RED in the list, and
+selecting it explains the problem instead of launching into a blue screen.
+
+Convert on the PC - about thirty seconds with chdman:
+
+    chdman extractcd -i "Game.chd" -o "Game.cue" -ob "Game.bin"
+
+Doing it on the console is not offered, and that is deliberate rather than
+laziness. A CHD v5 packs its sector map with Huffman and each block with zlib,
+LZMA or FLAC; writing those three decompressors in Lua, on a 300 MHz R5900,
+to then write 300-700 MB over USB, is hours per game and a half-written file
+if anything goes wrong. The .chd can stay in the folder either way - Ember
+simply ignores it.
+
+
+One game, two ways to run it
+----------------------------
+The same game can exist as a .VCD for POPStarter and as a folder here. It is
+listed ONCE - seeing it twice helps nobody - and the game menu on TRIANGLE
+gains a line:
+
+    Play with: POPStarter      <->      Play with: Ember
+
+The choice is stored per game in System/Config/PS1.cfg. The matching is done
+on the name with punctuation and the OPL prefix removed, so
+"Gran Turismo [SCES_009.84]" as a .VCD and a folder called
+"Gran Turismo [SCES_009.84]" are recognised as one game. Name the folder like
+the .VCD and it will pair up; name it differently and you get two entries,
+which is not wrong, only untidy.
+
+
+Artwork and titles
+------------------
+Shared with every other PS1 format, in Roms/psx/media/ - see the note in that
+folder. The picture is looked up by the game folder name, so
+games/Spyro/ wants Roms/psx/media/covers/Spyro.png
+
+
+Settings
+--------
+settings.txt next to ember.elf, one key per line:
+
+    display: 480      480i, what most TVs and capture devices expect
+    display: 240      true 240p, sharper on a CRT, refused by some scalers
+
+Delete the file and the defaults stand.
+
+
+Known limits in Beta 1, from the author
+---------------------------------------
+Crash Team Racing and King's Field II hang - the same underlying CD command
+bug. Some FMV audio stutters. Spyro 2's dialogue stutters word by word. Most
+of the library is untested. Audio may be choppy where a game runs under speed.
