@@ -86,7 +86,7 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LAUNCHER = os.path.join(HERE, "..", "To Transfer on USB or Exfat", "RETROLauncher")
+LAUNCHER = os.path.join(HERE, "..", "To Transfer on USB or Exfat", "Prism")
 LIBRETRO = os.path.join(LAUNCHER, "LibretroPS2Files")
 OUT = os.path.join(LAUNCHER, "System", "systems.lua")
 
@@ -171,7 +171,7 @@ FOLDERS = {
 # for POPStarter ends up in POPS/ at the drive root as well.
 #
 # "roots" lists where to scan. "at" says what the path is relative to:
-#   "launcher"  the launcher folder, i.e. <drive>:/RETROLauncher/<path>
+#   "launcher"  the launcher folder, i.e. <drive>:/Prism/<path>
 #   "drive"     the drive itself,    i.e. <drive>:/<path>
 FIXED_SYSTEMS = {
     "ps1": {
@@ -363,7 +363,7 @@ def main(argv):
     lines.append("end")
     lines.append("")
     lines.append("--- The absolute folders to scan for a system on one drive. -----------------------")
-    lines.append("--- launcher_dir is e.g. \"mass1:/RETROLauncher\"; the drive is taken from it.")
+    lines.append("--- launcher_dir is e.g. \"mass1:/Prism\"; the drive is taken from it.")
     lines.append("function scan_roots(folder, launcher_dir)")
     lines.append("\tlocal s = SYSTEMS[folder]")
     lines.append("\tif s == nil or launcher_dir == nil then return {} end")

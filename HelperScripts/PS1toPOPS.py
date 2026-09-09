@@ -22,7 +22,7 @@ ONE COPY OF THE ARTWORK, IN Roms\psx
 The .VCD go in POPS\, because that is what POPStarter and OPL expect. The
 pictures do NOT go next to them, and that is not an oversight.
 
-RETROLauncher scans both POPS\ and Roms\psx-pops(vcd)\ for .VCD, so the games
+Prism scans both POPS\ and Roms\psx-pops(vcd)\ for .VCD, so the games
 show up either way. Artwork is a different matter. RUTA_MEDIA looks for a
 picture under Roms\<alias>\media\ first, then beside the game itself using
 ORIGEN_DIR. For a .VCD found in POPS\ the scan fills in ORIGEN but NOT
@@ -178,9 +178,9 @@ PSX_ROMS = r"D:\batocera\roms\psx"
 PSX_SAVES = r"D:\batocera\saves\psx"
 POPS_DEST = r"E:\POPS"
 
-# Where RETROLauncher lives, for the artwork. Blank puts the pictures beside the
+# Where Prism lives, for the artwork. Blank puts the pictures beside the
 # .VCD instead. See ONE COPY OF THE ARTWORK, below.
-LAUNCHER_ROOT = r"E:\RETROLauncher"
+LAUNCHER_ROOT = r"E:\Prism"
 CHDMAN_DIR = r"D:\DOCS\Documents\a-Emulation\Batocera\Windows Tools\CHDMAN (RetroPie User-Friendly)"
 
 # cue2pops.exe, if you have it. POPS-VCD-Manager ships one, in its Common\
@@ -904,7 +904,7 @@ def vcd_size_of(path):
 
 # ------------------------------------------------------------------ artwork
 
-# The PS2 manual asks for artwork below 320x240, and RETROLauncher reads
+# The PS2 manual asks for artwork below 320x240, and Prism reads
 # "<folder>/media/covers/<name>.png" and ".../media/screenshots/<name>.png"
 # beside the games. MediaCopier.py already builds exactly that for the ROM
 # folders; this does the same for the VCDs, from the same gamelist.
@@ -1029,7 +1029,7 @@ game's memory card:
     POPS/<name>/SLOT0.VMC     the memory card
     POPS/<name>/DISCS.TXT     for a multi-disc game
 
-RETROLauncher scans POPS as well as Roms/psx-pops(vcd), so the games appear
+Prism scans POPS as well as Roms/psx-pops(vcd), so the games appear
 in the list wherever they sit.
 
 
@@ -1127,7 +1127,7 @@ def main(argv):
     dest = ask("Final POPS folder", POPS_DEST, assume_yes)
     chdmandir = ask("chdman folder", CHDMAN_DIR, assume_yes)
     c2pdir = ask("cue2pops folder (blank = built-in)", CUE2POPS_DIR, assume_yes)
-    lroot = ask("RETROLauncher folder, for artwork", LAUNCHER_ROOT, assume_yes)
+    lroot = ask("Prism folder, for artwork", LAUNCHER_ROOT, assume_yes)
     print()
 
     if not os.path.isdir(roms):
@@ -1148,7 +1148,7 @@ def main(argv):
 
     print("%d disc(s), %d game(s) with a memory card, %d multi-disc group(s)"
           % (len(discs), len(cards), len(groups)))
-    # One home for the pictures: the folder RETROLauncher actually searches for
+    # One home for the pictures: the folder Prism actually searches for
     # PlayStation art, whichever drive the .VCD ended up on.
     art_dest = os.path.join(lroot, "Roms", "psx") if lroot else dest
 

@@ -4,7 +4,7 @@
 MediaCopier.py
 
 Pulls box art, screenshots and real game titles from a Batocera / Recalbox /
-EmulationStation install, and lays them out the way RETROLauncher expects.
+EmulationStation install, and lays them out the way Prism expects.
 
 Artwork is named after the ROM file without its extension:
 
@@ -211,7 +211,7 @@ def opl_id(name):
     return None
 
 
-# Two hard rules from the RETROLauncher manual, page 31:
+# Two hard rules from the Prism manual, page 31:
 #
 #   "The image must have a transparency mask, otherwise it will not be displayed."
 #   "It is recommended to use resolutions lower than 320x240."
@@ -345,7 +345,7 @@ def fix_alpha_in_place(folder):
         print(f"  {folder}: {len(files)} image(s), transparency mask already there")
         return
     print(f"\n  {folder}: {len(todo)} of {len(files)} image(s) have no transparency")
-    print("  mask, so RETROLauncher cannot display them. OPL is not affected by")
+    print("  mask, so Prism cannot display them. OPL is not affected by")
     print("  the change, and nothing is copied: the files are rewritten in place.")
     if not yes_no("  Add it?", True):
         return
@@ -386,7 +386,7 @@ def handle_games(names, syst, es_root, usb_root, tag_cover, tag_screen,
             continue
 
         # PlayStation 2 artwork is NOT copied. OPL already keeps it in "ART" at the
-        # root of the drive, named after the game ID, and RETROLauncher reads that
+        # root of the drive, named after the game ID, and Prism reads that
         # folder directly on every drive. Duplicating it would just waste space.
         gid = opl_id(name) if syst["dir"] == "ps2-isos" else None
 
@@ -495,19 +495,19 @@ def main():
         print(f"\nNo 'roms' folder inside {es_root}")
         return 1
 
-    # This script lives in <RETROLauncher>/HelperScripts/, so the launcher root
+    # This script lives in <Prism>/HelperScripts/, so the launcher root
     # is simply one level up. Nothing to ask.
     usb_root = Path(__file__).resolve().parent.parent
     if not (usb_root / "Roms").is_dir():
         print(f"\nNo 'Roms' folder next to this script (looked in {usb_root}).")
-        print("Put MediaCopier.py back in <RETROLauncher>/HelperScripts/.")
+        print("Put MediaCopier.py back in <Prism>/HelperScripts/.")
         return 1
 
     # The console reads the USB stick, not the git checkout this script may be
     # sitting in. Enter accepts the folder above; otherwise point at the stick.
     print(f"\nLauncher folder: {usb_root}")
-    r = input("Enter to use it, or another RETROLauncher folder "
-              "(e.g. F:\\RETROLauncher): ").strip().strip('"').strip("'")
+    r = input("Enter to use it, or another Prism folder "
+              "(e.g. F:\\Prism): ").strip().strip('"').strip("'")
     if r:
         alt = Path(r)
         if (alt / "Roms").is_dir():
@@ -533,7 +533,7 @@ def main():
                 print(f"  Not found: {ata_root}")
                 ata_root = None
         if ata_root is not None:
-            # PS2 ISOs live in DVD/ and CD/ at the root, not under RETROLauncher.
+            # PS2 ISOs live in DVD/ and CD/ at the root, not under Prism.
             ps2 = find_system("PlayStation 2")
             names = set()
             for sub in ("DVD", "CD"):
@@ -568,7 +568,7 @@ def main():
             # which the launcher reads first; anything left on the disk by an
             # older run is dead weight that can only conflict.
             strays = []
-            for folder, _s in local_folders(ata_root / "RETROLauncher"):
+            for folder, _s in local_folders(ata_root / "Prism"):
                 if (folder / "titles.txt").is_file():
                     strays.append(folder / "titles.txt")
                 if (folder / "media").is_dir():
@@ -664,7 +664,7 @@ def main():
                 folder, "USB  ")
 
     if ata_root is not None:
-        for folder, syst in local_folders(ata_root / "RETROLauncher"):
+        for folder, syst in local_folders(ata_root / "Prism"):
             add_job(syst, [f.name for f in folder.iterdir() if f.is_file()],
                     folder, "exFAT")
 

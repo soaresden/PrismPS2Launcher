@@ -1,0 +1,14 @@
+Here are the CUEs for PlayStation 1.
+Prism will look in the root of this directory.
+
+Place the necessary files for the Ember emulator, "ember.elf" and "bios.bin", in this folder.
+"mass:/Prism/Roms/CUEs PlayStation 1/ember.elf"
+"mass:/Prism/Roms/CUEs PlayStation 1/bios.bin"
+
+For more information regarding using Ember please visit:
+https://github.com/Gageformer/Ember
+
+Example:
+"mass:/Prism/Roms/CUEs PlayStation 1/Example.cue" - It will find it and list it.
+
+Supported extensions: .cue

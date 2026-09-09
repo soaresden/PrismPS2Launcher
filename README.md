@@ -1,178 +1,114 @@
-**Spaghetticode / LC - Mendoza - Argentina / 2026 - RETROLauncher**
-
---------------------------------------------------------------------------
-
 <p align="center">
-  <img src="./RETROLauncher/System/Medios/Credits/RETROLAUNCHER.png" width="60%">
+  <img src="docs/img/prism-banner.png" alt="Prism PS2 Launcher — where every system converges" width="100%">
 </p>
 
---------------------------------------------------------------------------
-**What is RETROLauncher?**
+# Prism PS2 Launcher
 
-RETROLauncher is a launcher with a graphical environment for retro games, 
-created entirely in Lua under the Enceladus development environment, in 
-conjunction with Retroarch, POPStarter, Neutrino, wLaunchELF ISR and OPL 
-for the execution of the games/APPS.
+A game launcher for the PlayStation 2, written in Lua on [Enceladus](https://github.com/DanielSant0s/Enceladus), that runs from an **internal exFAT drive**, a USB stick or an MMCE — and drives every emulator the console has: the 61 RetroArch cores, POPStarter and Ember for PlayStation 1, Neutrino and OPL for PlayStation 2.
 
-The main objective of creating this program is to provide a friendly, 
-attractive and customizable graphical environment to manage ROMS libraries 
-on the PS2. In addition to being able to have all those libraries in one 
-place and with easy access.
+One library, one interface, one place to put your games. The emulator is decided by the file, not by you.
 
-RETROLauncher seeks to avoid complex configurations, so the configurations 
-are reduced to the minimum possible, just place the ROM and play, however, 
-all the configurations are completely editable if an advanced user wishes 
-to modify them, they are still there.
-
-RETROLauncher was only tested on one console model:
-- SCPH-77xxx (NTSC) Japanese.
-- With Matrix 1.93.
-- FreeMCBOOT 1.8.
-
-[![Watch the video](https://img.youtube.com/vi/VLw4W4DYdSc/maxresdefault.jpg)](https://youtu.be/VLw4W4DYdSc)
-
---------------------------------------------------------------------------
-**Credits**
-
-**Enceladus:**\
-Enceladus is an enhanced Lua environment for creating homebrew software 
-for the PS2.
-- Created by Daniel Santos.
-- DanielSant0s X: https://x.com/danadsees 
-- Youtube: https://www.youtube.com/channel/UCIDx5TuDp-1IRTRr5l5JSdw
-- Project Link: https://github.com/DanielSant0s/Enceladus
-- License: Distributed under GNU GPL-3.0 License. 
-
-**Retroarch PS2 Port:**\
-RetroArch is a frontend for emulators, game engines and media players.
-- Created by RetroArch contributor fjtrujy (Francisco J. Trujillo).
-- fjtrujy X: https://x.com/fjtrujy
-- Retroarch Link: https://www.retroarch.com
-- Licenses: There is software behind RetroArch that is protected by 
-Non-Commercial licenses. It is important to respect the wishes of the 
-developers and people behind the respective projects.
-- https://docs.libretro.com/development/licenses/ 
-
-**POPStarter:**\
-POPStarter is a launcher which lets you play your PS1 games in combination 
-with PS1 emulator for PS2.
-- Created by developer krHACKen.
-- POPStarter Link: https://www.psx-place.com/threads/popstarter.19139/ 
-
-**Neutrino:**\
-Neutrino is a small, fast and modular PS2 device emulator that maximizes 
-compatibility and performance.
-- Created by developer Maximus32 (Rick Gaiser).
-- Neutrino Link: https://github.com/rickgaiser/neutrino
-- License: Academic Free License "AFL" v. 3.0 
-
-**TempGBA:**\
-TempGBA (GpSP) is a Game Boy Advance emulator ported to PS2.
-- Created by developer belek666.
-- belek666 GitHub: https://github.com/belek666
-- TempGBA(GpSP) - PS2 link: https://www.psx-place.com/resources/gpsp-by-belek666.687/
-
-**wLaunchELF ISR:**\
-wLaunchELF ISR is an open source file manager and executable launcher for the 
-PS2 console. wLaunchELF 4.43x_ISR was created by developer israpps (Matías Israelson) 
-and is a wLaunchELF mod.
-- israpps (Matías Israelson): https://israpps.github.io/
-- Youtube: https://www.youtube.com/@El_IsraPS2
-- wLaunchELF 4.43x_ISR Project Link: https://github.com/israpps/wLaunchELF_ISR
-- wLaunchELF Project Link: https://github.com/ps2homebrew/wLaunchELF
-- License: Academic Free License "AFL" v. 2.0
-- wLaunchELF - project by AKuHAK and SP193.
-- uLaunchELF - project by E P and dlanor.
-- LaunchELF - project by Mirakichi.
-- And to all the developers who contributed to uLaunchELF.
- 
-**SNESticle:**\
-SNESticle is a SNES emulator that was ported by its creator, Icer Addis (Sardu), 
-to several platforms, including PS2.
-- Source code: https://github.com/iaddis/SNESticle
-- License: MIT License Copyright 2022 Icer Addis
-
-**RadShell:**\
-RadShell is a command line client for PS2 created by developer “RadAd”, 
-that allows the automation of basic tasks within PS2.
-- RadShell Link: https://archive.org/details/radshell
-
-**BDMAssault:**\
-BDMAssault is a PS2 homebrew project created by israpps (Matias Israelson) that 
-aims to bring USB EXFAT support to older closed-source homebrew applications 
-that can load external USB controllers.
-- BDMAssault Project Link: https://github.com/israpps/BDMAssault
-- License: Academic Free License "AFL" v. 2.0
-
-**Open PS2 Loader:**\
-OPL is a 100% open source game and application loader for PS2 and PS3 devices, 
-created by Ifcaro and jimmikaelkael in conjunction with a huge community of 
-developers who are constantly improving it.
-- Open PS2 Loader Project Link: https://github.com/ps2homebrew/Open-PS2-Loader
-- License: Copyright 2013, Ifcaro & jimmikaelkael Licensed under "AFL" v. 3.0.
- 
-**Hugopocked Fixes for POPStarter:**\
-These are corrections made by Hugopocked for the POPStarter emulator that solve 
-multiple problems presented in the emulation of PS1 titles, providing the 
-possibility of better emulation and execution of them.
-- Hugopocked Fixes Link: https://www.psx-place.com/threads/hugopocked-fixes-for-popstarter.39750/
-
-**Original background:**
-- https://www.artapixel.com/escp-art-midnight-sun-city-night-retrowave-cyberpunk.html
-- Created by < e s c p > Art
-- License: This Image is licensed under the Creative Commons Zero v1.0 Universal.
-- Free images by https://www.artapixel.com 
-
-**Public Pixel:**\
-Retro video game style text font.
-- Designed by GGBotNet.
-- GGBotNet X: https://twitter.com/ggbotnet
-- Youtube: https://www.youtube.com/channel/UCndkEEd767CI7wTlNJYKrTg
-- Public Pixel Link: https://www.ggbot.net/fonts/
- 
-Special thanks to the entire **"PSX-PLACE"** community for providing support and 
-visibility to the program. We also thank all the YouTube channels along with their 
-communities for spreading and improving RETROLauncher with their messages of support 
-and constructive feedback.
-
-**Spaghetticode:**\
-I created RETROLauncher with the sole purpose of having a simple and editable graphical 
-environment to have collections of retro games on PS2, I made it for myself and I wasn't 
-planning to publish it, but I thought it would be good to share it in case someone 
-somewhere was looking for the same thing as me, something retro-focused on our beloved PS2. 
-At no point did I intend to offend or disrespect the developers behind the various applications 
-used in this program. I tried to compile as much information as possible to give proper credit. 
-If I've overlooked something or made a mistake, I apologize.
-
-RETROLauncher we all do it.
+> **Where things stand.** The code in this repository is the working launcher: everything under *What works today* runs on real hardware. The interface shown below is the **design it is being rebuilt towards** — mockups rendered at the console's own 640×448, using real artwork, not screenshots of running code yet. See *Roadmap*.
 
 ---
 
-**Fork - internal exFAT HDD support:**  
-This fork adds support for reading the PS2 internal hard disk formatted in exFAT,
-by loading the `dev9` and `ata_bd` IOP drivers at startup, plus the interface and
-path changes that go with it. See `CHANGES.md` for the full list.
+## The interface
 
-- soaresden GitHub: <https://github.com/soaresden>
-- Upstream project by Spaghetticode / Boon Tobias, on which everything here is based.
+<p align="center">
+  <img src="docs/img/ui-5-systems-psx-style.png" width="49%" alt="Systems view">
+  <img src="docs/img/ui-4-gamelist-psx-style.png" width="49%" alt="Game list, detailed view">
+</p>
+<p align="center">
+  <img src="docs/img/ui-7-launch.png" width="49%" alt="Ready to launch: emulator, disc, memory cards">
+  <img src="docs/img/ui-6-menu-psx-style.png" width="49%" alt="Main menu on START">
+</p>
 
-**ATA / DEV9 IOP drivers:**  
-`ata_bd.irx` and `dev9_ns.irx` are taken from Neutrino, already bundled with
-RETROLauncher, and are used unmodified.
+The systems live in a column on the left — up/down or L1/R1 to move, including from inside a game list. Validating opens the detailed list: titles, screenshot, cover, developer, players, description, all from the same `gamelist.xml` Batocera writes. START opens the main menu as an overlay. **Yellow** means the internal exFAT drive, **cyan** the USB stick, **red** a file nothing can open.
 
-- Neutrino by Maximus32 (Rick Gaiser): <https://github.com/rickgaiser/neutrino>
-- License: Academic Free License "AFL" v. 3.0
+Before a game starts, a *Ready to launch* screen states exactly what is about to happen: which emulator, which disc image, and — the part that matters — **which memory card, with its full path**, because a PlayStation 1 save lives on a card and which card that is decides whether the save is still there tomorrow.
 
-**Enceladus:**  
-This fork also runs on the current Enceladus build, which is what makes IOP module
-loading possible. `System.fileXioMount` and the `IOP` table come from the work of
-Matias Israelson (israpps) on that project.
+The look follows EmulationStation as Batocera ships it, and borrows its language from the [PlayStation-X](https://github.com/pajarorrojo/es-theme-PlayStation-X) theme by pajarorrojo — the panels, the blue selector, the coloured buttons — redrawn for a 4:3 CRT rather than copied.
 
-- Enceladus: <https://github.com/DanielSant0s/Enceladus>
-- israpps: <https://israpps.github.io/>
+<p align="center">
+  <img src="docs/img/prism-boot.png" width="70%" alt="Boot screen">
+</p>
 
 ---
 
-**Thank you for using RETROLauncher / Boon Tobias.**
+## What works today
 
---------------------------------------------------------------------------
+**Booting from an internal exFAT drive**, which no PS2 launcher did. Every PS2 libretro core calls `SifIopReset()` on start, which wipes the IOP and reloads only the USB drivers — never `ata_bd`. The internal drive ceases to exist for the core. Prism works around it with a two-installation model: a *master* install next to the launcher holding every core, and a *shuttle* on the USB stick holding one core and one ROM, copied there at launch, with progress in KB on screen.
+
+**PlayStation 2** — `DVD/` and `CD/` at the drive root, as OPL and Neutrino read them. A launch menu before every game: real memory card or VMC, which VMC file (cards for this game first, *See all VMC files* for the rest, create one named after the game), Neutrino or OPL. Nothing launches until you say so.
+
+**PlayStation 1, two ways.** POPStarter takes `.VCD` from `POPS/`; Ember Beta 1 takes `.cue`/`.bin` from `Ember/games/<Game>/`. Both appear in one list. A game present in both forms is listed once. Multi-disc games get their `DISCS.TXT`, and the disc-swap combinations are shown for five seconds before the game starts, because POPStarter shows them nowhere.
+
+**RetroArch, 61 cores, 66 systems.** The systems table is *generated* from the cores' own `.info` files by `HelperScripts/BuildSystems.py` — a core added to the drive appears after one run. Fourteen systems offer a choice of core; five for Game Boy alone.
+
+**Diagnostics you can read.** One log per session, `log/Debug_YYYY-MM-DD_HHMMSS.log`, every step written *before* it happens so a freeze names the culprit. A boot checklist on the loading screen. Every launch dumps what it is about to do — core, ROM, config, memory card — just before `loadELF`.
+
+Sound, theme editor, artwork, titles, save relocation between drives: all covered in [CHANGES.md](CHANGES.md), each with the code that was wrong and why.
+
+---
+
+## On the drive
+
+```
+<drive>:/
+├── Prism/                    the launcher
+│   ├── Roms/<system>/        one folder per system, Batocera names
+│   │   └── media/covers, media/screenshots, titles.txt
+│   ├── Roms/psx/             artwork for EVERY PS1 game, whatever its format
+│   ├── Ember/                ember.elf, bios.bin, games/<Game>/
+│   ├── LibretroPS2Files/     the RetroArch master: cores/, info/, retroarch/
+│   ├── Bios/                 system files, copied where each emulator wants them
+│   ├── Saves/  SaveStates/   per system, mirroring Roms/
+│   └── log/
+├── DVD/  CD/                 PlayStation 2 images, for Neutrino and OPL
+├── POPS/                     PlayStation 1 .VCD, XX.*.ELF, memory cards
+└── VMC/                      PlayStation 2 virtual memory cards
+```
+
+Every folder carries a `.INFO - <name>.txt` explaining what goes in it and why.
+
+---
+
+## Helper scripts
+
+Windows-side tools in `HelperScripts/`. None is required to play; all of them save hours.
+
+| Script | What it does |
+|---|---|
+| `BuildSystems.py` | Generates `System/systems.lua` from the installed cores' `.info` files |
+| `PS1toPOPS.py` | Batocera `.chd` → `.VCD` via `cue2pops`, memory cards merged from Batocera saves (newest wins on conflict), `DISCS.TXT`, launchers, artwork |
+| `PS2CHDtoOPLPS2.py` | Batocera `.chd` → OPL-named `.iso` on `CD/` and `DVD/`, delta by size, OPL name rules |
+| `MediaCopier.py` | Artwork and titles from a Batocera / Recalbox / EmulationStation `gamelist.xml`, fitted to 320×240 RGBA |
+| `WAVtoADP.py` | WAV ⇄ `.adp` for the menu sounds, with the format documented from ps2sdk |
+| `PopsCheck.py` | Verifies a POPStarter install: MD5s, launcher copies, `.VCD` structure |
+| `VMCManager.py` | Virtual memory card housekeeping |
+
+Each script's docstring is its documentation: what it does, what it will not do, and every empirical finding it rests on.
+
+---
+
+## Roadmap
+
+The launcher works. The interface is being rebuilt, in this order, each step usable on its own:
+
+1. **Systems table** — done: `System/systems.lua`, generated, English, with `backends_for()` and `scan_roots()`.
+2. **One menu widget** — a menu is a list of `{label, get, set, kind}`; one input loop, one renderer, replacing the 29 hand-written loops in the current code.
+3. **Two views** — *systems* and *gamelist detailed*, as EmulationStation names them; a theme is a Lua table positioning named elements.
+4. **Game settings** — emulator / core per system and per game, written to `systems.cfg` and `games.cfg`.
+5. The rest: proportional font, sounds, polish.
+
+---
+
+## Origins
+
+Prism began as a fork of [RETROLauncher](https://github.com/Spaghetticode-Boon-Tobias/RETROLauncher) by **Spaghetticode (Boon Tobias)**, at commit `e6f9508`. His code is still the foundation of the list and menu system, and his commits are in this repository's history under his name. The exFAT support, the launch flows, the PS1 pipeline and the tooling were built on top of it; the interface above is what replaces it.
+
+See [CREDITS.md](CREDITS.md) for everyone whose work this stands on.
+
+## Licence
+
+GPL-3.0 — see [LICENSE](LICENSE). Prism ships no BIOS, no game and no emulator binary that is not free to redistribute; you bring your own, from hardware and discs you own.

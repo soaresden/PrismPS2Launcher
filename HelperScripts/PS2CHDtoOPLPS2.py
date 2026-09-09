@@ -3,7 +3,7 @@
 """
 PS2CHDtoOPLPS2.py
 
-Brings a Batocera PS2 library (.chd) onto an OPL / RETROLauncher drive, converted
+Brings a Batocera PS2 library (.chd) onto an OPL / Prism drive, converted
 to plain .iso, named the way OPL wants, and sorted into CD/ and DVD/.
 
     D:\\batocera\\roms\\ps2\\Air Blade.chd

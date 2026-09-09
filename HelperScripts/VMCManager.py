@@ -3,7 +3,7 @@
 """
 VMCManager.py
 
-Tames PlayStation 2 virtual memory cards for RETROLauncher.
+Tames PlayStation 2 virtual memory cards for Prism.
 
 The problem it solves: one big shared card (a 64 MB VMC, for instance) is
 exactly what corrupts saves - many games reject or damage cards larger than
@@ -459,7 +459,7 @@ def main():
         return 0
 
     if choice == "7":
-        cmd_rename(ps2mc, ask("VMC folder (e.g. F:\\RETROLauncher\\VMC)"))
+        cmd_rename(ps2mc, ask("VMC folder (e.g. F:\\Prism\\VMC)"))
         return 0
 
     if choice == "6":
@@ -467,7 +467,7 @@ def main():
         return 0
 
     if choice == "5":
-        dest = ask("New card path (e.g. F:\\RETROLauncher\\VMC\\SLES-51044.bin)")
+        dest = ask("New card path (e.g. F:\\Prism\\VMC\\SLES-51044.bin)")
         make_blank(ps2mc, dest)
         print(f"  blank 8 MB card written: {dest}")
         return 0

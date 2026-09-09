@@ -106,7 +106,7 @@ def report(pops):
     ref = pops / "POPSTARTER.ELF"
     if ref.is_file():
         # Rev 13 Beta, 2019/06/05, is the build the quick start pack ships and
-        # the one RETROLauncher bundles. 167700 bytes.
+        # the one Prism bundles. 167700 bytes.
         size = ref.stat().st_size
         mark = "ok      " if size == 167700 else "note    "
         print(f"{mark} POPSTARTER.ELF  {size:,} bytes  md5 {md5(ref)}")

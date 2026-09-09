@@ -3,7 +3,7 @@
 """
 WAVtoADP.py
 
-Converts a WAV file into the .adp format RETROLauncher / Enceladus feeds to
+Converts a WAV file into the .adp format Prism / Enceladus feeds to
 Sound.loadADPCM(), and converts .adp back to WAV so you can hear what a file
 actually contains.
 
