@@ -1,0 +1,18 @@
+Roms/psx - PlayStation artwork and titles, for EVERY PS1 game
+=============================================================
+
+No game goes here. PlayStation games live where their emulator wants them:
+
+    <drive>/POPS/<game>.VCD          POPStarter
+    Prism/Ember/games/<Game>/        Ember (.cue + .bin, one folder per game)
+
+Both kinds appear in the same list, and a game is the same game whatever the
+container, so its picture is kept ONCE, here, laid out as EmulationStation does:
+
+    Roms/psx/media/covers/<name>.png
+    Roms/psx/media/screenshots/<name>.png
+    Roms/psx/titles.txt
+
+<name> is the .VCD file name without its extension, or the Ember folder name.
+HelperScripts/MediaCopier.py and PS1toPOPS.py fill this from a Batocera
+gamelist.xml; pictures must be 320x240 or smaller, PNG with an alpha channel.

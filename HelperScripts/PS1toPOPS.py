@@ -22,24 +22,22 @@ ONE COPY OF THE ARTWORK, IN Roms\psx
 The .VCD go in POPS\, because that is what POPStarter and OPL expect. The
 pictures do NOT go next to them, and that is not an oversight.
 
-Prism scans both POPS\ and Roms\psx-pops(vcd)\ for .VCD, so the games
-show up either way. Artwork is a different matter. RUTA_MEDIA looks for a
-picture under Roms\<alias>\media\ first, then beside the game itself using
-ORIGEN_DIR. For a .VCD found in POPS\ the scan fills in ORIGEN but NOT
-ORIGEN_DIR, so the second lookup never happens - a cover sitting in
-POPS\media\covers\ would never be read.
+Prism scans POPS\ for .VCD and Ember\games\ for .cue folders. Artwork is a
+different matter. RUTA_MEDIA looks for a picture under Roms\<alias>\media\
+first, then beside the game itself using ORIGEN_DIR. For a .VCD found in
+POPS\ the scan fills in ORIGEN but NOT ORIGEN_DIR, so the second lookup never
+happens - a cover sitting in POPS\media\covers\ would never be read.
 
 And a PS1 game is the same game whether it is a .cue or a .VCD, so its cover
-has no business being filed by dump format. Both formats now share:
+has no business being filed by dump format. Both share, as EmulationStation
+lays it out:
 
     <launcher>\Roms\psx\media\covers\<name>.png
     <launcher>\Roms\psx\media\screenshots\<name>.png
     <launcher>\Roms\psx\titles.txt
 
-The launcher reads Roms\psx first and the two older folders after it, so an
-existing install keeps working without moving anything. A note is left in the
-folder explaining where the .VCD live, so the split is written down rather
-than deduced.
+A note is left in the folder explaining where the .VCD live, so the split is
+written down rather than deduced.
 
 --------------------------------------------------------------------------------
 PREFER THE REAL TOOL
@@ -1001,10 +999,10 @@ POPS_NOTE = """\
 Roms/psx - artwork and titles for EVERY PlayStation 1 game
 ==========================================================
 
-One folder for both dump formats. A PS1 game can be a .cue in
-Roms/psx-ember(bin and cue), or a .VCD in Roms/psx-pops(vcd), or a .VCD in
-the drive's POPS folder. It is the same game with the same cover, so its
-picture is kept once, here, whichever of those it happens to be:
+One folder for both dump formats, as EmulationStation lays it out. A PS1
+game is a .VCD in the drive's POPS folder, or a .cue + .bin folder in
+Ember/games. It is the same game with the same cover, so its picture is kept
+once, here, whichever of those it happens to be:
 
     media/covers/<file name without extension>.png
     media/screenshots/<file name without extension>.png
@@ -1013,9 +1011,6 @@ picture is kept once, here, whichever of those it happens to be:
 The name of the picture matches the file it belongs to, so a .cue and a
 .VCD of one game each need their own copy under their own name - that part
 cannot be shared, the names differ.
-
-The launcher reads Roms/psx first and then the two older folders, so an
-existing install keeps working and nothing has to be moved.
 
 
 Where the games themselves live
@@ -1029,8 +1024,8 @@ game's memory card:
     POPS/<name>/SLOT0.VMC     the memory card
     POPS/<name>/DISCS.TXT     for a multi-disc game
 
-Prism scans POPS as well as Roms/psx-pops(vcd), so the games appear
-in the list wherever they sit.
+Ember games are one folder each under Ember/games/<Game>/, with the .cue
+and .bin inside; the folder name is the game's name in the list.
 
 
 Why the artwork cannot live next to the .VCD
@@ -1040,10 +1035,6 @@ folder the game was found in, using ORIGEN_DIR. The scan of POPS/ fills in
 ORIGEN but not ORIGEN_DIR, so that fallback never fires: a cover placed in
 POPS/media/covers/ would never be read. Hence one copy, here, in the folder
 that is actually searched.
-
-Putting .VCD files in Roms/psx-pops(vcd) instead works too - POPStarter
-finds its image relative to its own XX.<name>.ELF - but the memory cards
-are still created in POPS.
 
 Written by HelperScripts/PS1toPOPS.py
 """

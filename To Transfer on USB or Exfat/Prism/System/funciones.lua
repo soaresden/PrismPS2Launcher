@@ -7080,29 +7080,6 @@ function crear_listas(identidad, lista)
 					"POPS")
 			end
 		end
-		-- Segunda biblioteca de .VCD: "<raiz>/Roms/psx-pops(vcd)". Los de "POPS/" tienen
-		-- prioridad. Al lanzarlos se trasladan a "POPS/", que es donde POPStarter los
-		-- busca y donde crea la tarjeta de memoria del juego.
-		for i_raiz = 1, #RAICES do
-			local buscar_vcd = System.listDirectory(RAICES[i_raiz] .. POPS_SUB)
-			if buscar_vcd ~= nil then
-				local db_vcd = {}
-				for contador = 1, #buscar_vcd do
-					local nom = buscar_vcd[contador].name
-					if buscar_vcd[contador].directory == false
-					   and string.lower(string.sub(nom, -4)) == ".vcd"
-					   and vistos_vcd[string.lower(nom)] == nil then
-						vistos_vcd[string.lower(nom)] = true
-						table.insert(encontrados, nom)
-						ORIGEN["14|".. nom] = RAICES[i_raiz]
-						table.insert(db_vcd, {fichero = nom,
-							titulo = NOMBRE_VISIBLE(14, nom)})
-					end
-				end
-				exfatdb_dir(14, "PlayStation", RAICES[i_raiz] .. POPS_SUB, db_vcd,
-					"psx-pops(vcd)")
-			end
-		end
 		-- Scan Ember Beta 1: "<raiz>/Ember/games/<carpeta>". -------------------------
 		--
 		-- Un juego de Ember es un DIRECTORIO, no un fichero, asi que se lista con una
@@ -7162,39 +7139,9 @@ function crear_listas(identidad, lista)
 			end
 		end
 
-		-- Scan Ember (disposicion antigua): independiente de POPS y sobre TODAS las
-		-- raices. Se conserva porque una instalacion existente sigue teniendo sus .cue
-		-- sueltos junto a ember.elf, como pedia la demo.
-		local vistos_ps1 = {}
+		-- Titulos reales de PS1: "Roms/psx/titles.txt" en cada raiz, para POPS y Ember.
 		for i_raiz = 1, #RAICES do
-			local sub = "/Roms/psx-ember(bin and cue)"
-			local buscar2 = System.listDirectory(RAICES[i_raiz] .. sub)
-			if buscar2 ~= nil and doesFileExist(RUTA_BIOS("psx-ember.elf", RAICES[i_raiz] .. sub .."/ember.elf")) then
-				local db_ps1 = {}
-				for contador = 1, #buscar2 do
-					local ps1_name = string.lower(string.sub(buscar2[contador].name, -4))
-					if buscar2[contador].directory == false and ps1_name == ".cue"
-					   and vistos_ps1[buscar2[contador].name] == nil then
-						vistos_ps1[buscar2[contador].name] = true
-						table.insert(encontrados, buscar2[contador].name)
-						ORIGEN["14|".. buscar2[contador].name] = RAICES[i_raiz]
-						table.insert(db_ps1, {fichero = buscar2[contador].name,
-							titulo = NOMBRE_VISIBLE(14, buscar2[contador].name)})
-					end
-				end
-				exfatdb_dir(14, "PlayStation", RAICES[i_raiz] .. sub, db_ps1,
-					"psx-ember(bin and cue)")
-			end
-		end
-		-- Titulos reales de PS1: los dos formatos comparten la lista, asi que se leen
-		-- los "titles.txt" de las dos carpetas y en todas las raices.
-		for i_raiz = 1, #RAICES do
-			-- "Roms/psx" primero: es la carpeta unica de imagenes y titulos de
-			-- PS1, valga el juego en .cue o en .vcd. Las dos de antes se leen
-			-- despues para no obligar a mover nada.
 			cargar_titulos(RAICES[i_raiz] .."/Roms/psx", 14)
-			cargar_titulos(RAICES[i_raiz] .."/Roms/psx-ember(bin and cue)", 14)
-			cargar_titulos(RAICES[i_raiz] .. POPS_SUB, 14)
 		end
 		exfatdb_escribir()
 		if encontrados ~= nil and #encontrados >= 1 then
@@ -7513,17 +7460,12 @@ function existe(identidad, nombre_juego, alternativo)
 			ERROR_DETALLE = detalle_falta("Ember",
 				(raiz_emb or (RAICES[1] .. EMBER_SUB)) .."/", faltan)
 			return false
-		elseif exten == ".cue" and doesFileExist(RUTA("/Roms/psx-ember(bin and cue)/".. nombre_juego))
-		and doesFileExist(RUTA_BIOS("psx-ember.elf", ""))
-		and doesFileExist(RUTA_BIOS("bios.bin", "")) then
-			return true
 		else
 			-- Detalle del fallo: que falta exactamente y donde se esperaba. -----------
 			local faltan = {}
 			if exten == ".vcd" then
 				local base = POPS_DE(nombre_juego) .."/POPS/"
 				local req = {"POPS_IOX.PAK"}
-				-- El .VCD vale tanto en "POPS/" como en la biblioteca "psx-pops(vcd)".
 				if RUTA_VCD(nombre_juego) == nil then table.insert(req, 1, nombre_juego) end
 				for i = 1, #req do
 					if doesFileExist(base .. req[i]) == false then
@@ -7531,20 +7473,6 @@ function existe(identidad, nombre_juego, alternativo)
 					end
 				end
 				ERROR_DETALLE = detalle_falta("POPS", base, faltan)
-			elseif exten == ".cue" then
-				local base = RAIZ("/Roms/psx-ember(bin and cue)/".. nombre_juego) .."/Roms/psx-ember(bin and cue)/"
-				if doesFileExist(base .. nombre_juego) == false then
-					table.insert(faltan, nombre_juego)
-				end
-				-- Ember y su bios viven en "Bios/", no junto a la ROM: si faltan hay
-				-- que decirlo, antes se mostraba un error mudo.
-				if doesFileExist(RUTA_BIOS("psx-ember.elf", "")) == false then
-					table.insert(faltan, "Bios/psx-ember.elf")
-				end
-				if doesFileExist(RUTA_BIOS("bios.bin", "")) == false then
-					table.insert(faltan, "Bios/bios.bin")
-				end
-				ERROR_DETALLE = detalle_falta("Ember", base, faltan)
 			end
 			return false
 		end
@@ -8168,35 +8096,6 @@ function ejecutar_juego(identidad, nombre_juego, alternativo)
 				ps1_startup()
 			end
 			System.loadELF(raiz_emb .."/ember.elf", reboot_emb, raiz_emb .."/", carpeta)
-		elseif string.lower(string.sub(nombre_juego, -4)) == ".cue" then
-			local raiz_ps1 = RAIZ("/Roms/psx-ember(bin and cue)/".. nombre_juego)
-			local carpeta_ps1 = raiz_ps1 .."/Roms/psx-ember(bin and cue)"
-			-- Ember se lanza DESDE la carpeta de los juegos y recibe solo el nombre
-			-- del fichero, como en el original: resuelve el .cue relativo a su
-			-- directorio, no acepta una ruta completa.
-			local ember = ember_in(carpeta_ps1)
-			-- Un IOP limpio se lleva por delante "ata_bd", y con el, el disco interno.
-			-- Si el juego vive ahi NO se puede reiniciar: Ember dejaria de ver su
-			-- propia carpeta. Se reinicia solo cuando el juego esta en el arranque.
-			local reboot_ember = IOP_REBOOT_EMBER
-			if ES_RAIZ_ATA(carpeta_ps1) then reboot_ember = 0 end
-			log_lanzamiento("PS1  Ember", {
-				"juego : ".. tostring(nombre_juego),
-				"raiz  : ".. tostring(raiz_ps1),
-				"desde disco interno (ATA) : ".. tostring(ES_ATA(14, nombre_juego)),
-				"",
-				log_existe("ember.elf", carpeta_ps1 .."/ember.elf"),
-				log_existe("bios.bin ", carpeta_ps1 .."/bios.bin"),
-				log_existe("cue      ", carpeta_ps1 .."/".. nombre_juego),
-				"",
-				"argumento : ".. tostring(nombre_juego) .."  (nombre desnudo)",
-				"reinicio del IOP : ".. tostring(reboot_ember) .."  (ajuste: ".. tostring(IOP_REBOOT_EMBER) ..")",
-			})
-			if ember == nil then
-				ERROR_DETALLE = detalle_falta("Ember", carpeta_ps1 .."/", {"ember.elf"})
-				return
-			end
-			System.loadELF(ember, reboot_ember, nombre_juego)
 		elseif string.lower(string.sub(nombre_juego, -4)) == ".elf" then
 			log_lanzamiento("PS1  ELF en POPS", {log_existe("elf", pops_u .."/POPS/".. nombre_juego)})
 			System.loadELF(pops_u .."/POPS/".. nombre_juego, 0, pops_u .."/POPS/")

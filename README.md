@@ -57,8 +57,10 @@ Sound, theme editor, artwork, titles, save relocation between drives: all covere
 <drive>:/
 ├── Prism/                    the launcher
 │   ├── Roms/<system>/        one folder per system, Batocera names
-│   │   └── media/covers, media/screenshots, titles.txt
-│   ├── Roms/psx/             artwork for EVERY PS1 game, whatever its format
+│   │   ├── media/covers/     <rom>.png, as EmulationStation lays it out
+│   │   ├── media/screenshots/
+│   │   └── titles.txt
+│   ├── Roms/psx/media/       artwork for EVERY PS1 game, POPS or Ember alike
 │   ├── Ember/                ember.elf, bios.bin, games/<Game>/
 │   ├── LibretroPS2Files/     the RetroArch master: cores/, info/, retroarch/
 │   ├── Bios/                 system files, copied where each emulator wants them

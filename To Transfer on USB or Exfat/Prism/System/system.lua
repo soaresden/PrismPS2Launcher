@@ -672,11 +672,9 @@ end
 --- PlayStation 1 / POPStarter. --------------------------------------------------------
 --- POPStarter lee siempre el .VCD y escribe la tarjeta de memoria virtual en
 --- "<unidad>/POPS/<nombre del juego>/", este donde este su ELF (por eso funciona el
---- montaje con el ELF en "APPS/"). Aun asi se admite "<raiz>/Roms/psx-pops(vcd)/" como
---- biblioteca, para no tener que separar los juegos del resto: el fichero se traslada a
---- "POPS/" la primera vez que se lanza. Dentro de la misma unidad es un renombrado,
---- instantaneo sea cual sea el tamano; entre unidades distintas hay que copiar.
-POPS_SUB = "/Roms/psx-pops(vcd)"
+--- montaje con el ELF en "APPS/"). Los .VCD viven SOLO en "POPS/", en la raiz de la
+--- unidad: es el unico sitio donde POPStarter los busca. Las imagenes y los titulos de
+--- PS1, sea cual sea el formato del juego, estan en "Roms/psx/", como en EmulationStation.
 
 --- Unidades que pueden tener una carpeta "POPS" en su raiz: el soporte de arranque
 --- y cada unidad BDM. La misma coleccion se usa para buscar y para lanzar.
@@ -708,8 +706,7 @@ function POPS_DE(nombre)
 	return POPS_RAIZ
 end
 
---- Ruta real del .VCD: primero "POPS/" de cada unidad, luego la biblioteca de cada
---- raiz. nil si no esta en ninguna parte.
+--- Ruta real del .VCD en el "POPS/" de cada unidad. nil si no esta en ninguna.
 function RUTA_VCD(nombre)
 	local u = POPS_UNIDADES()
 	for i = 1, #u do
@@ -717,33 +714,13 @@ function RUTA_VCD(nombre)
 			return u[i] .."/POPS/".. nombre
 		end
 	end
-	for i = 1, #RAICES do
-		if doesFileExist(RAICES[i] .. POPS_SUB .."/".. nombre) then
-			return RAICES[i] .. POPS_SUB .."/".. nombre
-		end
-	end
 	return nil
 end
 
---- Lleva el .VCD a "POPS/" si todavia no esta ahi. Devuelve true si al final si esta.
+--- true si el .VCD esta en el "POPS/" de la unidad de POPStarter. Antes trasladaba el
+--- fichero desde una biblioteca en "Roms/"; ya no hay biblioteca: o esta, o no esta.
 function VCD_A_POPS(nombre)
-	local destino = POPS_RAIZ .."/POPS/".. nombre
-	if doesFileExist(destino) then return true end
-	local origen = RUTA_VCD(nombre)
-	if origen == nil then return false end
-	-- Comparacion de unidad SIN normalizar: "mass0:" y "mass1:" son discos distintos.
-	local function unidad(p)
-		local pos = string.find(p, ":", 1, true)
-		if pos == nil then return "" end
-		return string.lower(string.sub(p, 1, pos))
-	end
-	if unidad(origen) == unidad(destino) and System.rename ~= nil then
-		pcall(System.rename, origen, destino)
-	end
-	if doesFileExist(destino) == false then
-		pcall(System.copyFile, origen, destino)
-	end
-	return doesFileExist(destino)
+	return doesFileExist(POPS_RAIZ .."/POPS/".. nombre)
 end
 
 --- Inventario de lo que el launcher ve en cada raiz. Se anade al journal. ------
@@ -983,7 +960,7 @@ end
 
 --- Registra un directorio explorado y su contenido. ---------------------------------
 --- "clave" permite agrupar bajo otro nombre que el de ROMS_DIR[identidad]: PS1 usa
---- una sola identidad para dos formatos ("psx-ember(bin and cue)" y "psx-pops(vcd)").
+--- una sola identidad para dos origenes ("POPS" y "Ember").
 function exfatdb_dir(identidad, sistema, directorio, entradas, clave)
 	if EXFATDB_ON ~= true or directorio == nil then return end
 	local reg = EXFATDB[directorio]
@@ -1713,7 +1690,7 @@ APPS_RAIZ_ON = false
 ROMS_DIR = {
 	"megadrive", "mastersystem", "gamegear", "nes", "gb", "gbc", "gba",
 	"atari2600", "lynx", "sg1000", "ngp", "snes",
-	"APPS-Media", "psx-ember(bin and cue)", "ps2-isos",
+	"APPS-Media", "psx", "ps2-isos",
 }
 
 --- Ficheros de sistema, agrupados en "Bios/" en la raiz del launcher. ---------------
@@ -1807,24 +1784,6 @@ end
 --- BIOS por no encontrar el disco. Se restaura el montaje de origen: "ember.elf" y
 --- "bios.bin" se colocan junto a los .cue, copiados desde "Bios/" la primera vez.
 --- Son dos ficheros pequenos y una sola vez por carpeta.
---- Devuelve la ruta del ELF listo para lanzar, o nil.
-function ember_in(carpeta)
-	if carpeta == nil then return nil end
-	local elf = carpeta .."/ember.elf"
-	local bios = carpeta .."/bios.bin"
-	if doesFileExist(elf) == false then
-		local origen = RUTA_BIOS("psx-ember.elf", "")
-		if doesFileExist(origen) == false then return nil end
-		pcall(System.copyFile, origen, elf)
-	end
-	if doesFileExist(bios) == false then
-		local origen = RUTA_BIOS("bios.bin", "")
-		if doesFileExist(origen) then pcall(System.copyFile, origen, bios) end
-	end
-	if doesFileExist(elf) then return elf end
-	return nil
-end
-
 --- Ember Beta 1: carpeta propia, un directorio por juego. ------------------------------
 --- La version demo se lanzaba desde la carpeta de las ROM y recibia el nombre del .cue.
 --- Beta 1 cambia las dos cosas:
@@ -2953,7 +2912,7 @@ IOP_REBOOT_EMBER = 0
 MEDIA_ALIAS = {
 	"megadrive", "mastersystem", "gamegear", "nes", "gb", "gbc", "gba",
 	"atari2600", "lynx", "sg1000", "ngp", "snes",
-	"APPS-Media", "psx-ember(bin and cue)", "ps2-isos",
+	"APPS-Media", "psx", "ps2-isos",
 }
 
 --- Indice de las carpetas de medios. -------------------------------------------------
@@ -3016,20 +2975,10 @@ function RUTA_MEDIA(tipo, identidad, sistema, nombre, base)
 	-- PS1 reune dos formatos bajo la misma identidad, y sus imagenes pueden estar en
 	-- la carpeta de cualquiera de los dos. Se prueban ambas.
 	local fichero = base ..".png"
-	-- PlayStation: UNA sola carpeta de imagenes para los dos formatos.
-	--
-	-- Un juego de PS1 puede estar aqui como .cue en "psx-ember(bin and cue)" o
-	-- como .vcd en "psx-pops(vcd)" o en "POPS/", y es el mismo juego con la
-	-- misma caratula. Tener las imagenes repartidas segun el formato del volcado
-	-- obliga a duplicarlas, y a acordarse de cual toca.
-	--
-	-- "Roms/psx/media" es ahora el sitio, y se prueba primero. Las dos carpetas
-	-- de antes se siguen leyendo detras, asi que una instalacion existente no
-	-- tiene que mover nada.
+	-- PlayStation: UNA sola carpeta de imagenes, "Roms/psx/media", como en
+	-- EmulationStation. Un juego de PS1 puede ser un .VCD en "POPS/" o una carpeta
+	-- en "Ember/games/", y es el mismo juego con la misma caratula: se guarda una vez.
 	local alias = {MEDIA_ALIAS[identidad]}
-	if identidad == 14 then
-		alias = {"psx", "psx-ember(bin and cue)", "psx-pops(vcd)"}
-	end
 	if RAICES ~= nil then
 		for a = 1, #alias do
 			if alias[a] ~= nil then

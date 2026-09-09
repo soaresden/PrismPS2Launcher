@@ -633,13 +633,12 @@ SYSTEMS["pico8"] = {
 	default  = "retro8",
 }
 
-SYSTEMS["ps1"] = {
+SYSTEMS["psx"] = {
 	name     = "Sony - PlayStation",
-	folder   = "ps1",
+	folder   = "psx",
 	roots    = {
-		{ path = "Roms/ps1", at = "launcher" },
-		{ path = "Roms/ps1/games", at = "launcher" },
 		{ path = "POPS", at = "drive" },
+		{ path = "Ember/games", at = "launcher" },
 	},
 	ext      = {".bin", ".cue", ".vcd"},
 	backends = {

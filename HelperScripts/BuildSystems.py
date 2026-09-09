@@ -174,12 +174,13 @@ FOLDERS = {
 #   "launcher"  the launcher folder, i.e. <drive>:/Prism/<path>
 #   "drive"     the drive itself,    i.e. <drive>:/<path>
 FIXED_SYSTEMS = {
-    "ps1": {
+    # "psx" is the EmulationStation name; Roms/psx holds media/ and titles.txt
+    # only. The games are where their emulator reads them.
+    "psx": {
         "name": "Sony - PlayStation",
         "roots": [
-            {"path": "Roms/ps1", "at": "launcher"},         # .VCD staged here, cue/bin in games/
-            {"path": "Roms/ps1/games", "at": "launcher"},   # one folder per game, for Ember
-            {"path": "POPS", "at": "drive"},                # where POPStarter wants its .VCD
+            {"path": "POPS", "at": "drive"},                # POPStarter: .VCD at the drive root
+            {"path": "Ember/games", "at": "launcher"},      # Ember: one folder per game
         ],
         "backends": [
             {"kind": "pops", "id": "pops", "name": "POPStarter", "ext": [".vcd"]},

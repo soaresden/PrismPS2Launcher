@@ -70,15 +70,13 @@ SYSTEMS = [
     {"long": "Neo Geo Pocket", "dir": "ngp",
      "es": ["ngp", "ngpc", "neogeopocket"],
      "folders": ["ngp", "ngpc", "neogeopocket", "Roms Neo Geo Pocket"]},
-    {"long": "PlayStation", "dir": "psx-ember(bin and cue)", "media": "psx",
+    # PlayStation games are not under Roms/: .vcd in POPS/ at the drive root
+    # (POPStarter), one folder per game in Ember/games/ (Ember). Same game, same
+    # cover, so both write into "Roms/psx/media" as EmulationStation lays it out.
+    # "POPS" and "Ember" are the keys the console writes in exfatdb.json.
+    {"long": "PlayStation", "dir": "psx",
      "es": ["psx"],
-     "folders": ["psx-ember(bin and cue)", "psx", "CUEs PlayStation 1"]},
-    # Same games, other container: POPStarter takes .vcd, Ember takes .cue+.bin.
-    # The Batocera gamelist is indexed on the stem, so both resolve against "psx",
-    # and both put their pictures in "Roms/psx" rather than one folder each.
-    {"long": "PlayStation POPS", "dir": "psx-pops(vcd)", "media": "psx",
-     "es": ["psx"],
-     "folders": ["psx-pops(vcd)", "psx-pops", "VCDs PlayStation 1"]},
+     "folders": ["psx", "POPS", "Ember"]},
     {"long": "PlayStation 2", "dir": "ps2-isos",
      "es": ["ps2"],
      "folders": ["ps2-isos", "ps2", "ISOs PlayStation 2"]},
@@ -369,12 +367,9 @@ def handle_games(names, syst, es_root, usb_root, tag_cover, tag_screen,
     if index is None:
         return None
 
-    # "media" is where the pictures GO, "dir" is only where the ROMs were found.
-    # PlayStation has two dump formats in two folders - .cue in
-    # "psx-ember(bin and cue)", .vcd in "psx-pops(vcd)" - and it is the same
-    # game with the same cover either way, so both write into "Roms/psx" and
-    # the artwork is kept once. The launcher reads "Roms/psx" first for PS1.
-    base_dir = usb_root / "Roms" / syst.get("media", syst["dir"])
+    # Pictures go to Roms/<dir>/media/, wherever the ROMs were found. PlayStation
+    # games come from POPS/ and Ember/games/ and all land in "Roms/psx".
+    base_dir = usb_root / "Roms" / syst["dir"]
     d_cover = base_dir / "media" / "covers"
     d_screen = base_dir / "media" / "screenshots"
 
@@ -557,13 +552,23 @@ def main():
 
             # POPStarter games live in "POPS/" at the root of the drive, next to
             # its binaries; the launcher lists them together with the library.
+            ps1 = find_system("PlayStation")
             pops = ata_root / "POPS"
             if pops.is_dir():
                 vcd = {f.name for f in pops.iterdir()
                        if f.is_file() and f.suffix.lower() == ".vcd"}
                 if vcd:
-                    ata[find_system("psx-pops(vcd)")["long"]] = vcd
+                    ata.setdefault(ps1["long"], set()).update(vcd)
                     print(f"  {len(vcd)} POPStarter .vcd in POPS/")
+            # Ember games are folders; the launcher lists them as "<folder>.emb"
+            # and the picture is "<folder>.png", so the same name is used here.
+            ember = ata_root / "Prism" / "Ember" / "games"
+            if ember.is_dir():
+                emb = {d.name + ".emb" for d in ember.iterdir()
+                       if d.is_dir() and not d.name.startswith(".")}
+                if emb:
+                    ata.setdefault(ps1["long"], set()).update(emb)
+                    print(f"  {len(emb)} Ember game folder(s) in Ember/games/")
             # One library, not two. Artwork and titles belong on the USB stick,
             # which the launcher reads first; anything left on the disk by an
             # older run is dead weight that can only conflict.

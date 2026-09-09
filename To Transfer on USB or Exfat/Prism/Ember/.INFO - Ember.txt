@@ -37,8 +37,9 @@ Spaces are fine and need no quoting - Ember stitches the argument back
 together itself.
 
 This is a change from the demo, which lived inside the ROM folder and took a
-.cue filename. The old layout, Roms/psx-ember(bin and cue)/ with ember.elf and
-bios.bin beside the games, still works: the launcher reads both.
+.cue filename. That old layout is gone: games/<Game>/ is the only place read.
+Artwork and titles are in Roms/psx/media/ and Roms/psx/titles.txt, shared with
+the POPStarter copies of the same games.
 
 
 .CHD does not work, and the launcher says so

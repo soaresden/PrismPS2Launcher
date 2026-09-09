@@ -18,8 +18,7 @@ live on the USB stick or on the internal exFAT disk indifferently.
     Roms/lynx               Atari Lynx
     Roms/ngp                Neo Geo Pocket
     Roms/APPS               homebrew and .elf
-    Roms/psx-ember(bin and cue)   PlayStation, .cue + .bin, run by Ember
-    Roms/psx-pops(vcd)      PlayStation, .vcd, run by POPStarter
+    Roms/psx                PlayStation: artwork and titles ONLY (see below)
     Roms/ps2-isos           PlayStation 2, .iso, run by Neutrino
 
 Alternative names are still accepted (genesis, sms, gg, famicom, fds, sfc,
@@ -80,14 +79,13 @@ System files
 
 They all live in "Bios/" at the root of the launcher:
 
-    Bios/psx-ember.elf      the Ember emulator
     Bios/bios.bin           PlayStation BIOS (scph1001.bin from Batocera, renamed)
 
-Ember is the one exception to the "everything in Bios/" rule, and not by choice:
-it resolves the .cue relative to its own directory and is given the bare file
-name, so it has to sit next to the games. The launcher copies "ember.elf" and
-"bios.bin" from Bios/ into "Roms/psx-ember(bin and cue)/" the first time a PS1
-game is launched from that folder. Two small files, once.
+PlayStation games are NOT under Roms/. They live where their emulator reads them:
+<drive>/POPS/ for POPStarter (.VCD) and Prism/Ember/games/<Game>/ for Ember
+(.cue + .bin). The launcher copies "bios.bin" from Bios/ into Ember/ once.
+Roms/psx/ holds only media/ and titles.txt, shared by both, as EmulationStation
+lays it out.
     Bios/gba_bios.bin       Game Boy Advance BIOS
     Bios/POPS/              the four POPStarter binaries, kept here as a copy
 
