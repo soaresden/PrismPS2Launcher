@@ -93,6 +93,10 @@ Each script's docstring is its documentation: what it does, what it will not do,
 
 ---
 
+## Code layout
+
+`System/system.lua` is the boot sequence and nothing else: drivers, roots, loading screen, sound, then the menu loop, read top to bottom. Every function lives in a module named after what it does — `core/` (devices, drives, log, paths, state, settings), `emu/` (one file per emulator: retroarch, retroarch_shuttle, pops, ember, ps2), `library/` (scanning, exfatdb), `launch/`, `menus/`, `ui/`, `lang/` (one file per language). The largest file is 2 200 lines and it is the settings menu; the roadmap below is what shrinks it.
+
 ## Roadmap
 
 The launcher works. The interface is being rebuilt, in this order, each step usable on its own:

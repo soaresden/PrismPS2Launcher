@@ -69,7 +69,7 @@ PAL for Neo Geo Pocket, Game Boy, Game Boy Color and Super Famicom only, and
 the table cannot express. If one of those four tears in PAL, turn V-Sync off
 from RetroArch's own menu for that game.
 
-To force another setting, add it to RETROARCH_FORZADO in System/system.lua.
+To force another setting, add it to RETROARCH_FORZADO in System/emu/retroarch.lua.
 The list is a plain table of key/value pairs.
 
 Saves/, SaveStates/ and Bios/ are the only absolute paths left in the project.
@@ -144,7 +144,7 @@ PS2 ISOs and PS1 games are not concerned: Neutrino and POPStarter load their own
 ata_bd and read the internal drive directly. Which is convenient, since those
 are the large files.
 
-Set SAVES_PUENTE_ON to false in System/system.lua to disable the save round
+Set SAVES_PUENTE_ON to false in System/emu/retroarch_shuttle.lua to disable the save round
 trip, and ROM_SHUTTLE_ON to false to disable the whole mechanism.
 
 The stick mirrors the drive
@@ -304,12 +304,12 @@ is exactly the number of USB devices ahead of it. Verified on hardware: with one
 USB stick it is mass1:, with none it is mass0:.
 
 The launcher counts them - BDM_DEVICES minus the ones flagged in BDM_ATA - in
-DEV_ATA_PARA_CORE(). Setting ATA_DEV_CORE to "ata0:" in System/system.lua uses
+DEV_ATA_PARA_CORE(). Setting ATA_DEV_CORE to "ata0:" in System/core/devices.lua uses
 instead the stable name a recent bdmfs_fatfs registers from bd->path, which does
 not depend on how many sticks are plugged in.
 
 Only cores rebuilt with the ata_bd patch can read the internal disk at all. The
-list is CORES_ATA in System/system.lua; add a core there after rebuilding it.
+list is CORES_ATA in System/core/devices.lua; add a core there after rebuilding it.
 Anything not on that list still gets its ROM copied to a USB stick or the memory
 card first, because for those cores the drive does not exist. Saves follow the
 same rule: on the disk for a patched core, on the shuttle device otherwise. Set
@@ -322,7 +322,7 @@ core reads it where it sits and there is no second copy to keep in sync.
 
 One case breaks that: a core that cannot read the drive Bios/ is on. Then, and
 only then, the launcher drops the files RetroArch actually looks for
-(BIOS_LIBRETRO_LISTA in System/system.lua - gba_bios.bin) onto the shuttle
+(BIOS_LIBRETRO_LISTA in System/emu/retroarch.lua - gba_bios.bin) onto the shuttle
 device, next to the ROM. Everything else in Bios/ - the PS2 BIOS, Ember, the
 blank VMC - belongs to Neutrino, POPStarter and the VMC manager, which read the
 internal drive directly and never need a copy.
@@ -337,7 +337,7 @@ gba_bios.bin.
 SNESticle was the opposite case: written for this machine, in MIPS assembly, and
 using the PS2 vector units, where snes9x2002 does not. It was removed anyway, to
 keep one kind of core. If you want it back, drop the folder in and restore its
-entry in alt_text and name_cores_alt (slot 12) in System/funciones.lua.
+entry in alt_text and name_cores_alt (slot 12) in System/launch/run.lua.
 
 Neither system has an "alternative core" now. The ones that still do are
 Megadrive (PicoDrive alt), Famicom (QuickNES), Game Boy and Game Boy Color
@@ -413,7 +413,7 @@ there. On a drive that also serves OPL that means listing ART, THM, CHT,
 $RECYCLE.BIN and System Volume Information, thousands of files each. That is
 where booting stopped.
 
-APPS_RAIZ_ON in System/system.lua is false: only the four sensible places are
+APPS_RAIZ_ON in System/core/paths.lua is false: only the four sensible places are
 searched. Set it to true to get the old sweep back.
 
 Two things were wrong in that loop and both are fixed. The list of places to
@@ -449,7 +449,7 @@ It is flushed line by line until the drives are listed, then buffered. Three
 markers force it out afterwards, so a hang can be placed:
 
     BOOT   pantalla de carga pintada
-    BOOT   modulos cargados (language, menu, funciones)
+    BOOT   modules loaded (language, menu, ui, menus, library, launch, config)
     BOOT   listas construidas, entrando en el menu
 
 If the file ends before the last one, the launcher never reached the menu. The
@@ -472,7 +472,19 @@ From a USB stick, none of the three applies.
 
 Inside System/
 --------------
-    System/*.lua            the launcher itself
+    System/system.lua       the boot sequence: drivers, roots, screen, sound, then
+                            the menu loop. Reads top to bottom; it defines nothing.
+    System/index.lua        the pre-boot run from the memory card
+    System/menu.lua         the main list screen
+    System/systems.lua      generated table of every system and its backends
+    System/core/            devices, drives, log, paths, state, settings_io
+    System/emu/             one file per emulator: retroarch, retroarch_shuttle,
+                            pops, ember, ps2
+    System/library/         building the game lists, exfatdb
+    System/launch/          launching a game
+    System/menus/           settings, game menu, POPStarter and PS2 menus
+    System/ui/              drawing, sprites, loading screen, sound, theme editor
+    System/lang/            es, pt, en - one file per language
     System/Config/          current settings
     System/Defaults/        factory settings, what "reset" restores
     System/Intros/          the PS1 and PS2 startup animations
