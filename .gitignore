@@ -120,3 +120,7 @@ To Transfer on USB or Exfat/Prism/SyncGithubFolder-HDD.ffs_gui
 *.ffs_gui
 PR-MESSAGE.md
 /HelperScripts/PopsWork
+
+# Personal FreeFileSync profile: local drive letters, nothing to share
+*.ffs_gui
+*.ffs_batch

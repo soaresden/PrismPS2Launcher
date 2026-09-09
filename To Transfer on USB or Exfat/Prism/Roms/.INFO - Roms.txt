@@ -17,9 +17,9 @@ live on the USB stick or on the internal exFAT disk indifferently.
     Roms/atari2600          Atari 2600
     Roms/lynx               Atari Lynx
     Roms/ngp                Neo Geo Pocket
-    Roms/APPS               homebrew and .elf
+    Roms/APPS               homebrew .elf, with their media/ inside
     Roms/psx                PlayStation: artwork and titles ONLY (see below)
-    Roms/ps2-isos           PlayStation 2, .iso, run by Neutrino
+    (PlayStation 2 .iso are in DVD/ and CD/ at the drive root, for Neutrino and OPL)
 
 Alternative names are still accepted (genesis, sms, gg, famicom, fds, sfc,
 gameboy, atarilynx, sg-1000, ngpc...), as are the original long names of the

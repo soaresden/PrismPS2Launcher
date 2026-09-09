@@ -1690,7 +1690,7 @@ APPS_RAIZ_ON = false
 ROMS_DIR = {
 	"megadrive", "mastersystem", "gamegear", "nes", "gb", "gbc", "gba",
 	"atari2600", "lynx", "sg1000", "ngp", "snes",
-	"APPS-Media", "psx", "ps2-isos",
+	"APPS", "psx", "ps2",
 }
 
 --- Ficheros de sistema, agrupados en "Bios/" en la raiz del launcher. ---------------
@@ -2912,7 +2912,7 @@ IOP_REBOOT_EMBER = 0
 MEDIA_ALIAS = {
 	"megadrive", "mastersystem", "gamegear", "nes", "gb", "gbc", "gba",
 	"atari2600", "lynx", "sg1000", "ngp", "snes",
-	"APPS-Media", "psx", "ps2-isos",
+	"APPS", "psx", "ps2",
 }
 
 --- Indice de las carpetas de medios. -------------------------------------------------

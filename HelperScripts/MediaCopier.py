@@ -77,9 +77,9 @@ SYSTEMS = [
     {"long": "PlayStation", "dir": "psx",
      "es": ["psx"],
      "folders": ["psx", "POPS", "Ember"]},
-    {"long": "PlayStation 2", "dir": "ps2-isos",
+    {"long": "PlayStation 2", "dir": "ps2",
      "es": ["ps2"],
-     "folders": ["ps2-isos", "ps2", "ISOs PlayStation 2"]},
+     "folders": ["ps2", "DVD", "CD"]},
 ]
 
 TAGS = ["boxart", "image", "thumbnail", "screenshot", "cartridge",
@@ -383,7 +383,7 @@ def handle_games(names, syst, es_root, usb_root, tag_cover, tag_screen,
         # PlayStation 2 artwork is NOT copied. OPL already keeps it in "ART" at the
         # root of the drive, named after the game ID, and Prism reads that
         # folder directly on every drive. Duplicating it would just waste space.
-        gid = opl_id(name) if syst["dir"] == "ps2-isos" else None
+        gid = opl_id(name) if syst["dir"] == "ps2" else None
 
         # Explicit None test: an XML Element has no meaningful truth value,
         # and 'or' on one raises a DeprecationWarning.

@@ -7158,12 +7158,10 @@ function crear_listas(identidad, lista)
 		-- Lista de directorios. --------------------------------------------------------
 		-- Raices adicionales (disco interno exFAT), antes del bucle principal. --------
 		local vistos_ps2 = {}
-		-- Directorios extra a explorar: "<raiz>/Roms/ISOs PlayStation 2" y, en las
-		-- unidades ATA, tambien "<unidad>/DVD" y "<unidad>/CD" como en el USB.
+		-- Directorios extra a explorar: en las unidades ATA, "<unidad>/DVD" y
+		-- "<unidad>/CD", como en el USB. Las ISO de PS2 viven SOLO ahi, que es donde
+		-- OPL y Neutrino las leen; no hay biblioteca bajo "Roms/".
 		local dirs_extra = {}
-		for i_raiz = 2, #RAICES do
-			table.insert(dirs_extra, RAICES[i_raiz] .."/Roms/ps2-isos/")
-		end
 		if OPCIONES.DIR_EXTRAS_ON ~= 0 then
 			for i_u = 1, #BDM_DEVICES do
 				if BDM_ATA[BDM_DEVICES[i_u]] == true then
@@ -7189,11 +7187,13 @@ function crear_listas(identidad, lista)
 							titulo = NOMBRE_VISIBLE(15, extra[c].name)})
 					end
 				end
-				exfatdb_dir(15, "PlayStation 2", dirs_extra[i_d], db_ps2, "ps2-isos")
+				exfatdb_dir(15, "PlayStation 2", dirs_extra[i_d], db_ps2, "ps2")
 			end
 		end
 
-		local buscar_directorio = {actual .."/Roms/ps2-isos", device .."/DVD", device .."/CD", "cdfs:"}
+		-- [1] era una biblioteca bajo "Roms/"; ya no existe. Se deja el hueco porque
+		-- el bucle distingue DVD/CD/cdfs por su indice.
+		local buscar_directorio = {nil, device .."/DVD", device .."/CD", "cdfs:"}
 		if BUSCAR_CDVD == false then buscar_directorio[4] = nil end
 		if OPCIONES.DIR_EXTRAS_ON == 0 then
 			buscar_directorio[2] = nil
@@ -7227,7 +7227,7 @@ function crear_listas(identidad, lista)
 							end
 						end
 					end
-					exfatdb_dir(15, "PlayStation 2", buscar_directorio[buscar_ps2], db_ps2b, "ps2-isos")
+					exfatdb_dir(15, "PlayStation 2", buscar_directorio[buscar_ps2], db_ps2b, "ps2")
 				end
 			end
 		end
