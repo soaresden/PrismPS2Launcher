@@ -84,9 +84,24 @@ local disco_visible = false
 for n = 0, 5 do
 	if doesFileExist("mass".. n ..":/Prism".. MARCA) then disco_visible = true end
 end
+-- Sin marcador tambien se puede saber: en un arranque en frio solo existe la unidad
+-- de arranque. Si ya hay una segunda unidad BDM montada, los drivers estan
+-- residentes (rearranque en caliente tras un error) y recargarlos cuelga la consola.
+if disco_visible == false then
+	local montadas = 0
+	for n = 0, 5 do
+		if System.listDirectory("mass".. n ..":/") ~= nil then montadas = montadas + 1 end
+	end
+	if montadas >= 2 then
+		disco_visible = true
+		log("Hay ".. montadas .." unidades BDM montadas antes de cargar nada: drivers ya residentes.")
+	end
+end
 
 if IOP == nil then
 	log("Build 2024: no se cargan IRX (Sif.loadModule cuelga en esta build).")
+elseif PREBOOT_IRX_HECHO == true then
+	log("IRX ya cargados por el kit de la Memory Card (".. tostring(PREBOOT_ORIGEN) .."): no se recargan.")
 elseif disco_visible == true then
 	log("El disco interno ya esta montado: no se recargan los IRX.")
 else

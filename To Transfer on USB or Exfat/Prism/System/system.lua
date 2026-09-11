@@ -18,7 +18,20 @@ if END == nil then END = 2 end
 if Sif == nil and IOP ~= nil then Sif = IOP end
 if System.rename == nil and System.moveFile ~= nil then System.rename = System.moveFile end
 
-require("System/core/devices")
+--- Loading a module: dofile with an absolute path, the one mechanism proven on the
+--- console (index.lua chains to this file the same way). require() with a nested
+--- path is not. The journal gets the file name BEFORE it runs, so a module that
+--- fails to load is named by the last line of the log.
+function load_module(name)
+	local path = System.currentDirectory() .."/System/".. name ..".lua"
+	if boot_log ~= nil then
+		boot_log("BOOT   module ".. name)
+		boot_flush()
+	end
+	dofile(path)
+end
+
+load_module("core/devices")
 
 --- Deteccion de la build: la tabla global "IOP" solo existe en Enceladus reciente. ----
 ENCELADUS_MODERNO = (IOP ~= nil)
@@ -48,7 +61,7 @@ IRX_IGNORAR = {"usbd.irx", "usbhdfsd.irx", "bdm.irx", "bdmfs_fatfs.irx", "usbmas
 BDM_DEVICES = {}
 BDM_ATA = {}   -- unidades que son el disco interno ATA, no un USB
 
-require("System/core/log")
+load_module("core/log")
 
 --- Identidad del soporte de arranque. -------------------------------------------------
 --- El comportamiento depende de DESDE DONDE se ha lanzado el programa:
@@ -104,7 +117,7 @@ if true then
 	boot_log("")
 end
 
-require("System/core/drives")
+load_module("core/drives")
 irx_load()
 
 --- Raices de busqueda de juegos ("append" USB + disco interno). -----------------------
@@ -218,13 +231,13 @@ boot_flush()
 
 --- Everything below is definitions: paths, then one module per emulator. Nothing
 --- runs until inventario() further down, so their order only follows the drive.
-require("System/core/paths")
-require("System/emu/pops")
-require("System/library/exfatdb")
-require("System/emu/retroarch")
-require("System/emu/ember")
-require("System/emu/retroarch_shuttle")
-require("System/emu/ps2")
+load_module("core/paths")
+load_module("emu/pops")
+load_module("library/exfatdb")
+load_module("emu/retroarch")
+load_module("emu/ember")
+load_module("emu/retroarch_shuttle")
+load_module("emu/ps2")
 
 --- El inventario usa ES_RAIZ_ATA, asi que se llama DESPUES de definirla. -------------
 inventario()
@@ -266,7 +279,7 @@ usb_inventory()
 --- vuelve de un juego. Necesita RAICES y BDM_DEVICES, de ahi que este aqui.
 SAVES_RECUPERAR()
 
-require("System/ui/loading")
+load_module("ui/loading")
 
 --- Pantalla de carga y comprobación de directorio. -------------------------------------
 if true then
@@ -315,51 +328,28 @@ end
 --- Formato de audio. -------------------------------------------------------------------
 Sound.setFormat(16, 48000, 3)
 
-require("System/ui/sound")
+load_module("ui/sound")
 
---- Cargar variables y configuraciones. -------------------------------------------------
-require("System/language")
-lang_select()
-require("System/menu")
--- The former funciones.lua, one file per responsibility. All definitions, no code run.
-require("System/ui/draw")
-require("System/ui/sprites")
-require("System/ui/theme_editor")
-require("System/ui/credits")
-require("System/ui/launch_screen")
-require("System/menus/settings")
-require("System/menus/game_menu")
-require("System/menus/pops_menu")
-require("System/menus/ps2_menu")
-require("System/library/scan")
-require("System/launch/run")
-require("System/core/settings_io")
-boot_log("BOOT   modules loaded (language, menu, ui, menus, library, launch, config)")
+--- The interface. -----------------------------------------------------------------------
+--- Everything above is the machine: drives, journal, emulators, sound. Everything below
+--- is what the user sees, and it only depends on the theme and the library.
+load_module("emu/retroarch_prepare")
+load_module("systems")
+load_module("core/prefs")
+load_module("ui/theme")
+load_module("ui/gfx")
+load_module("ui/input")
+load_module("ui/widgets")
+load_module("library/gamelist_xml")
+load_module("library/library")
+load_module("views/systems")
+load_module("views/gamelist")
+load_module("views/launch")
+load_module("views/menu")
+load_module("launch/backends")
+load_module("frontend")
+boot_log("BOOT   modules loaded")
 boot_flush()
 
--- Guarda las listas / últimos movimientos / límite de captura. -------------------------
-PRE_CARGADAS = {}
-LAST_MOVE = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-JOYSTICK_LIMITE = 0
-
-require("System/core/state")
-
---- Cargar variables y configuraciones. -------------------------------------------------
-load_step("reading configuration")
-cargar_config()
-
---- Ejecutar Prism. -------------------------------------------------------------
--- El valor con el que se entra al menu, para no volver a preguntarse si el
--- interruptor guarda o no: aqui queda escrito, junto con lo que dice su fichero.
-boot_log("BOOT   SEE_INDEX = ".. tostring(OPCIONES.SEE_INDEX)
-	.."   SeeIndex.cfg = ".. tostring(see_index_load()))
-load_step("entering menu")
-boot_log("BOOT   listas construidas, entrando en el menu")
-boot_flush()
-load_end()
-while true do
-	dibujar()
-	refrescar(false)
-	CONTROL.FPS = Screen.getFPS(1)
-end
---[[------------------SPAGHETTICODE-------------------]]--
+frontend_start()
+frontend_run()

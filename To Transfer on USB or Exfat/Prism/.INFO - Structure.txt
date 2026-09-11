@@ -473,18 +473,18 @@ From a USB stick, none of the three applies.
 Inside System/
 --------------
     System/system.lua       the boot sequence: drivers, roots, screen, sound, then
-                            the menu loop. Reads top to bottom; it defines nothing.
+                            the interface. Reads top to bottom; it defines nothing.
     System/index.lua        the pre-boot run from the memory card
-    System/menu.lua         the main list screen
     System/systems.lua      generated table of every system and its backends
-    System/core/            devices, drives, log, paths, state, settings_io
+    System/core/            devices, drives, log, paths, prefs (settings files)
     System/emu/             one file per emulator: retroarch, retroarch_shuttle,
-                            pops, ember, ps2
-    System/library/         building the game lists, exfatdb
-    System/launch/          launching a game
-    System/menus/           settings, game menu, POPStarter and PS2 menus
-    System/ui/              drawing, sprites, loading screen, sound, theme editor
-    System/lang/            es, pt, en - one file per language
+                            retroarch_prepare, pops, ember, ps2
+    System/library/         library.lua (what games exist, where), exfatdb
+    System/ui/              theme.lua (positions, colours), gfx, input, widgets,
+                            loading screen, sound
+    System/views/           systems, gamelist, launch ("Ready to launch"), menu (START)
+    System/launch/          backends.lua: one launch function per emulator
+    System/frontend.lua     the interface loop
     System/Config/          current settings
     System/Defaults/        factory settings, what "reset" restores
     System/Intros/          the PS1 and PS2 startup animations

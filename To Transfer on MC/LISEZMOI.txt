@@ -37,4 +37,6 @@ Installation
 Si ton lanceur ne peut PAS passer d'argument a un ELF, cette voie est fermee :
 utilise alors une cle USB avec le paquet "To Transfer on USB or Exfat".
 
-Journal : mc0:/PRISMBOOT/BOOT_LOG.txt
+Journal : <support du ELF>/log/PRISMBOOT.txt (cle USB), ou mc0:/PRISMBOOT/BOOT_LOG.txt
+          seulement si le ELF vient du disque interne, illisible a ce moment-la.
+          Sans disque interne, le kit lance l'installation locale (la cle).

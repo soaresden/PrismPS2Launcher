@@ -23,9 +23,9 @@
 --- linea escrita nombra al culpable. Si el fichero no llega ni a existir, el cuelgue
 --- es ANTERIOR a Lua -- conflicto de drivers en el arranque de Enceladus -- y ningun
 --- script puede verlo.
---- El destino se resuelve una vez: junto al ELF si acepta escrituras; si no, mc0:, y
---- en ultimo recurso mc1:. Asi el journal existe aunque el soporte de arranque
---- resulte ilegible a mitad de camino.
+--- El destino se resuelve una vez y SIEMPRE en el soporte que lanzo el programa:
+--- "log/" junto al ELF, o junto al ELF a secas si "log/" no se deja crear. Nunca en
+--- una Memory Card.
 BOOT_LOG_ON = true
 BOOT_FLUSH = true
 BOOT_LOG_DESTINO = nil
@@ -110,10 +110,12 @@ function boot_flush()
 		local texto = BOOT_LOG_TXT
 		if ART_ULTIMA ~= nil then texto = texto .."ART    ".. ART_ULTIMA .."\n" end
 		if BOOT_LOG_DESTINO == nil then
-			-- Beside the ELF if it takes writes, else mc0:, else mc1:. The journal has
-			-- to exist even when the boot medium turns out unreadable halfway.
+			-- ONLY on the medium that launched the program: log/ next to the ELF, or
+			-- beside the ELF if log/ cannot be created. Never a memory card: a journal
+			-- that lands on mc0 is one nobody finds, and it fills the card. If nothing
+			-- here takes writes, the text stays in memory and the next flush retries.
 			local actual = System.currentDirectory()
-			local dirs = {actual .."/".. LOG_DIR, "mc0:/".. LOG_DIR, "mc1:/".. LOG_DIR}
+			local dirs = {actual .."/".. LOG_DIR, actual}
 			for i = 1, #dirs do
 				if System.listDirectory(dirs[i]) == nil then
 					pcall(System.createDirectory, dirs[i])
@@ -127,6 +129,10 @@ function boot_flush()
 				if ok == true and doesFileExist(cand) then
 					BOOT_LOG_DESTINO = cand
 					log_rotate(dirs[i])
+					if i > 1 then
+						BOOT_LOG_TXT = BOOT_LOG_TXT .."LOG    ".. actual .."/".. LOG_DIR
+							.." refused writes; journal kept beside the ELF instead\n"
+					end
 					break
 				end
 			end

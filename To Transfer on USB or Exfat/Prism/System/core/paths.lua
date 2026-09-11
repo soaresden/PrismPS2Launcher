@@ -88,7 +88,7 @@ function NOMBRE_VISIBLE(identidad, nombre, desde)
 	if t == nil then
 		local limpio = nombre
 		while string.sub(limpio, -1) == " " do limpio = string.sub(limpio, 1, -2) end
-		t = string.sub(limpio, 1, -CONTROL.EXTENSION)
+		t = string.match(limpio, "^(.*)%.[^%.]+$") or limpio
 	end
 	if desde ~= nil and desde > 1 then return string.sub(t, desde) end
 	return t

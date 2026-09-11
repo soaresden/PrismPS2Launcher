@@ -47,7 +47,7 @@ The look follows EmulationStation as Batocera ships it, and borrows its language
 
 **Diagnostics you can read.** One log per session, `log/Debug_YYYY-MM-DD_HHMMSS.log`, every step written *before* it happens so a freeze names the culprit. A boot checklist on the loading screen. Every launch dumps what it is about to do — core, ROM, config, memory card — just before `loadELF`.
 
-Sound, theme editor, artwork, titles, save relocation between drives: all covered in [CHANGES.md](CHANGES.md), each with the code that was wrong and why.
+Sound, artwork, titles, save relocation between drives: all covered in [CHANGES.md](CHANGES.md), each with the code that was wrong and why. The custom theme editor inherited from the original is gone: six preset layouts remain, and the interface in *Roadmap* replaces them.
 
 ---
 
@@ -57,9 +57,11 @@ Sound, theme editor, artwork, titles, save relocation between drives: all covere
 <drive>:/
 ├── Prism/                    the launcher
 │   ├── Roms/<system>/        one folder per system, Batocera names
+│   │   ├── gamelist.xml      EmulationStation format: names, descriptions, artwork paths
+│   │   │                     (written by Prism if missing; fill it with ARRM, Skraper...)
 │   │   ├── media/covers/     <rom>.png, as EmulationStation lays it out
 │   │   ├── media/screenshots/
-│   │   └── titles.txt
+│   │   └── titles.txt        fallback names when there is no gamelist.xml
 │   ├── Roms/psx/media/       artwork for EVERY PS1 game, POPS or Ember alike
 │   ├── Ember/                ember.elf, bios.bin, games/<Game>/
 │   ├── LibretroPS2Files/     the RetroArch master: cores/, info/, retroarch/
@@ -95,7 +97,7 @@ Each script's docstring is its documentation: what it does, what it will not do,
 
 ## Code layout
 
-`System/system.lua` is the boot sequence and nothing else: drivers, roots, loading screen, sound, then the menu loop, read top to bottom. Every function lives in a module named after what it does — `core/` (devices, drives, log, paths, state, settings), `emu/` (one file per emulator: retroarch, retroarch_shuttle, pops, ember, ps2), `library/` (scanning, exfatdb), `launch/`, `menus/`, `ui/`, `lang/` (one file per language). The largest file is 2 200 lines and it is the settings menu; the roadmap below is what shrinks it.
+Two halves. **The machine** — `index.lua` (pre-boot), `system.lua` (the boot sequence, read top to bottom), `core/` (devices, drives, log, paths, prefs), `emu/` (one file per emulator: retroarch, retroarch_shuttle, retroarch_prepare, pops, ember, ps2), `systems.lua` (generated) — is what makes the console do things, and it is proven on hardware. **The interface** — `ui/theme.lua` (every position and colour, the role of an ES `theme.xml`), `ui/gfx.lua`, `ui/input.lua`, `ui/widgets.lua` (list and modal menu), `library/library.lua` (what games exist and where), `views/systems.lua`, `views/gamelist.lua`, `views/launch.lua`, `views/menu.lua`, `launch/backends.lua` (one function per emulator), `frontend.lua` (the loop) — is modelled on EmulationStation and depends only on the theme and the library. The largest file is 500 lines.
 
 ## Roadmap
 

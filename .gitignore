@@ -99,12 +99,16 @@ To Transfer on USB or Exfat/Prism/POPStarter/POPSTARTER.ELF
 To Transfer on USB or Exfat/Prism/POPStarter/PATCH_*.BIN
 To Transfer on USB or Exfat/Prism/POPStarter/TROJAN_*.BIN
 
-# Local video-mode and language markers, written by the launcher
+# Local video-mode markers, written by the launcher
 To Transfer on USB or Exfat/Prism/System/Defaults/NTSC
 To Transfer on USB or Exfat/Prism/System/Defaults/PAL
 To Transfer on USB or Exfat/Prism/System/Defaults/ENG
 To Transfer on USB or Exfat/Prism/System/Defaults/POR
 To Transfer on USB or Exfat/Prism/System/Defaults/SPA
+
+# The user's own settings and per-game choices
+To Transfer on USB or Exfat/Prism/System/Config/prism.cfg
+To Transfer on USB or Exfat/Prism/System/Config/games.cfg
 
 # Tooling
 HelperScripts/__pycache__/
@@ -124,3 +128,6 @@ PR-MESSAGE.md
 # Personal FreeFileSync profile: local drive letters, nothing to share
 *.ffs_gui
 *.ffs_batch
+To Transfer on USB or Exfat/POPS/IGR_BG.TM2
+To Transfer on USB or Exfat/POPS/IGR_NO.TM2
+To Transfer on USB or Exfat/POPS/IGR_YES.TM2

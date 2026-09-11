@@ -7,14 +7,18 @@ the runtime everything here runs on.
     Copyright (C) 2025-2026  Spaghetticode (Boon Tobias)  — RETROLauncher, the code this began from
     Copyright (C) 2026       soaresden                    — Prism PS2 Launcher
 
-## The part that is still being settled
+## Settled with the original author
 
 Prism started from [RETROLauncher](https://github.com/Spaghetticode-Boon-Tobias/RETROLauncher),
-which was published **without a licence file**. Its author has been asked to add
-one, or to confirm he is fine with this fork; this note will be updated with his
-answer. Until then, his code is here under the terms GitHub grants to forks, his
-copyright line stays in this file, and no claim is made over his work beyond
-what is needed to keep the project running.
+which was published without a licence file. Asked about it, its author,
+Spaghetticode (Boon Tobias), answered in September 2026: use the GNU GPL v3.0,
+the licence of Enceladus, "since that is the engine truly driving your project";
+he will add the same licence to RETROLauncher; and he asks for no credit —
+"just make sure to credit the real heroes: all the developers in the PS2
+community who created the emulators and ported systems like Lua to the PS2".
+
+He is credited anyway, in [CREDITS.md](CREDITS.md), because the code this began
+from was his. The developers he points to are credited there too.
 
 ## What the GPL does not cover
 
