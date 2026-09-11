@@ -44,47 +44,62 @@ which are not BIOS files but are just as undistributable. They go beside the
 games, in POPS/, not here. HelperScripts/PS1toPOPS.py lays that out.
 
 
-REQUIRED  -  the core will not start without these
+THE TABLE
 -----------------------------------------------------------------------------
-    gba_bios.bin        Game Boy Advance, gpSP core          16 KB
-                        (mGBA has a built-in replacement and only wants it for
-                        the handful of games that check the real one)
+Size first, checksum second. The size catches nine mistakes out of ten - a
+truncated download, a .zip renamed to .bin, the wrong file entirely - and it
+is the same for every good dump. An MD5 that does not match is NOT proof of a
+bad dump: several of these exist in more than one revision, and only the ones
+with a hash printed below have a single universally agreed version.
 
-    lynxboot.img        Atari Lynx - Handy, Gearlynx, Beetle Lynx    512 bytes
+Check one on Windows with:   certutil -hashfile <file> MD5
 
-    exec.bin            Intellivision - FreeIntv              8 KB
-    grom.bin            Intellivision - FreeIntv              2 KB
+  file                bytes   MD5                                what it is
+  ------------------  ------  ---------------------------------  -----------
 
-    colecovision.rom    ColecoVision - Gearcoleco             8 KB
-                        (also accepted: coleco.rom, bios.col)
+REQUIRED - the core will not start without it
 
-    o2rom.bin           Magnavox Odyssey 2 / Videopac - O2EM   1 KB
-    c52.bin             Odyssey 2, French machine              1 KB
-    g7400.bin           Videopac+ G7400                        1 KB
-    jopac.bin           Jopac, French G7400                    1 KB
+  gba_bios.bin         16384  a860e8c0b6d573d191e4ec7db1b1e4f6   Game Boy Advance, for gpSP
+  lynxboot.img           512  fcd403db69f54290b51035d82f835e7b   Atari Lynx boot ROM
+  exec.bin              8192  62e761035cb657903761800f4437b8af   Intellivision executive ROM
+  grom.bin              2048  0cd5946c6473e42e8e4c2137785e427f   Intellivision graphics ROM
+  colecovision.rom      8192  2c66f5911e5b42b8ebe113403548eee7   ColecoVision (also: coleco.rom, bios.col)
+  o2rom.bin             1024  -                                  Magnavox Odyssey 2 / Videopac
+  c52.bin               1024  -                                  Odyssey 2, French machine
+  g7400.bin             1024  -                                  Videopac+ G7400
+  jopac.bin             1024  -                                  Jopac, the French G7400
+  neocd.bin           524288  -                                  Neo Geo CD (several revisions)
+  ng-lo.rom            65536  -                                  Neo Geo CD, zoom table
 
-    neocd.bin           Neo Geo CD - NeoCD                   512 KB
-    ng-lo.rom           Neo Geo CD - NeoCD                    64 KB
+OPTIONAL - it runs without them, and better with them
 
+  gb_bios.bin            256  32fbbd84168d3482956eb3c5051637f5   Game Boy boot ROM
+  gbc_bios.bin          2304  dbfce9db9deaa2567f6a84fde55f9680   Game Boy Color boot ROM
+  sgb_bios.bin           256  -                                  Super Game Boy - mGBA only
+  bios.sms                 -  -                                  Master System boot ROM
+  bios.gg                  -  -                                  Game Gear boot ROM
+  disksys.rom           8192  -                                  Famicom Disk System, for .fds
+  bios_CD_E.bin       131072  -                                  Sega Mega CD, Europe
+  bios_CD_U.bin       131072  -                                  Sega CD, US
+  bios_CD_J.bin       131072  -                                  Sega Mega CD, Japan
 
-OPTIONAL  -  the core runs without them, better with them
------------------------------------------------------------------------------
-    gb_bios.bin         Game Boy boot ROM - Gambatte, Gearboy, mGBA   256 B
-    gbc_bios.bin        Game Boy Color boot ROM                      2 KB
-    sgb_bios.bin        Super Game Boy boot ROM                      256 B
-                        These give you the real startup animation and the
-                        colour palettes the hardware picks per game.
+PLAYSTATION 1 - any ONE of these, for Ember
 
-    bios.sms            Master System boot ROM - Gearsystem
-    bios.gg             Game Gear boot ROM - Gearsystem
+  scph1001.bin        524288  924e392ed05558ffdb115408c263dccf   US, the usual choice
+  scph7502.bin        524288  2bfd74ba00d36eb6b2a54d9c5b6848a0   Europe / PAL
+  scph5501.bin        524288  -                                  US, later revision
+  (and every other name in the PlayStation 1 list above - all 512 KB)
 
-    disksys.rom         Famicom Disk System - FCEUmm          8 KB
-                        Required for .fds games, not for cartridges.
+A word on scph1001.bin, because it wastes people's evenings: much of the
+documentation out there prints an MD5 that in fact belongs to DTL-H1001.BIN,
+the DEVELOPMENT unit's BIOS. A consumer SCPH-1001 dump hashes to the value
+above and is correct. A front-end calling your good dump bad is the front-end
+being wrong.
 
-    bios_CD_E.bin       Sega CD, Europe  - PicoDrive
-    bios_CD_U.bin       Sega Mega CD, US
-    bios_CD_J.bin       Sega Mega CD, Japan
-                        For Sega CD images only. Mega Drive and 32X need none.
+The boot ROMs above (Game Boy, Master System, Game Gear) buy you the real
+startup animation and the palette the hardware picks per game. Nothing more.
+The Sega CD files matter only for Sega CD images; Mega Drive and 32X need
+none. disksys.rom is for disk games, not cartridges.
 
 
 NOTHING TO PUT HERE
