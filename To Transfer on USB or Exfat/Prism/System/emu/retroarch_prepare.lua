@@ -3,18 +3,18 @@
 -- Moved verbatim from the former launch/run.lua. Reports progress through
 -- launch_step / launch_replace / LIBRETRO_PANTALLA, defined by the interface.
 
---- Preparacion de RetroArch en la llave, EN EL MOMENTO DE LANZAR. --------------------
---- Un core oficial no sabe leer el disco interno: al arrancar hace SifIopReset, el IOP
---- se vacia y ese disco deja de existir para el. Su instalacion tiene que estar en un
---- soporte que sobreviva al reset.
+--- Preparing RetroArch on the USB stick, AT LAUNCH TIME. -----------------------------
+--- An official core cannot read the internal drive: on starting it does a SifIopReset,
+--- the IOP is wiped and that drive stops existing for it. Its installation has to sit
+--- on a medium that survives the reset.
 ---
---- Copiarla entera al arrancar el lanzador era mala idea: 75 MB, y aunque se hiciera
---- de fondo el menu se arrastraba. Y sobre todo era trabajo hecho por adelantado para
---- juegos que quiza no se lanzan nunca.
+--- Copying the whole of it when the launcher starts was a bad idea: 75 MB, and even
+--- done in the background the menu dragged. Above all it was work done in advance for
+--- games that may never be launched at all.
 ---
---- Aqui se hace al pulsar sobre un juego, y solo lo que ESE juego necesita: su core,
---- su ".info", y la configuracion. Un megabyte y medio, una vez por core. La segunda
---- vez que se lanza un juego de esa consola ya no hay nada que copiar.
+--- Here it happens when a game is pressed, and only what THAT game needs: its core,
+--- its ".info", and the configuration. A megabyte and a half, once per core. The second
+--- time a game for that console is launched there is nothing left to copy.
 LIBRETRO_AUTO_USB = true
 COPIA_TITULO = "Preparing RetroArch on the USB stick"
 COPIA_HECHOS = 0
@@ -27,7 +27,7 @@ function CORE_A_INFO(nombre)
 	return string.sub(nombre, 1, -9) ..".info"
 end
 
---- Copia un fichero si falta o si no coincide el tamano. Devuelve true si copio. -----
+--- Copies a file if missing or if the size differs. Returns true if it copied. -------
 function COPIA_SI_HACE_FALTA(origen, destino, etiqueta)
 	if doesFileExist(origen) == false then return false end
 	local a = ROM_TAMANO(origen)
@@ -41,18 +41,18 @@ function COPIA_SI_HACE_FALTA(origen, destino, etiqueta)
 	return true
 end
 
---- Deja listo en la llave lo que hace falta para lanzar ESTE core. -------------------
---- Devuelve la carpeta que hay que usar, o nil si no se ha podido preparar nada.
+--- Puts on the USB stick what is needed to launch THIS core. -------------------------
+--- Returns the folder to use, or nil if nothing could be prepared.
 function LIBRETRO_PREPARAR_PARA(nombre_core)
 	LIBRETRO_FORZADO = nil
 	if LIBRETRO_AUTO_USB ~= true then return RUTA_LIBRETRO() end
-	-- El ORIGEN de la copia es la maestra: es la unica que tiene el core que se pide.
+	-- The SOURCE of the copy is the master: it is the only one with the core being asked for.
 	local casa = libretro_master_path()
 	if casa == nil then return nil end
-	-- Ya esta donde el core sabra leerla: nada que preparar.
+	-- Already where the core will know how to read it: nothing to prepare.
 	if ES_RAIZ_ATA(casa) == false then return casa end
 
-	-- Destino: una llave USB. La tarjeta de memoria no sirve, son 8 MB.
+	-- Destination: a USB stick. The memory card is no use, it is 8 MB.
 	local destinos = ROM_DESTINOS()
 	local dev = nil
 	for i = 1, #destinos do
@@ -61,14 +61,14 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 		end
 	end
 	if dev == nil then
-		boot_log("RETROARCH  sin llave USB: este juego no puede arrancar.")
+		boot_log("RETROARCH  no USB stick: this game cannot start.")
 		boot_flush()
 		LIBRETRO_PANTALLA(COPIA_TITULO, "No USB stick: this game cannot start", 0, nil)
 		System.sleep(3)
 		return nil
 	end
 
-	-- En "<llave>/Prism/LibretroPS2Files", el mismo sitio que en el disco.
+	-- In "<stick>/Prism/LibretroPS2Files", the same place as on the drive.
 	local destino = dev .."/".. CARPETA_LANZADOR .."/LibretroPS2Files"
 
 	COPIA_HECHOS = 0
@@ -78,10 +78,10 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	CREAR_CADENA(destino, "cores")
 	CREAR_CADENA(destino, "info")
 
-	-- TODAS las carpetas que la configuracion nombra. RetroArch ABRE los ficheros de
-	-- sus carpetas pero NO crea las carpetas: sin "temp/" (cache_directory) no puede
-	-- descomprimir el .zip de la ROM, y muere sin dibujar. Sin "logs/" tampoco escribe
-	-- su propio log. Crear un directorio es gratis; no crearlo cuesta un arranque.
+	-- ALL the folders the configuration names. RetroArch OPENS the files inside its own
+	-- folders but does NOT create the folders: without "temp/" (cache_directory) it cannot
+	-- unpack the ROM's .zip, and dies without drawing. Without "logs/" it cannot write
+	-- its own log either. Creating a directory is free; not creating it costs a boot.
 	local esqueleto = {"retroarch", "retroarch/config", "retroarch/config/remaps",
 		"retroarch/system", "retroarch/logs", "retroarch/temp",
 		"retroarch/savefiles", "retroarch/savestates", "retroarch/assets",
@@ -96,28 +96,28 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 		end
 	end
 	if faltan ~= "" then
-		boot_log("RETROARCH  NO se han podido crear:".. faltan)
+		boot_log("RETROARCH  could NOT create:".. faltan)
 		boot_flush()
 		launch_step("Cannot create folders on USB")
 	end
 
-	-- "retroarch.cfg" se MACHACA, sin mirar si coincide: RetroArch reescribe el suyo
-	-- cada vez que sale, en la llave. El disco manda.
+	-- "retroarch.cfg" is OVERWRITTEN, without checking whether it matches: RetroArch
+	-- rewrites its own on the stick every time it exits. The drive has the last word.
 	launch_step("Writing retroarch.cfg")
 	if doesFileExist(casa .."/retroarch/retroarch.cfg") then
 		pcall(System.copyFile, casa .."/retroarch/retroarch.cfg",
 		      destino .."/retroarch/retroarch.cfg")
 	end
-	-- Los ajustes por core, por la misma razon.
+	-- The per-core settings, for the same reason.
 	COPIAR_ARBOL(casa .."/retroarch/config", destino .."/retroarch/config", 0)
 
-	-- "raboot.elf": con el en la llave, RetroArch se puede abrir desde uLaunchELF sin
-	-- pasar por Prism. Son 300 KB y se copia una sola vez.
+	-- "raboot.elf": with it on the stick, RetroArch can be opened from uLaunchELF without
+	-- going through Prism. It is 300 KB and is copied only once.
 	if doesFileExist(casa .."/raboot.elf") and doesFileExist(destino .."/raboot.elf") == false then
 		copy_with_progress(casa .."/raboot.elf", destino .."/raboot.elf", "raboot.elf")
 	end
 
-	-- El core del juego y su ".info", nada mas.
+	-- The game's core and its ".info", nothing more.
 	COPIA_TOTAL = 2
 	local core_origen = casa .."/cores/".. nombre_core
 	local core_destino = destino .."/cores/".. nombre_core
@@ -136,7 +136,7 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	end
 
 	if doesFileExist(destino .."/cores/".. nombre_core) == false then
-		boot_log("RETROARCH  no se ha podido poner ".. nombre_core .." en ".. destino)
+		boot_log("RETROARCH  could not put ".. nombre_core .." in ".. destino)
 		boot_flush()
 		LIBRETRO_PANTALLA(COPIA_TITULO, "Could not copy ".. nombre_core, 0, nil)
 		System.sleep(3)
@@ -144,10 +144,10 @@ function LIBRETRO_PREPARAR_PARA(nombre_core)
 	end
 
 	if COPIA_HECHOS > 0 then
-		boot_log("RETROARCH  ".. tostring(COPIA_HECHOS) .." fichero(s) preparados en ".. destino)
+		boot_log("RETROARCH  ".. tostring(COPIA_HECHOS) .." file(s) prepared in ".. destino)
 		boot_flush()
 	end
-	-- A partir de aqui, TODO -- config, BIOS, partidas -- apunta a la llave.
+	-- From here on, EVERYTHING -- config, BIOS, saves -- points at the stick.
 	LIBRETRO_FORZADO = destino
 	return destino
 end

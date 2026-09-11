@@ -3,31 +3,31 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Sondeo de las unidades y clasificacion USB / ATA. ----------------------------------
---- "antes" es la foto de las unidades tomada ANTES de cargar ata_bd: una unidad que
---- no estaba y ahora esta ha sido montada por ata_bd, luego es el disco interno.
---- La otra via es el marcador, que funciona aunque los drivers ya fuesen residentes.
+--- Drive probing and USB / ATA classification. ----------------------------------------
+--- "antes" is the snapshot of the drives taken BEFORE loading ata_bd: a drive that
+--- was absent and is now present has been mounted by ata_bd, so it is the internal disk.
+--- The other route is the marker, which works even if the drivers were already resident.
 function sondear_bdm(antes)
 	local actual = System.currentDirectory()
 	local propio = ""
 	local pos = string.find(actual, ":", 1, false)
 	if pos ~= nil then propio = string.sub(actual, 1, pos) end
 	boot_log("")
-	boot_log("Unidades detectadas (propio = ".. propio ..") :")
+	boot_log("Drives detected (propio = ".. propio ..") :")
 	for n = -1, 5 do
 		local unidad = "mass:"
 		if n >= 0 then unidad = "mass".. n ..":" end
-		-- En la build 2025 "mass:" es un ALIAS de "mass0:": sondear los dos duplica
-		-- la unidad en BDM_DEVICES y de ahi en las raices de busqueda. Solo se mira
-		-- "mass:" cuando "mass0:" no existe (build 2024).
+		-- In the 2025 build "mass:" is an ALIAS of "mass0:": probing both duplicates
+		-- the drive in BDM_DEVICES and from there in the search roots. "mass:" is only
+		-- looked at when "mass0:" does not exist (2024 build).
 		local contenido = nil
 		if unidad == "mass:" and System.listDirectory("mass0:") ~= nil then
-			boot_log("  mass:   alias de mass0: en esta build, omitido")
+			boot_log("  mass:   alias of mass0: in this build, skipped")
 		else
 			contenido = System.listDirectory(unidad)
 		end
 		if contenido ~= nil then
-			local texto = "  ".. unidad .."  OK  (".. #contenido .." entradas)"
+			local texto = "  ".. unidad .."  OK  (".. #contenido .." entries)"
 			for i = 1, math.min(#contenido, 30) do
 				local marca = "   "
 				if contenido[i].directory == true then marca = " d " end
@@ -35,20 +35,20 @@ function sondear_bdm(antes)
 			end
 			if antes[unidad] ~= true then
 				BDM_ATA[unidad] = true
-				texto = texto .."\n      -> ATA (montada por ata_bd, NO es un USB)"
+				texto = texto .."\n      -> ATA (mounted by ata_bd, NOT a USB)"
 			elseif doesFileExist(unidad .."/Prism".. MARCA_ATA) then
 				BDM_ATA[unidad] = true
-				texto = texto .."\n      -> ATA (marcador del disco interno presente)"
+				texto = texto .."\n      -> ATA (internal disk marker present)"
 			elseif unidad == BOOT_DEV and BOOT_ES_ATA == true then
 				BDM_ATA[unidad] = true
-				texto = texto .."\n      -> ATA (es el soporte de arranque)"
+				texto = texto .."\n      -> ATA (it is the boot device)"
 			else
 				texto = texto .."\n      -> USB"
 			end
 			boot_log(texto)
 			if unidad ~= propio then table.insert(BDM_DEVICES, unidad) end
 		else
-			boot_log("  ".. unidad .."  no montada")
+			boot_log("  ".. unidad .."  not mounted")
 		end
 	end
 	local mcs = {"mc0:", "mc1:"}
@@ -56,7 +56,7 @@ function sondear_bdm(antes)
 		if System.listDirectory(mcs[i] .."/") ~= nil then
 			boot_log("  ".. mcs[i] .."   OK (Memory Card)")
 		else
-			boot_log("  ".. mcs[i] .."   no accesible")
+			boot_log("  ".. mcs[i] .."   not accessible")
 		end
 	end
 end
@@ -64,7 +64,7 @@ end
 function irx_load()
 	local actual = System.currentDirectory()
 
-	-- Foto de las unidades antes de tocar nada.
+	-- Snapshot of the drives before touching anything.
 	local antes = {}
 	for n = -1, 5 do
 		local u = "mass:"
@@ -72,49 +72,49 @@ function irx_load()
 		if System.listDirectory(u) ~= nil then antes[u] = true end
 	end
 
-	-- El pre-boot (System/index.lua) ya ha cargado -o decidido no cargar- los IRX.
-	-- Recargar un driver ya registrado cuelga la consola, asi que aqui solo se
-	-- sondean las unidades.
+	-- The pre-boot (System/index.lua) has already loaded -or decided not to load- the IRX.
+	-- Reloading an already registered driver hangs the console, so here the drives
+	-- are only probed.
 	if PREBOOT_IRX_HECHO == true then
-		boot_log("Pre-boot detectado (System/index.lua), origen: ".. tostring(PREBOOT_ORIGEN))
-		boot_log("Los IRX ya fueron tratados alli: no se recargan.")
+		boot_log("Pre-boot detected (System/index.lua), origin: ".. tostring(PREBOOT_ORIGEN))
+		boot_log("The IRX were already handled there: they are not reloaded.")
 		sondear_bdm(antes)
 		return
 	end
 
-	-- Arranque DESDE el disco interno: dev9 y ata_bd estan forzosamente residentes,
-	-- cargados por el lanzador (wLaunchELF ISR u otro) - sin ellos este fichero no se
-	-- habria podido leer. Registrar un driver dos veces cuelga la consola
-	-- ("BDM: ERROR: Already registered!"), asi que aqui NO se carga nada.
+	-- Booting FROM the internal disk: dev9 and ata_bd are necessarily resident,
+	-- loaded by the launcher (wLaunchELF ISR or other) - without them this file could
+	-- not have been read at all. Registering a driver twice hangs the console
+	-- ("BDM: ERROR: Already registered!"), so NOTHING is loaded here.
 	if BOOT_ES_ATA == true then
-		boot_log("Arranque desde el disco interno: NO se carga ningun IRX.")
-		boot_log("dev9/ata_bd ya estan residentes (los cargo el lanzador); recargarlos")
-		boot_log("colgaria la consola.")
+		boot_log("Booting from the internal disk: NO IRX is loaded.")
+		boot_log("dev9/ata_bd are already resident (the launcher loaded them); reloading")
+		boot_log("them would hang the console.")
 		BDM_ATA[BOOT_DEV] = true
 		sondear_bdm(antes)
 		return
 	end
 
-	-- Build 2024: Sif.loadModule cuelga la consola en CUALQUIER llamada. Probado con
-	-- las formas de 1 y 3 argumentos y hasta con un fichero que no es un IRX: se
-	-- congela antes de la inicializacion de video, sin mensaje.
+	-- Build 2024: Sif.loadModule hangs the console on ANY call. Tested with both
+	-- the 1 and 3 argument forms and even with a file that is not an IRX: it
+	-- freezes before video initialisation, with no message.
 	if IRX_CARGA_ACTIVA ~= true then
-		boot_log("Build 2024: no se cargan IRX (Sif.loadModule cuelga en esta build).")
-		boot_log("Sin ata_bd no hay disco interno, salvo que el lanzador lo dejase cargado.")
+		boot_log("Build 2024: no IRX loaded (Sif.loadModule hangs in this build).")
+		boot_log("Without ata_bd there is no internal disk, unless the launcher left it loaded.")
 		sondear_bdm(antes)
 		return
 	end
 
 	local hecho = {}
-	boot_log("Carga de modulos IRX desde IRX/ :")
+	boot_log("Loading IRX modules from IRX/ :")
 	for i = 1, #IRX_IGNORAR do hecho[IRX_IGNORAR[i]] = "ignorar" end
 
-	-- IMPORTANTE: NO usar Sif.loadModule(ruta). Esa funcion hace que el IOP resuelva
-	-- la ruta con su modulo LOADFILE, que usa el viejo "ioman". Pero "mass:" lo aporta
-	-- bdmfs_fatfs, que se registra en "iomanX". El IOP no sabe abrir la ruta y la
-	-- llamada RPC nunca vuelve: la consola se congela. Comprobado con cualquier
-	-- fichero, incluso uno que no es un IRX, y en las builds de 2024 y de 2025.
-	-- Solucion: leer el fichero desde el EE y enviar los bytes con loadModuleBuffer.
+	-- IMPORTANT: do NOT use Sif.loadModule(ruta). That function makes the IOP resolve
+	-- the path with its LOADFILE module, which uses the old "ioman". But "mass:" comes
+	-- from bdmfs_fatfs, which registers on "iomanX". The IOP cannot open the path and the
+	-- RPC call never returns: the console freezes. Verified with any
+	-- file, even one that is not an IRX, and on both the 2024 and the 2025 builds.
+	-- Solution: read the file from the EE and send the bytes with loadModuleBuffer.
 	local function cargar(nombre)
 		local ruta = actual .."/IRX/".. nombre
 		boot_log("-> ".. nombre)
@@ -129,12 +129,12 @@ function irx_load()
 		end)
 
 		if okl == false or datos == nil then
-			boot_log("   ERROR de lectura: ".. tostring(datos))
+			boot_log("   READ ERROR: ".. tostring(datos))
 			return
 		end
-		-- Parentesis obligatorios: string.byte("") no devuelve NINGUN valor (ni
-		-- siquiera nil) y tostring() sin argumento es un error de ejecucion.
-		boot_log("   leidos ".. tostring(tam) .." bytes, primer byte = ".. tostring((string.byte(datos, 1))) .." (127 = ELF valido)")
+		-- Parentheses are mandatory: string.byte("") returns NO value at all (not
+		-- even nil) and tostring() with no argument is a runtime error.
+		boot_log("   read ".. tostring(tam) .." bytes, first byte = ".. tostring((string.byte(datos, 1))) .." (127 = valid ELF)")
 
 		local okc, ID = pcall(Sif.loadModuleBuffer, datos, tam)
 		boot_log("   loadModuleBuffer ok=".. tostring(okc) .."  ID=".. tostring(ID))
@@ -154,7 +154,7 @@ function irx_load()
 			local clave = string.lower(nombre)
 			if string.lower(string.sub(nombre, -4)) == ".irx" then
 				if hecho[clave] == "ignorar" then
-					boot_log("-- ignorado ".. nombre)
+					boot_log("-- ignored ".. nombre)
 				elseif hecho[clave] == nil then
 					cargar(nombre)
 				end

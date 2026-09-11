@@ -3,12 +3,12 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Normaliza el prefijo de unidad de una ruta. ---------------------------------------
---- "mass:/X" y "mass0:/X" designan lo mismo, pero el nombre depende de QUIEN lanza el
---- programa: desde el OSD o FMCB se obtiene "mass:", desde uLaunchELF "mass0:".
---- Sin esto, el launcher cree que la instalacion ha cambiado de sitio y propone
---- reubicar las configuraciones (perdiendo los ajustes de RetroArch) a cada cambio
---- de metodo de arranque.
+--- Normalises the drive prefix of a path. --------------------------------------------
+--- "mass:/X" and "mass0:/X" mean the same thing, but the name depends on WHO launches
+--- the program: from the OSD or FMCB you get "mass:", from uLaunchELF "mass0:".
+--- Without this, the launcher believes the installation has moved and offers to
+--- relocate the configurations (losing the RetroArch settings) on every change
+--- of boot method.
 function NORM_DEV(ruta)
 	if ruta == nil then return "" end
 	local pos = string.find(ruta, ":", 1, true)
@@ -20,14 +20,14 @@ function NORM_DEV(ruta)
 	return string.lower(dev ..":".. string.sub(ruta, pos+1))
 end
 
---- Quita la numeracion del prefijo de unidad y DEJA EL RESTO INTACTO. ----------------
+--- Strips the numbering from the drive prefix and LEAVES THE REST INTACT. ------------
 --- "mass0:/POPS/Juego.VCD" -> "mass:/POPS/Juego.VCD".
---- No confundir con NORM_DEV, que ademas pasa todo a minusculas porque sirve para
---- comparar rutas; aqui eso destrozaria el nombre del fichero.
---- Hace falta porque Enceladus 2025 monta los dispositivos como "mass0:", "mass1:",
---- mientras que el homebrew anterior a BDM -POPStarter v13, Neutrino, RetroArch-
---- solo conoce "mass:". La build de 2024 sobre la que se escribio Prism
---- reportaba "mass:", y de ahi que aquello funcionara sin tocar nada.
+--- Not to be confused with NORM_DEV, which also lowercases everything because it is
+--- meant for comparing paths; here that would wreck the file name.
+--- Needed because Enceladus 2025 mounts the devices as "mass0:", "mass1:",
+--- whereas the homebrew that predates BDM -POPStarter v13, Neutrino, RetroArch-
+--- only knows "mass:". The 2024 build that Prism was written against
+--- reported "mass:", which is why all that worked without touching anything.
 function DEV_SIN_NUM(ruta)
 	if ruta == nil then return nil end
 	local pos = string.find(ruta, ":", 1, true)
@@ -39,23 +39,23 @@ function DEV_SIN_NUM(ruta)
 	return dev ..":".. string.sub(ruta, pos+1)
 end
 
---- Cores capaces de leer el disco interno ATA. ---------------------------------------
---- El mismo disco tiene DOS nombres, segun quien mire:
----     Enceladus, con su propia pila BDM ....... mass0:
----     un core de RetroArch .................... ata0:
---- No es un capricho. "ps2atad.c" da al disco ATA el nombre "ata" ("g_ata_bd[i].path"),
---- y el "bdmfs_fatfs" actual registra un dispositivo iomanX por cada nombre distinto,
---- tratando "mass" aparte. El USB no declara nombre y se queda en "mass". El
---- "bdmfs_fatfs" que lleva Enceladus es anterior y mete todo en "mass". De ahi los dos
---- nombres para el mismo disco.
---- Solo los cores compilados con el parche saben de "ata0:". Para los demas -las 57
---- nightlies oficiales- el disco interno sigue sin existir, y hay que transbordar la
---- ROM a un soporte que si lean. De ahi esta lista: lo que no esta en ella se
---- transborda, que es el comportamiento seguro.
---- Al recompilar mas cores, anadirlos aqui.
---- A false: NINGUN core lee el disco interno, todo pasa por el transbordo. Es lo
---- correcto con las nightlies oficiales, que no llevan ata_bd. Poner a true solo si
---- se usan cores recompilados con el parche, y listarlos en CORES_ATA.
+--- Cores able to read the internal ATA disk. -----------------------------------------
+--- The same disk has TWO names, depending on who is looking:
+---     Enceladus, with its own BDM stack ....... mass0:
+---     a RetroArch core ........................ ata0:
+--- Not a whim. "ps2atad.c" gives the ATA disk the name "ata" ("g_ata_bd[i].path"),
+--- and the current "bdmfs_fatfs" registers one iomanX device per distinct name,
+--- treating "mass" separately. USB declares no name and stays on "mass". The
+--- "bdmfs_fatfs" that Enceladus ships is older and puts everything in "mass". Hence the
+--- two names for the same disk.
+--- Only cores compiled with the patch know about "ata0:". For the others -the 57
+--- official nightlies- the internal disk still does not exist, and the ROM has to be
+--- transferred to a medium they can read. Hence this list: whatever is not in it gets
+--- transferred, which is the safe behaviour.
+--- When more cores are recompiled, add them here.
+--- At false: NO core reads the internal disk, everything goes through the transfer. That
+--- is the right setting with the official nightlies, which carry no ata_bd. Set to true
+--- only if cores recompiled with the patch are used, and list them in CORES_ATA.
 CORES_ATA_ON = false
 CORES_ATA = {
 	"fceumm_libretro_ps2.elf",
@@ -73,17 +73,17 @@ function CORE_LEE_ATA(ruta_core)
 	return false
 end
 
---- Nombre del disco interno tal como lo vera el core. ---------------------------------
---- Comprobado en consola: con una llave USB conectada, el disco interno sale en
---- "mass1:"; sin llave, en "mass0:". No es azar, es el orden en que RetroArch carga
---- los drivers en "init_drivers()": primero usbmass_bd, luego mx4sio, y ata_bd al
---- final. Los volumenes BDM se numeran por orden de conexion, asi que el indice del
---- disco interno es exactamente el numero de unidades USB que haya delante.
---- El lanzador ya sabe cuantas hay: BDM_DEVICES menos las marcadas en BDM_ATA.
+--- Name of the internal disk as the core will see it. ---------------------------------
+--- Verified on console: with a USB stick plugged in, the internal disk shows up as
+--- "mass1:"; with no stick, as "mass0:". Not chance, it is the order RetroArch loads
+--- the drivers in "init_drivers()": usbmass_bd first, then mx4sio, and ata_bd
+--- last. BDM volumes are numbered by order of connection, so the index of the
+--- internal disk is exactly the number of USB drives sitting ahead of it.
+--- The launcher already knows how many: BDM_DEVICES minus those flagged in BDM_ATA.
 ---
---- Existe tambien un nombre estable, "ata0:", que un bdmfs_fatfs reciente registra a
---- partir de "bd->path". Es mejor cuando funciona, porque no depende de cuantas llaves
---- haya conectadas. Poner ATA_DEV_CORE = "ata0:" para usarlo; nil para calcular.
+--- There is also a stable name, "ata0:", which a recent bdmfs_fatfs registers from
+--- "bd->path". It is better when it works, because it does not depend on how many sticks
+--- are plugged in. Set ATA_DEV_CORE = "ata0:" to use it; nil to compute it.
 ATA_DEV_CORE = nil
 
 function DEV_ATA_PARA_CORE()
@@ -103,7 +103,7 @@ function DEV_ATA_PARA_CORE()
 	return "mass".. tostring(usb) ..":"
 end
 
---- Traduce una ruta del disco interno al nombre que usara el core. --------------------
+--- Translates a path on the internal disk to the name the core will use. --------------
 function RUTA_ATA_CORE(ruta)
 	if ruta == nil then return nil end
 	local pos = string.find(ruta, ":", 1, true)
@@ -111,12 +111,12 @@ function RUTA_ATA_CORE(ruta)
 	return DEV_ATA_PARA_CORE() .. string.sub(ruta, pos+1)
 end
 
---- Nombre de dispositivo tal como lo vera un core de RetroArch. ---------------------
---- Solo hay que quitar el numero a "massN:": RetroArch reinicia el IOP y monta su
---- propia pila, donde el USB se llama "mass:" sin numero. Pero "mc0:" se llama "mc0:"
---- en los dos lados, y "mc:" no existe: aplicar DEV_SIN_NUM a ciegas producia
---- "mc:/Prism/Saves", una ruta que RetroArch descarta por no ser un directorio,
---- y las partidas volvian a caer dentro de su propia carpeta.
+--- Device name as a RetroArch core will see it. -------------------------------------
+--- Only the number has to come off "massN:": RetroArch resets the IOP and mounts its
+--- own stack, where USB is called "mass:" with no number. But "mc0:" is called "mc0:"
+--- on both sides, and "mc:" does not exist: applying DEV_SIN_NUM blindly produced
+--- "mc:/Prism/Saves", a path RetroArch discards for not being a directory,
+--- and the saves fell back inside its own folder again.
 function DEV_PARA_CORE(ruta)
 	if ruta == nil then return nil end
 	local pos = string.find(ruta, ":", 1, true)

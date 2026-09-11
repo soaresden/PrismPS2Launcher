@@ -5,15 +5,22 @@ A BIOS is a copy of the software in a console you bought. It is not ours to
 give away, so this folder arrives empty and nothing in it is ever committed to
 the repository. What goes here is dumped from your own machines.
 
-One folder for all of them. An emulator that insists on its BIOS being
-somewhere else gets a copy put there on the first launch, once, automatically -
-you are not asked to file the same dump in four places.
+ONE folder for all of them. Drop everything in here, flat, no subfolders.
+Prism hands this folder to RetroArch as its "system_directory", so the cores
+read their BIOS where it lies - and an emulator that insists on its BIOS being
+somewhere else (Ember) gets a copy put there on the first launch, once,
+automatically. You are never asked to file the same dump in two places.
+
+Names matter. A core looks for one exact file name and gives up silently if it
+is not there, which is why a game that boots on someone else's stick shows you
+a black screen on yours. The names below are the ones the cores actually ask
+for; lower case unless written otherwise.
 
 
-PLAYSTATION 1  (Ember)
-
-Drop the dump in under whatever name it already has. All of these are
-recognised, upper case or lower:
+PLAYSTATION 1  -  Ember
+-----------------------------------------------------------------------------
+Drop the dump under whatever name it already has. All of these are recognised,
+upper case or lower:
 
     bios.bin
     scph1000.bin  scph1001.bin  scph1002.bin  scph101.bin
@@ -22,22 +29,99 @@ recognised, upper case or lower:
     scph9001.bin  scph9002.bin  scph102a.bin  scph102b.bin
 
 The first one found is copied to Ember/bios.bin, which is the only name Ember
-answers to. Any region works; SCPH1001 (US) and SCPH7502 (EU) are the usual
-ones. A PS1 BIOS is 512 KB.
+answers to. It is a copy, not a move: your dump stays here. Any region works;
+SCPH1001 (US) and SCPH7502 (EU) are the usual ones. A PS1 BIOS is 512 KB.
 
 If none is here, the launch screen says so BEFORE you press X, not after.
 
 
-GAME BOY ADVANCE  (gpSP, mGBA)
-
-    gba_bios.bin        optional - the cores have a built-in replacement, but
-                        a few games only behave with the real one.
-
-
-PLAYSTATION 2
-
+PLAYSTATION 2  -  Neutrino, OPL, POPStarter
+-----------------------------------------------------------------------------
 Neutrino and OPL run on the console's own BIOS. There is nothing to put here.
 
-POPStarter needs the POPS binaries (POPS.ELF, POPS_IOX.PAK, IOPRP252.IMG),
+POPStarter needs the POPS binaries - POPS.ELF, POPS_IOX.PAK, IOPRP252.IMG -
 which are not BIOS files but are just as undistributable. They go beside the
-games, in POPS/, not here - PS1toPOPS.py lays that out.
+games, in POPS/, not here. HelperScripts/PS1toPOPS.py lays that out.
+
+
+REQUIRED  -  the core will not start without these
+-----------------------------------------------------------------------------
+    gba_bios.bin        Game Boy Advance, gpSP core          16 KB
+                        (mGBA has a built-in replacement and only wants it for
+                        the handful of games that check the real one)
+
+    lynxboot.img        Atari Lynx - Handy, Gearlynx, Beetle Lynx    512 bytes
+
+    exec.bin            Intellivision - FreeIntv              8 KB
+    grom.bin            Intellivision - FreeIntv              2 KB
+
+    colecovision.rom    ColecoVision - Gearcoleco             8 KB
+                        (also accepted: coleco.rom, bios.col)
+
+    o2rom.bin           Magnavox Odyssey 2 / Videopac - O2EM   1 KB
+    c52.bin             Odyssey 2, French machine              1 KB
+    g7400.bin           Videopac+ G7400                        1 KB
+    jopac.bin           Jopac, French G7400                    1 KB
+
+    neocd.bin           Neo Geo CD - NeoCD                   512 KB
+    ng-lo.rom           Neo Geo CD - NeoCD                    64 KB
+
+
+OPTIONAL  -  the core runs without them, better with them
+-----------------------------------------------------------------------------
+    gb_bios.bin         Game Boy boot ROM - Gambatte, Gearboy, mGBA   256 B
+    gbc_bios.bin        Game Boy Color boot ROM                      2 KB
+    sgb_bios.bin        Super Game Boy boot ROM                      256 B
+                        These give you the real startup animation and the
+                        colour palettes the hardware picks per game.
+
+    bios.sms            Master System boot ROM - Gearsystem
+    bios.gg             Game Gear boot ROM - Gearsystem
+
+    disksys.rom         Famicom Disk System - FCEUmm          8 KB
+                        Required for .fds games, not for cartridges.
+
+    bios_CD_E.bin       Sega CD, Europe  - PicoDrive
+    bios_CD_U.bin       Sega Mega CD, US
+    bios_CD_J.bin       Sega Mega CD, Japan
+                        For Sega CD images only. Mega Drive and 32X need none.
+
+
+NOTHING TO PUT HERE
+-----------------------------------------------------------------------------
+NES (FCEUmm, QuickNES, cartridges), SNES (Snes9x 2002), Mega Drive and 32X
+(PicoDrive), Master System and Game Gear (SMS Plus GX), SG-1000, Atari 2600
+(Stella 2014), Neo Geo Pocket (RACE), WonderSwan (Beetle WonderSwan), and
+every standalone game core (PrBoom, ECWolf, NXEngine, Mr.Boom, 2048...).
+
+
+THE ONES THAT WANT A FOLDER, NOT A FILE
+-----------------------------------------------------------------------------
+A few cores want a whole tree rather than one dump, and those go in a
+subfolder of their own here, keeping the name the core expects:
+
+    Bios/bluemsx/       Databases/ and Machines/ from the blueMSX distribution
+                        (MSX, ColecoVision and SG-1000 through blueMSX)
+
+    Bios/fmsx/          MSX.ROM, MSX2.ROM, MSX2EXT.ROM, DISK.ROM, FMPAC.ROM
+                        (fMSX puts them flat in system_directory on some
+                        versions - if MSX does not start, try both)
+
+    Bios/quasi88/       N88.ROM, N88N.ROM, N88_0..3.ROM  (PC-8801)
+    Bios/atari800/      ATARIXL.ROM, ATARIBAS.ROM, ATARIOSA.ROM, ATARIOSB.ROM
+
+
+ONE THING WORTH KNOWING
+-----------------------------------------------------------------------------
+When Prism runs from the internal exFAT drive, a libretro core cannot read
+that drive at all: every core calls SifIopReset() on start, which wipes the
+IOP and reloads only the USB drivers, never ata_bd. So the core, its ROM AND
+the BIOS it needs are ferried to the USB stick for the launch.
+
+The list of BIOS that gets ferried is BIOS_LIBRETRO_LISTA, in
+System/emu/retroarch.lua. Every single file named under REQUIRED and OPTIONAL
+above is in it; the folder-based ones further down are not, so blueMSX, fMSX,
+QUASI88 and Atari 800 are the systems to keep on a stick rather than on the
+internal drive. If you add a core that wants a BIOS not listed above, add its
+file name there too - otherwise it will work from the USB stick and fail from
+the internal drive, which is a miserable thing to debug.

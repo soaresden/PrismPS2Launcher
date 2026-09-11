@@ -3,13 +3,13 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Carga y verificación de sonidos. ----------------------------------------------------
---- Y se apunta en el journal lo que ha cargado y cuanto pesa. -------------------------
---- Sound.loadADPCM no dice por que falla, y audsrv_load_adpcm falla EN SILENCIO cuando
---- SifAllocIopHeap no consigue el bloque: pide el fichero entero de una vez y el IOP
---- tiene 2 MB contando los modulos. Un fichero que cabe de sobra en la SPU2 puede no
---- cargar por eso -- una pista de 1,2 MB no cargo, y sin esta linea no hay manera de
---- distinguir "no hay fichero", "el fichero no cabe" y "el volumen esta a cero".
+--- Loading and checking of sounds. -----------------------------------------------------
+--- And what loaded, and how big it is, is noted in the journal. -----------------------
+--- Sound.loadADPCM does not say why it fails, and audsrv_load_adpcm fails SILENTLY when
+--- SifAllocIopHeap cannot get the block: it asks for the whole file at once and the IOP
+--- has 2 MB counting the modules. A file that fits easily in the SPU2 can fail to load
+--- for that reason -- a 1.2 MB track did not load, and without this line there is no
+--- way to tell apart "no file", "the file does not fit" and "the volume is at zero".
 function verificar_sonidos(sonido, dir)
 	local actual = System.currentDirectory()
 	sonido = nil
@@ -22,7 +22,7 @@ function verificar_sonidos(sonido, dir)
 		end)
 		sonido = Sound.loadADPCM(dir)
 		if boot_log ~= nil then
-			local estado = "handle nulo"
+			local estado = "null handle"
 			if sonido ~= nil then estado = "handle ".. tostring(sonido) end
 			boot_log("SONIDO ".. dir .."  ".. tostring(bytes) .." bytes  -> ".. estado)
 		end
@@ -30,10 +30,10 @@ function verificar_sonidos(sonido, dir)
 	return sonido
 end
 
---- Sonido preferido, con respaldo. -----------------------------------------------------
--- Los ficheros "2" son el juego de sonidos en uso. Los originales de Boon siguen
--- en la carpeta y se cargan solos si los "2" faltan, asi que borrar un fichero "2"
--- basta para volver al sonido de antes.
+--- Preferred sound, with fallback. -----------------------------------------------------
+-- The "2" files are the sound set in use. Boon's originals stay in the folder and
+-- load by themselves if the "2" ones are missing, so deleting a "2" file is all it
+-- takes to go back to the earlier sound.
 function preferred_sound(sonido, preferido, respaldo)
 	local elegido = verificar_sonidos(sonido, preferido)
 	if elegido == nil then
@@ -42,37 +42,37 @@ function preferred_sound(sonido, preferido, respaldo)
 	return elegido
 end
 
--- Carga de sonidos. --------------------------------------------------------------------
+-- Sound loading. -----------------------------------------------------------------------
 S_MOVER = preferred_sound(S_MOVER, "System/Medias/Sound/Menu/move2.adp", "System/Medias/Sound/Menu/move.adp");
 S_EJECUTAR = preferred_sound(S_EJECUTAR, "System/Medias/Sound/Menu/run2.adp", "System/Medias/Sound/Menu/run.adp");
 S_CANCELAR = preferred_sound(S_CANCELAR, "System/Medias/Sound/Menu/back2.adp", "System/Medias/Sound/Menu/back.adp");
 S_NETX = preferred_sound(S_NETX, "System/Medias/Sound/Menu/next2.adp", "System/Medias/Sound/Menu/next.adp");
 S_MUSICA = verificar_sonidos(S_MUSICA, "System/Medias/Sound/Background/music.adp");
 if boot_log ~= nil and S_MUSICA == nil then
-	-- El nombre importa: "music0.adp" es el nombre que tiene la pista cuando esta
-	-- APAGADA, y es el unico que traia la instalacion. El programa solo busca
-	-- "music.adp", asi que de fabrica no suena nada de fondo -- no porque falle, sino
-	-- porque nunca estuvo encendida.
-	boot_log("SONIDO  sin musica de fondo: falta System/Medias/Sound/Background/music.adp"
-		.."  (music0.adp = pista apagada)")
+	-- The name matters: "music0.adp" is the name the track carries when it is SWITCHED
+	-- OFF, and it is the only one the installation shipped. The program only looks for
+	-- "music.adp", so out of the box nothing plays in the background -- not because it
+	-- fails, but because it was never switched on.
+	boot_log("SONIDO  no background music: System/Medias/Sound/Background/music.adp missing"
+		.."  (music0.adp = track switched off)")
 end
 
---- Una voz SPU2 por sonido de menu. ----------------------------------------------------
---- Los cuatro sonidos se reproducian en la voz 1: los 166 sitios que llaman a repro_sfx
---- pasan "1". Y audsrv no mezcla dos sonidos en una voz -- audsrv_ch_play_adpcm mira el
---- bit ENDX de la voz pedida y, si todavia esta sonando, devuelve
---- -AUDSRV_ERR_NO_MORE_CHANNELS sin reproducir nada:
+--- One SPU2 voice per menu sound. ------------------------------------------------------
+--- The four sounds all played on voice 1: the 166 places that call repro_sfx pass "1".
+--- And audsrv does not mix two sounds on one voice -- audsrv_ch_play_adpcm looks at the
+--- ENDX bit of the requested voice and, if it is still sounding, returns
+--- -AUDSRV_ERR_NO_MORE_CHANNELS without playing anything:
 ---
 ---     if (ch >= 0 && ch < 24) {
 ---         endx = sceSdGetSwitch(SD_CORE_1 | SD_SWITCH_ENDX);
 ---         if (!(endx & (1 << ch))) return -AUDSRV_ERR_NO_MORE_CHANNELS;
 ---
---- Con las muestras de origen, de 0,18 s, hacia falta moverse muy deprisa para notarlo.
---- Cuanto mas largas son las muestras, mas se pisan.
+--- With the original samples, 0.18 s long, you had to move very fast to notice it.
+--- The longer the samples, the more they tread on each other.
 ---
---- La voz 2 es la musica y la 3 las intros, asi que los sonidos del menu van de la 4 en
---- adelante. El volumen hay que ponerlo en TODAS: audsrv_adpcm_init deja las 24 voces a
---- 0x3fff, de modo que una voz a la que nadie le baja el volumen suena al maximo.
+--- Voice 2 is the music and voice 3 the intros, so the menu sounds run from 4 upwards.
+--- The volume has to be set on ALL of them: audsrv_adpcm_init leaves the 24 voices at
+--- 0x3fff, so a voice whose volume nobody lowers plays at full blast.
 SFX_CHANNELS = {}
 SFX_VOICES = {1, 4, 5, 6, 7}
 

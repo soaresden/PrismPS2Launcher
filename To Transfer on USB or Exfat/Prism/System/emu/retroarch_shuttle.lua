@@ -3,32 +3,32 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Transbordo de ROM para los cores de RetroArch. ------------------------------------
---- Los cores montan SU PROPIA pila de dispositivos al arrancar, y ahi no hay ata_bd:
---- "platform_ps2.c" solo inicializa memcard, usb, mx4sio, cdfs y el HDD nativo (APA).
---- Conclusion: una ROM que vive en el disco interno exFAT les es SIMPLEMENTE INVISIBLE.
---- No es un fallo del launcher ni de las rutas, es el alcance del port de RetroArch.
---- Solucion: copiar la ROM a un soporte que ellos si lean, por orden de preferencia
---- USB (rapido) y luego Memory Card (lenta y pequena, pero suficiente para 8/16 bits).
---- La copia se cachea: relanzar el mismo juego no vuelve a copiar.
---- Poner a false para desactivar el transbordo.
+--- ROM shuttle for the RetroArch cores. ----------------------------------------------
+--- The cores mount THEIR OWN device stack at start, and ata_bd is not part of it:
+--- "platform_ps2.c" only brings up memcard, usb, mx4sio, cdfs and the native HDD (APA).
+--- Upshot: a ROM living on the internal exFAT disc is SIMPLY INVISIBLE to them.
+--- This is not a launcher bug nor a path problem, it is the reach of the RetroArch port.
+--- Fix: copy the ROM onto a medium they do read, in order of preference
+--- USB (fast) and then Memory Card (slow and small, but enough for 8/16 bit).
+--- The copy is cached: relaunching the same game does not copy it again.
+--- Set to false to turn the shuttle off.
 ROM_SHUTTLE_ON = true
---- Carpeta de paso en el soporte de transbordo. Misma forma que en el disco:
----   <soporte>/Prism/Roms/<consola>/<rom>
----   <soporte>/Prism/Saves/<consola>/<juego>.srm
----   <soporte>/Prism/SaveStates/<consola>/<juego>.state
----   <soporte>/Prism/Bios/
----   <soporte>/Prism/LibretroPS2Files/
+--- Staging folder on the shuttle medium. Same shape as on the disc:
+---   <medium>/Prism/Roms/<system>/<rom>
+---   <medium>/Prism/Saves/<system>/<game>.srm
+---   <medium>/Prism/SaveStates/<system>/<game>.state
+---   <medium>/Prism/Bios/
+---   <medium>/Prism/LibretroPS2Files/
 ---
---- O sea: EXACTAMENTE la misma estructura que en el disco interno. Hubo aqui una
---- carpeta "TempUSB/" en medio, y era un parche a un problema que ya no existe --
---- RUTA_LIBRETRO elegia la copia de trabajo como instalacion maestra, y esconderla
---- bajo otro nombre lo evitaba. Ahora la maestra se reconoce por estar junto al
---- lanzador (libretro_master_path), asi que la copia puede volver a su sitio y las
---- dos mitades del montaje se leen igual.
--- Del nombre REAL de la carpeta del lanzador, no del literal "Prism": si
--- alguien la renombra, el transbordo y la instalacion que se copia a su lado tienen
--- que seguir cayendo en el mismo sitio. CARPETA_LANZADOR se calcula al arrancar.
+--- That is: EXACTLY the same structure as on the internal disc. There used to be a
+--- "TempUSB/" folder in the middle, a patch for a problem that no longer exists --
+--- RUTA_LIBRETRO used to pick the working copy as the master install, and hiding it
+--- under another name avoided that. The master is now recognised by sitting next to
+--- the launcher (libretro_master_path), so the copy can go back where it belongs and
+--- both halves of the mount are read the same way.
+-- From the REAL name of the launcher folder, not from the literal "Prism": if
+-- somebody renames it, the shuttle and the install copied alongside it have to keep
+-- landing in the same place. CARPETA_LANZADOR is worked out at startup.
 ROM_SHUTTLE_SUB = "/".. CARPETA_LANZADOR
 
 function ROM_TAMANO(ruta)
@@ -41,13 +41,13 @@ function ROM_TAMANO(ruta)
 	return tam
 end
 
---- Soportes legibles por los cores, del mas rapido al mas lento. ---------------------
+--- Media the cores can read, fastest first. ------------------------------------------
 function ROM_DESTINOS()
 	local out = {}
 	local propio = ""
 	local pos = string.find(System.currentDirectory(), ":", 1, true)
 	if pos ~= nil then propio = string.sub(System.currentDirectory(), 1, pos) end
-	-- El soporte de arranque, si no es el disco ATA (o sea: si es un USB).
+	-- The boot medium, unless it is the ATA disc (that is: only if it is a USB stick).
 	if propio ~= "" and BDM_ATA[propio] ~= true then table.insert(out, propio) end
 	if BDM_DEVICES ~= nil then
 		for i = 1, #BDM_DEVICES do
@@ -61,14 +61,14 @@ function ROM_DESTINOS()
 	return out
 end
 
---- Copia la ROM a un soporte legible. Devuelve (ruta_nueva, descripcion).
---- La Memory Card tiene 8 MB: una ROM de GBA no cabra, y hay que decirlo claro.
---- El numero de orden en la lista, guardado aparte. -----------------------------------
---- "System/Config/System.cfg" es una linea de cuarenta y nueve numeros releidos por
---- posicion, y una de las casillas guarda una RUTA. El lector extrae numeros con
---- "%d+": si esa ruta trae un digito de mas o de menos, TODO lo que viene detras se
---- lee corrido. Un interruptor de si/no no tiene por que depender de eso, asi que
---- vive en su propio fichero de un caracter.
+--- Copies the ROM to a readable medium. Returns (new_path, description).
+--- The Memory Card holds 8 MB: a GBA ROM will not fit, and that has to be said plainly.
+--- The position in the list, stored separately. ---------------------------------------
+--- "System/Config/System.cfg" is a single line of forty-nine numbers read back by
+--- position, and one of the slots holds a PATH. The reader pulls the numbers out with
+--- "%d+": if that path gains or loses a digit, EVERYTHING after it is read one
+--- place along. A yes/no switch has no business depending on that, so it
+--- lives in its own one-character file.
 function see_index_path()
 	return System.currentDirectory() .."/System/Config/SeeIndex.cfg"
 end
@@ -96,17 +96,17 @@ function see_index_save(valor)
 	end)
 end
 
---- Que ROMs estan YA en la llave. -----------------------------------------------------
---- Para pintarlas en verde en la lista: verde = no hay nada que copiar, arranca ya.
---- Una sola llamada a listDirectory por sistema, y solo cuando se cambia de sistema.
---- La carpeta guarda una ROM cada vez, asi que el indice es de un elemento.
+--- Which ROMs are ALREADY on the stick. -----------------------------------------------
+--- So the list can paint them green: green = nothing to copy, it boots straight away.
+--- One listDirectory call per system, and only when the system changes.
+--- The folder holds one ROM at a time, so the index has a single entry.
 CACHE_USB_IDX = nil
 CACHE_USB_ID = nil
 
 function usb_cache_refresh(identidad)
 	CACHE_USB_ID = identidad
 	CACHE_USB_IDX = {}
-	-- Sin puente no hay copia que evitar: nada esta "en cache", todo arranca igual.
+	-- With no bridge there is no copy to skip: nothing is cached, everything boots alike.
 	if PUENTE_HACE_FALTA() == false then return end
 	local consola = ROMS_DIR[identidad]
 	if consola == nil then return end
@@ -121,8 +121,8 @@ function usb_cache_refresh(identidad)
 	end
 end
 
---- Que cores estan YA en la llave. Mismo principio que usb_cached, y un solo
---- listado: la carpeta lleva a lo sumo un punado de cores.
+--- Which cores are ALREADY on the stick. Same idea as usb_cached, and a single
+--- listing: the folder holds a handful of cores at most.
 CORES_LLAVE_IDX = nil
 
 function core_on_usb(nombre_core)
@@ -149,24 +149,24 @@ function usb_cached(identidad, nombre)
 	if nombre == nil or identidad == nil or identidad > 12 then return false end
 	if CACHE_USB_ID ~= identidad then usb_cache_refresh(identidad) end
 	if CACHE_USB_IDX == nil then return false end
-	-- El rastreo anade un espacio al final para las extensiones de tres letras.
+	-- The scan appends a trailing space for three-letter extensions.
 	local limpio = nombre
 	while string.sub(limpio, -1) == " " do limpio = string.sub(limpio, 1, -2) end
 	return CACHE_USB_IDX[limpio] == true
 end
 
---- Copia por trozos, con progreso. ----------------------------------------------------
---- "System.copyFile" no dice nada mientras trabaja, y en USB 1.1 -- 1 MB/s en el mejor
---- de los casos -- una ROM de Game Boy Advance son quince segundos de pantalla quieta,
---- indistinguibles de un cuelgue. Aqui se copia a trozos y se avisa entre trozo y
---- trozo. El trozo es grande a proposito: en USB 1.1 lo que cuesta es la latencia por
---- transferencia, no los bytes.
+--- Chunked copy, with progress. -------------------------------------------------------
+--- "System.copyFile" says nothing while it works, and over USB 1.1 -- 1 MB/s at best
+--- -- a Game Boy Advance ROM means fifteen seconds of a frozen screen, which nobody
+--- can tell apart from a crash. Here the copy runs in chunks, with a notice between
+--- chunks. The chunk is deliberately large: on USB 1.1 the cost is the latency of each
+--- transfer, not the bytes.
 COPIA_TROZO = 262144
 
 function copy_with_progress(origen, destino, etiqueta)
 	local tam = ROM_TAMANO(origen)
 	if tam == nil then return false end
-	-- Por debajo de un trozo no hay nada que mostrar: copia directa.
+	-- Below one chunk there is no progress worth showing: copy it straight.
 	if tam <= COPIA_TROZO then
 		local ok = pcall(System.copyFile, origen, destino)
 		return ok == true and doesFileExist(destino)
@@ -199,17 +199,17 @@ function ROM_TRANSBORDO(ruta_rom, nombre)
 	if ROM_SHUTTLE_ON ~= true then return nil, "transbordo desactivado" end
 	local tam = ROM_TAMANO(ruta_rom)
 	if tam == nil then return nil, "ROM ilegible en el origen" end
-	-- Nombre de la carpeta que contiene la ROM: "Roms/megadrive/juego.gen" -> "megadrive".
-	-- La copia lo conserva porque RetroArch agrupa las partidas por ese nombre
-	-- ("sort_savefiles_by_content_enable"). Sin esto, un juego transbordado guardaria
-	-- en "Saves/Prism-TMP" en vez de "Saves/megadrive", y sus partidas
-	-- quedarian separadas de las del mismo juego lanzado desde un USB.
+	-- Name of the folder holding the ROM: "Roms/megadrive/game.gen" -> "megadrive".
+	-- The copy keeps it because RetroArch groups saves under that name
+	-- ("sort_savefiles_by_content_enable"). Without it, a shuttled game would save
+	-- into "Saves/Prism-TMP" instead of "Saves/megadrive", and its saves
+	-- would end up apart from those of the same game launched from a USB stick.
 	local consola = CARPETA_DE_RUTA(ruta_rom)
 
 	local destinos = ROM_DESTINOS()
 	for i = 1, #destinos do
-		-- Bajo "Roms/", igual que en el disco. Estaban sueltas en la raiz de la
-		-- carpeta de paso, mezcladas con Saves y SaveStates.
+		-- Under "Roms/", same as on the disc. They used to sit loose in the root of
+		-- the staging folder, mixed in with Saves and SaveStates.
 		local raiz_tmp = destinos[i] .. ROM_SHUTTLE_SUB .."/Roms"
 		local sufijo = string.sub(ROM_SHUTTLE_SUB, 2) .."/Roms"
 		if consola ~= nil then sufijo = sufijo .."/".. consola end
@@ -219,14 +219,14 @@ function ROM_TRANSBORDO(ruta_rom, nombre)
 		local contenido = System.listDirectory(dir)
 		if contenido ~= nil then
 			local dest = dir .."/".. nombre
-			-- Cache: si ya esta ahi con el tamano correcto, no se recopia.
+			-- Cache: if it is already there at the right size, do not copy again.
 			if doesFileExist(dest) and ROM_TAMANO(dest) == tam then
 				return dest, destinos[i] .." (ya en cache)"
 			end
-			-- Solo se guarda UNA ROM: se limpia lo anterior para no llenar el soporte.
-			-- Hay que barrer TODAS las carpetas de consola, no solo la actual, o al
-			-- cambiar de sistema se acumularian las ROMs anteriores. Ahora "raiz_tmp"
-			-- es "Roms/", asi que aqui dentro solo hay ROMs: no hay nada que excluir.
+			-- Only ONE ROM is kept: the previous one goes, so the medium never fills.
+			-- ALL the system folders must be swept, not just the current one, or
+			-- changing system would pile up the earlier ROMs. "raiz_tmp" is now
+			-- "Roms/", so there are only ROMs in here: nothing to exclude.
 			local previo = System.listDirectory(raiz_tmp)
 			if previo ~= nil then
 				for c = 1, #previo do
@@ -257,25 +257,25 @@ function ROM_TRANSBORDO(ruta_rom, nombre)
 	return nil, "ningun soporte legible con espacio (ROM de ".. tostring(tam) .." bytes)"
 end
 
---- Puente de partidas entre el disco interno y el soporte de transbordo. -------------
---- Un core oficial no sabe leer el disco interno, asi que la ROM se le copia a la
---- llave USB. Sus partidas se escriben entonces TAMBIEN en la llave, y quedarian
---- desperdigadas ahi. El puente hace el viaje de vuelta:
+--- Save bridge between the internal disc and the shuttle medium. ---------------------
+--- An official core cannot read the internal disc, so the ROM is copied out to the
+--- USB stick. Its saves are then written to the stick TOO, and would be left
+--- stranded there. The bridge makes the return trip:
 ---
----   antes de lanzar   la partida de ESTE juego sale del disco hacia la llave
----   el core juega     escribe en la llave, sin saber que hay un disco
----   al volver         el lanzador recoge todo lo escrito y lo devuelve al disco
+---   before launching  THIS game's save leaves the disc for the stick
+---   the core plays    it writes to the stick, unaware there is a disc
+---   on the way back   the launcher collects what was written and returns it to disc
 ---
---- Asi el disco sigue siendo el domicilio de las partidas y la llave solo un pasillo.
---- Sin el paso de ida, un juego arrancaria en blanco y machacaria lo guardado.
---- Todo esto solo se activa cuando el lanzador vive en el disco interno: en una llave
---- o en una tarjeta, las partidas ya estan donde el core las escribe.
+--- So the disc stays the home of the saves and the stick is only a corridor.
+--- Without the outward leg, a game would start blank and overwrite what was saved.
+--- All of this only kicks in when the launcher lives on the internal disc: on a stick
+--- or on a card, the saves are already where the core writes them.
 SAVES_PUENTE_ON = true
 SAVES_CARPETAS = {"Saves", "SaveStates"}
 
---- Crea una ruta completa, componente a componente. ---------------------------------
---- "System.createDirectory" no crea los padres, y la carpeta de paso tiene ahora dos
---- niveles ("Prism/Roms") mas la consola debajo.
+--- Creates a full path, one component at a time. ------------------------------------
+--- "System.createDirectory" does not create the parents, and the staging folder now
+--- has two levels ("Prism/Roms") plus the system below that.
 function CREAR_CADENA(base, resto)
 	if base == nil or resto == nil then return false end
 	local ruta = base
@@ -298,7 +298,7 @@ function CREAR_CADENA(base, resto)
 	return true
 end
 
---- Nombre de la carpeta que contiene un fichero: ".../Roms/gb/Tetris.zip" -> "gb". ---
+--- Name of the folder holding a file: ".../Roms/gb/Tetris.zip" -> "gb". --------------
 function CARPETA_DE_RUTA(ruta)
 	if ruta == nil then return nil end
 	local fin = string.len(ruta)
@@ -311,7 +311,7 @@ function CARPETA_DE_RUTA(ruta)
 	return n
 end
 
---- Nombre de un fichero sin su extension: "Tetris (World).zip" -> "Tetris (World)". --
+--- A file name without its extension: "Tetris (World).zip" -> "Tetris (World)". ------
 function SIN_EXTENSION(nombre)
 	if nombre == nil then return nil end
 	local punto = string.len(nombre)
@@ -320,7 +320,7 @@ function SIN_EXTENSION(nombre)
 	return nombre
 end
 
---- Prefijo de unidad de una ruta: "mass0:/x/y" -> "mass0:". --------------------------
+--- Device prefix of a path: "mass0:/x/y" -> "mass0:". --------------------------------
 function DEV_DE_RUTA(ruta)
 	if ruta == nil then return nil end
 	local pos = string.find(ruta, ":", 1, true)
@@ -328,9 +328,9 @@ function DEV_DE_RUTA(ruta)
 	return string.sub(ruta, 1, pos)
 end
 
---- Copia un arbol de ficheros, creando los directorios que falten. --------------------
---- "System.createDirectory" no crea los padres, de ahi la recursion en orden.
---- El limite de profundidad evita que un enlace raro cuelgue la consola.
+--- Copies a file tree, creating any missing directories. ------------------------------
+--- "System.createDirectory" does not create the parents, hence the ordered recursion.
+--- The depth limit keeps an odd link from hanging the console.
 function COPIAR_ARBOL(origen, destino, nivel)
 	if nivel == nil then nivel = 0 end
 	if nivel > 4 then return end
@@ -350,10 +350,10 @@ function COPIAR_ARBOL(origen, destino, nivel)
 		end
 	end
 end
---- Vacia un arbol de ficheros. El reverso de COPIAR_ARBOL. ---------------------------
---- Las carpetas se quedan, vacias: Enceladus expone "System.removeFile" pero no el
---- equivalente para directorios. No es un problema -- una carpeta vacia no estorba, y
---- "directorios_faltantes" cuenta justamente con que existan.
+--- Empties a file tree. The reverse of COPIAR_ARBOL. ---------------------------------
+--- The folders stay behind, empty: Enceladus exposes "System.removeFile" but not the
+--- directory equivalent. That is no trouble -- an empty folder is harmless, and
+--- "directorios_faltantes" relies on them being there in the first place.
 function BORRAR_ARBOL(ruta, nivel)
 	if nivel == nil then nivel = 0 end
 	if nivel > 4 then return end
@@ -371,7 +371,7 @@ function BORRAR_ARBOL(ruta, nivel)
 	end
 end
 
---- Copia los ficheros de un directorio a otro. Devuelve cuantos. ---------------------
+--- Copies the files of one directory into another. Returns how many. -----------------
 function COPIAR_PLANO(origen, destino, borrar)
 	local lista = System.listDirectory(origen)
 	if lista == nil then return 0 end
@@ -390,17 +390,17 @@ function COPIAR_PLANO(origen, destino, borrar)
 	return n
 end
 
---- El lanzador vive en el disco interno? Solo entonces hace falta el puente. ----------
+--- Does the launcher live on the internal disc? Only then is the bridge needed. -------
 function PUENTE_HACE_FALTA()
 	if SAVES_PUENTE_ON ~= true then return false end
 	return ES_RAIZ_ATA(System.currentDirectory() .."/Saves")
 end
 
---- IDA: saca del disco las partidas de un juego hacia el soporte de transbordo. ------
---- "consola" es la carpeta de ROMs ("gb", "nes"...), "base" el nombre del juego sin
---- extension. RetroArch nombra la partida como la ROM: "Tetris.zip" -> "Tetris.srm",
---- y los save states anaden un sufijo ("Tetris.state", "Tetris.state1"...). Por eso
---- se copia todo lo que EMPIEZA por el nombre del juego, no solo una extension.
+--- OUTWARD: moves a game's saves off the disc onto the shuttle medium. ---------------
+--- "consola" is the ROM folder ("gb", "nes"...), "base" the game name without its
+--- extension. RetroArch names the save after the ROM: "Tetris.zip" -> "Tetris.srm",
+--- and save states add a suffix ("Tetris.state", "Tetris.state1"...). That is why
+--- everything STARTING with the game name is copied, not just one extension.
 function SAVES_DESPLEGAR(dev, consola, base)
 	if PUENTE_HACE_FALTA() == false or dev == nil or base == nil then return 0 end
 	local actual = System.currentDirectory()
@@ -429,11 +429,11 @@ function SAVES_DESPLEGAR(dev, consola, base)
 	return n
 end
 
---- Ficheros sueltos: se les busca su consola antes de traerlos. -----------------------
---- "Zelda.state1" no dice de que sistema es, pero "Roms/<consola>/Zelda.*" si. Se
---- recorre ROMS_DIR buscando una ROM cuyo nombre sin extension coincida; si aparece,
---- la partida va a "<carpeta>/<consola>/", que es donde habria caido con la ordenacion
---- por contenido activa. Si no aparece, se queda en la raiz como antes.
+--- Loose files: their system is worked out before they are brought back. --------------
+--- "Zelda.state1" does not say which system it is from, but "Roms/<system>/Zelda.*"
+--- does. ROMS_DIR is walked for a ROM whose name without extension matches; if one
+--- turns up, the save goes to "<folder>/<system>/", which is where it would have
+--- landed with sort-by-content on. If none turns up, it stays in the root as before.
 function saves_relocate(origen, casa)
 	local lista = System.listDirectory(origen)
 	if lista == nil then return 0 end
@@ -444,8 +444,8 @@ function saves_relocate(origen, casa)
 			local nom = lista[i].name
 			local base = SIN_EXTENSION(nom)
 			local consola = nil
-			-- Los estados anaden un sufijo al nombre completo de la ROM:
-			-- "Zelda.zip" -> "Zelda.state1", asi que hay que quitar DOS extensiones.
+			-- States append a suffix to the full ROM name:
+			-- "Zelda.zip" -> "Zelda.state1", so TWO extensions have to come off.
 			local base2 = SIN_EXTENSION(base)
 			for c = 1, #ROMS_DIR do
 				if consola == nil then
@@ -473,7 +473,7 @@ function saves_relocate(origen, casa)
 				n = n + 1
 				pcall(System.removeFile, origen .."/".. nom)
 				if consola ~= nil then
-					boot_log("SAVES  ".. nom .." -> ".. consola .."/ (estaba suelto)")
+					boot_log("SAVES  ".. nom .." -> ".. consola .."/ (was loose)")
 				end
 			end
 		end
@@ -481,10 +481,10 @@ function saves_relocate(origen, casa)
 	return n
 end
 
---- VUELTA: recoge lo que los cores han escrito en los soportes y lo devuelve al disco.
---- Se llama al arrancar el lanzador, que es justo cuando se vuelve de un juego.
---- La copia del soporte SIEMPRE gana: acaba de escribirla el core, y la API Lua de PS2
---- no expone la fecha de un fichero, asi que no hay otra forma de decidir.
+--- RETURN: gathers what the cores wrote on the media and puts it back on the disc.
+--- Called as the launcher starts, which is exactly when you come back from a game.
+--- The copy on the medium ALWAYS wins: the core has just written it, and the PS2 Lua
+--- API does not expose a file's date, so there is no other way to decide.
 function SAVES_RECUPERAR()
 	if PUENTE_HACE_FALTA() == false then return 0 end
 	local actual = System.currentDirectory()
@@ -496,14 +496,14 @@ function SAVES_RECUPERAR()
 			if System.listDirectory(raiz) ~= nil then
 				local casa = actual .."/".. SAVES_CARPETAS[c]
 				if System.listDirectory(casa) == nil then System.createDirectory(casa) end
-				-- Sueltos en la raiz. Pasa cuando un override de core desactiva la
-				-- ordenacion por carpeta de contenido -- es lo que le ocurrio a Zelda
-				-- DX, cuyo ".srm" cayo en "Saves/gbc/" y sus estados en la raiz de
-				-- "SaveStates/". En vez de traerlos sueltos al disco, se busca a que
-				-- consola pertenece cada uno preguntando por la ROM en "Roms/", y se
-				-- guardan donde deberian haber estado.
+				-- Loose in the root. Happens when a core override turns off
+				-- sorting by content folder -- that is what hit Zelda
+				-- DX, whose ".srm" landed in "Saves/gbc/" and whose states landed in
+				-- the root of "SaveStates/". Rather than bring them back loose, the
+				-- system each one belongs to is found by looking for the ROM in
+				-- "Roms/", and they are stored where they should have been.
 				total = total + saves_relocate(raiz, casa)
-				-- Y una carpeta por consola.
+				-- And one folder per system.
 				local subs = System.listDirectory(raiz)
 				if subs ~= nil then
 					for i = 1, #subs do
@@ -517,7 +517,7 @@ function SAVES_RECUPERAR()
 		end
 	end
 	if total > 0 then
-		boot_log("SAVES  ".. tostring(total) .." partida(s) devueltas al disco interno")
+		boot_log("SAVES  ".. tostring(total) .." save(s) returned to the internal disc")
 		boot_flush()
 	end
 	return total

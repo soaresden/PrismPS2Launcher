@@ -4,28 +4,28 @@
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
 --- =====================================================================================
---- UN journal: "Prism.log", junto al ELF. ------------------------------------
---- Habia cuatro -- BOOT_LOG, LAUNCH_LOG, MEDIA_LOG, PREBOOT_LOG -- y no se leia
---- ninguno entero: lo que hace falta es el ORDEN de los sucesos, y repartidos en
---- cuatro ficheros el orden se pierde. Ahora todo va a uno, con una categoria por
---- linea, que es lo que separaba los ficheros y cabe en seis caracteres:
+--- ONE journal: "Prism.log", beside the ELF. ---------------------------------
+--- There were four -- BOOT_LOG, LAUNCH_LOG, MEDIA_LOG, PREBOOT_LOG -- and none was
+--- ever read end to end: what is needed is the ORDER of events, and spread across
+--- four files the order is lost. Now everything goes to one, with a category per
+--- line, which is what separated the files and fits in six characters:
 ---
----   PRE     el pre-boot (System/index.lua), antes de que exista nada de esto
----   BOOT    soporte de arranque, IRX, unidades, raices
----   CARGA   los pasos del arranque, los mismos que se ven en pantalla
----   CONF    lo que se le impone a "retroarch.cfg"
----   SAVES   el puente de partidas disco <-> llave
----   LANZA   la secuencia de lanzamiento de un juego, y el volcado previo al loadELF
----   ART     la ultima imagen abierta (ver ART_LOG_ON)
+---   PRE     the pre-boot (System/index.lua), before any of this exists
+---   BOOT    boot medium, IRX, drives, roots
+---   CARGA   the boot steps, the same ones seen on screen
+---   CONF    what is imposed on "retroarch.cfg"
+---   SAVES   the save bridge, disc <-> key
+---   LANZA   the launch sequence of a game, and the dump written before loadELF
+---   ART     the last image opened (see ART_LOG_ON)
 ---
---- Escribe desde la primera linea de codigo. Durante la fase critica cada linea
---- reescribe el fichero entero (BOOT_FLUSH): si la consola se congela, la ultima
---- linea escrita nombra al culpable. Si el fichero no llega ni a existir, el cuelgue
---- es ANTERIOR a Lua -- conflicto de drivers en el arranque de Enceladus -- y ningun
---- script puede verlo.
---- El destino se resuelve una vez y SIEMPRE en el soporte que lanzo el programa:
---- "log/" junto al ELF, o junto al ELF a secas si "log/" no se deja crear. Nunca en
---- una Memory Card.
+--- Writes from the very first line of code. During the critical phase every line
+--- rewrites the whole file (BOOT_FLUSH): if the console freezes, the last line
+--- written names the culprit. If the file never even comes into existence, the hang
+--- is BEFORE Lua -- a driver conflict in the Enceladus boot -- and no script can
+--- ever see it.
+--- The destination is resolved once and ALWAYS on the medium that launched the
+--- program: "log/" beside the ELF, or plain beside the ELF if "log/" cannot be
+--- created. Never on a Memory Card.
 BOOT_LOG_ON = true
 BOOT_FLUSH = true
 BOOT_LOG_DESTINO = nil
@@ -79,9 +79,9 @@ if true then
 	end)
 end
 
---- La ultima imagen abierta. No se acumula: se sustituye. -----------------------------
---- Antes esto reescribia un fichero en CADA caratula cargada, o sea en cada movimiento
---- por la lista. Ahora es una linea que vive al final del journal y se pisa a si misma.
+--- The last image opened. It does not accumulate: it is replaced. ---------------------
+--- This used to rewrite a file on EVERY cover loaded, that is on every movement
+--- through the list. Now it is one line at the end of the journal, overwriting itself.
 ART_ULTIMA = nil
 
 --- Old sessions beyond LOG_KEEP, dropped oldest first. --------------------------------
@@ -170,12 +170,12 @@ function log_event(categoria, texto)
 	boot_log(hora .. string.format("%-6s ", tostring(categoria)) .. tostring(texto))
 end
 
---- Alias historicos: parte del codigo llama todavia irx_log / irx_escribir. -----------
+--- Historic aliases: some code still calls irx_log / irx_escribir. --------------------
 irx_log = boot_log
 irx_escribir = boot_flush
 
---- Inventario de lo que el launcher ve en cada raiz. Se anade al journal. ------
---- Poner INVENTARIO_ON a false cuando ya no haga falta.
+--- Inventory of what the launcher sees in each root. Added to the journal. -----
+--- Set INVENTARIO_ON to false once it is no longer needed.
 INVENTARIO_ON = false
 
 function inventario()
@@ -187,14 +187,14 @@ function inventario()
 	local function listar(etiqueta, ruta)
 		local c = System.listDirectory(ruta)
 		if c == nil then
-			irx_log("    ".. etiqueta .."  ->  NO EXISTE   (".. ruta ..")")
+			irx_log("    ".. etiqueta .."  ->  MISSING   (".. ruta ..")")
 			return
 		end
 		local ficheros = 0
 		for i = 1, #c do
 			if c[i].directory == false then ficheros = ficheros + 1 end
 		end
-		local t = "    ".. etiqueta .."  ->  ".. ficheros .." fichero(s)   (".. ruta ..")"
+		local t = "    ".. etiqueta .."  ->  ".. ficheros .." file(s)   (".. ruta ..")"
 		local n = 0
 		for i = 1, #c do
 			if c[i].directory == false and string.sub(c[i].name, 1, 1) ~= "." then
@@ -202,21 +202,21 @@ function inventario()
 				if n <= 25 then t = t .."\n         ".. c[i].name end
 			end
 		end
-		if n > 25 then t = t .."\n         ... y ".. (n-25) .." mas" end
+		if n > 25 then t = t .."\n         ... and ".. (n-25) .." more" end
 		irx_log(t)
 	end
 
 	irx_log("")
 	irx_log("=====================================================================")
-	irx_log("INVENTARIO: lo que Prism encuentra en cada raiz")
+	irx_log("INVENTARIO: what Prism finds in each root")
 	irx_log("=====================================================================")
 
 	for i = 1, #RAICES do
 		local r = RAICES[i]
-		local etiqueta_raiz = "USB / soporte de arranque"
-		if ES_RAIZ_ATA(r) then etiqueta_raiz = "DISCO INTERNO exFAT (ATA)" end
+		local etiqueta_raiz = "USB / boot medium"
+		if ES_RAIZ_ATA(r) then etiqueta_raiz = "INTERNAL exFAT DISC (ATA)" end
 		irx_log("")
-		irx_log("RAIZ ".. i ..": ".. r .."   [".. etiqueta_raiz .."]")
+		irx_log("ROOT ".. i ..": ".. r .."   [".. etiqueta_raiz .."]")
 		for s = 1, #sistemas do
 			listar(sistemas[s], r .."/Roms/Roms ".. sistemas[s])
 		end
@@ -225,7 +225,7 @@ function inventario()
 		listar("APPS",               r .."/Roms/APPS")
 	end
 
-	-- Directorios a nivel de unidad (fuera de la carpeta del launcher). --------------
+	-- Drive-level directories (outside the launcher folder). -------------------------
 	local unidades = {}
 	local pos = string.find(System.currentDirectory(), ":", 1, true)
 	if pos ~= nil then table.insert(unidades, string.sub(System.currentDirectory(), 1, pos)) end
@@ -234,55 +234,55 @@ function inventario()
 	for i = 1, #unidades do
 		local u = unidades[i]
 		local etiqueta_u = "USB"
-		if BDM_ATA[u] == true then etiqueta_u = "DISCO INTERNO exFAT (ATA)" end
+		if BDM_ATA[u] == true then etiqueta_u = "INTERNAL exFAT DISC (ATA)" end
 		irx_log("")
-		irx_log("UNIDAD ".. u .."   [".. etiqueta_u .."]")
+		irx_log("DRIVE ".. u .."   [".. etiqueta_u .."]")
 		listar("DVD",  u .."/DVD")
 		listar("CD",   u .."/CD")
 		listar("POPS", u .."/POPS")
 		listar("APPS", u .."/APPS")
 	end
 	irx_log("")
-	irx_log("Fin del inventario.")
+	irx_log("End of inventory.")
 	irx_escribir()
 end
 
---- Journal de lancement. Ecrit dans Prism.log juste avant chaque loadELF, pour
---- qu'un ecran noir laisse une trace exploitable au prochain demarrage.
---- Mettre LAUNCH_LOG_ON a false pour desactiver.
+--- Launch journal. Written into Prism.log just before every loadELF, so that a
+--- black screen leaves a usable trace for the next start-up.
+--- Set LAUNCH_LOG_ON to false to disable.
 LAUNCH_LOG_ON = true
 
---- Reinicio del IOP antes de lanzar un core de RetroArch. ----------------------------
---- 0 = no reiniciar.   1 = reiniciar antes de entregar el ELF.
+--- IOP reset before launching a RetroArch core. --------------------------------------
+--- 0 = do not reset.   1 = reset before handing over the ELF.
 ---
---- Estuvo en 0 mucho tiempo, con este razonamiento: RetroArch reinicia el IOP el
---- mismo nada mas arrancar ("reset_IOP()" en frontend_ps2_init), asi que hacerlo dos
---- veces no aportaba nada. Era cierto... mientras el IOP no llevase nada especial.
+--- It sat at 0 for a long time, on this reasoning: RetroArch resets the IOP itself
+--- as soon as it starts ("reset_IOP()" in frontend_ps2_init), so doing it twice added
+--- nothing. That was true... as long as the IOP carried nothing special.
 ---
---- Ahora si lleva algo: el pre-boot ("System/index.lua") carga dev9_ns y ata_bd para
---- que el lanzador vea el disco interno. Al entregar el core sin reiniciar, RetroArch
---- se encuentra un ata_bd ya residente y un bus ATA ya tomado, y vuelve a cargar el
---- suyo encima. Sintoma: pantalla negra, y ni una linea en el log de RetroArch -
---- muere antes de poder escribir.
+--- Now it does carry something: the pre-boot ("System/index.lua") loads dev9_ns and
+--- ata_bd so the launcher can see the internal disc. Handing the core over without a
+--- reset, RetroArch meets an ata_bd already resident and an ATA bus already taken, and
+--- loads its own on top. Symptom: black screen, and not one line in RetroArch's log -
+--- it dies before it can write.
 ---
---- La prueba que lo senala: el MISMO core, con el MISMO juego en el disco interno,
---- arranca perfectamente cuando se lanza a mano desde uLaunchELF, que si reinicia el
---- IOP. Solo falla por la via del lanzador.
+--- The evidence that points to it: the SAME core, with the SAME game on the internal
+--- disc, starts perfectly when launched by hand from uLaunchELF, which does reset the
+--- IOP. It only fails by way of the launcher.
 ---
---- PROBADO EN CONSOLA, Y ES QUE NO: con 1 la pantalla se queda negra y la consola
---- vuelve al menu del sistema. Ese retorno al menu es la firma de un ELF que muere o
---- que no llega a cargarse, no de un cuelgue. Enceladus NO lee el ELF antes de
---- reiniciar el IOP: se queda sin drivers para leerlo. Vuelve a 0.
---- (Con 0 el sintoma es otro: pantalla negra que se queda, sin volver al menu. Son
---- dos fallos distintos, y solo el segundo sigue abierto.)
+--- TESTED ON CONSOLE, AND NO: with 1 the screen stays black and the console returns
+--- to the system menu. That return to the menu is the signature of an ELF that dies or
+--- never gets loaded, not of a hang. Enceladus does NOT read the ELF before resetting
+--- the IOP: it is left with no drivers to read it. Back to 0.
+--- (With 0 the symptom is different: a black screen that stays, with no return to the
+--- menu. They are two different faults, and only the second is still open.)
 IOP_REBOOT_CORES = 0
 
---- Tamano maximo del historial. Al pasarlo se recorta por el PRINCIPIO, nunca por el
---- final: lo interesante es siempre lo ultimo. A ~700 bytes por entrada esto guarda
---- Una entrada de lanzamiento, en el journal unico. ----------------------------------
---- Tenia fichero propio, LAUNCH_LOG.txt, con su propio historial y su propia marca de
---- sesion. Las dos cosas las hace ya el nucleo del journal, asi que aqui solo queda
---- formatear el bloque y mandarlo por boot_log con la categoria delante.
+--- Maximum size of the history. Past that it is trimmed from the START, never from the
+--- end: what matters is always the most recent. At ~700 bytes per entry this holds
+--- One launch entry, in the single journal. ------------------------------------------
+--- It had its own file, LAUNCH_LOG.txt, with its own history and its own session
+--- stamp. The journal core does both of those already, so all that is left here is to
+--- format the block and send it through boot_log with the category in front.
 LAUNCH_LOG_ON = true
 
 function log_lanzamiento(titulo, campos)
@@ -294,26 +294,26 @@ function log_lanzamiento(titulo, campos)
 		boot_log("LANZA    ".. tostring(campos[i]))
 	end
 	if MEDIA_DIAG ~= nil and #MEDIA_DIAG >= 1 then
-		boot_log("LANZA    caratula, rutas probadas en orden:")
+		boot_log("LANZA    cover art, paths tried in order:")
 		for i = 1, #MEDIA_DIAG do boot_log("LANZA      ".. tostring(MEDIA_DIAG[i])) end
 	end
-	-- Esto sale justo antes de un loadELF, que no vuelve nunca. Si es la ultima
-	-- entrada del fichero, el fallo esta en el ELF que nombra.
+	-- This comes out just before a loadELF, which never returns. If it is the last
+	-- entry in the file, the fault is in the ELF it names.
 	boot_flush()
 end
 
---- Verifica que un fichero existe y lo describe para el journal. ---------------------
+--- Checks that a file exists and describes it for the journal. -----------------------
 function log_existe(etiqueta, ruta)
-	local marca = "NO EXISTE"
+	local marca = "MISSING"
 	if ruta ~= nil and doesFileExist(ruta) then marca = "ok" end
 	return etiqueta .." [".. marca .."] : ".. tostring(ruta)
 end
 
---- Que hay en la llave, al arrancar. --------------------------------------------------
---- Cuando un core sale a pantalla negra la primera pregunta es siempre "que ha llegado
---- de verdad a la llave", y hasta ahora habia que apagar, sacarla y mirarla en el PC.
---- Aqui queda escrito. Son cuatro listados de carpetas pequenas: la raiz del lanzador
---- en la llave, los cores que hay, la ROM en cache y las partidas.
+--- What is on the key, at boot. -------------------------------------------------------
+--- When a core comes up to a black screen the first question is always "what actually
+--- reached the key", and until now that meant powering off, pulling it and looking on
+--- the PC. Here it is written down. Four listings of small folders: the launcher root
+--- on the key, the cores present, the cached ROM and the saves.
 function usb_inventory()
 	local destinos = ROM_DESTINOS()
 	for d = 1, #destinos do
@@ -331,11 +331,11 @@ function usb_inventory()
 						else boot_log("         ".. n) end
 					end
 				end
-				-- Los cores presentes: es lo que decide si un juego arrancara sin
-				-- copiar nada, y lo primero que falta cuando algo va mal.
+				-- The cores present: this is what decides whether a game will start
+				-- without copying anything, and the first thing missing when it fails.
 				local cores = System.listDirectory(raiz .."/LibretroPS2Files/cores")
 				if cores == nil then
-					boot_log("       LibretroPS2Files/cores : AUSENTE")
+					boot_log("       LibretroPS2Files/cores : MISSING")
 				else
 					local n = 0
 					for i = 1, #cores do
@@ -344,13 +344,13 @@ function usb_inventory()
 							boot_log("       core : ".. cores[i].name)
 						end
 					end
-					if n == 0 then boot_log("       LibretroPS2Files/cores : vacio") end
+					if n == 0 then boot_log("       LibretroPS2Files/cores : empty") end
 				end
 				local cfg = raiz .."/LibretroPS2Files/retroarch/retroarch.cfg"
 				boot_log("       retroarch.cfg : ".. tostring(doesFileExist(cfg)))
-				-- Las carpetas de trabajo de RetroArch. No las crea el: si faltan,
-				-- abre ficheros dentro de nada. "temp" es "cache_directory", donde se
-				-- descomprime un .zip -- sin ella una ROM comprimida no arranca.
+				-- RetroArch's working folders. It does not create them: if they are
+				-- missing, it opens files inside nothing. "temp" is "cache_directory",
+				-- where a .zip is unpacked -- without it a compressed ROM will not start.
 				local criticas = {"temp", "logs", "system", "savefiles", "savestates"}
 				local ausentes = ""
 				for i = 1, #criticas do
@@ -359,11 +359,11 @@ function usb_inventory()
 					end
 				end
 				if ausentes == "" then
-					boot_log("       retroarch/ carpetas de trabajo : todas presentes")
+					boot_log("       retroarch/ working folders : all present")
 				else
-					boot_log("       retroarch/ AUSENTES :".. ausentes)
+					boot_log("       retroarch/ MISSING :".. ausentes)
 				end
-				-- La ROM en cache y las partidas que esperan la vuelta.
+				-- The cached ROM and the saves waiting for the return trip.
 				local roms = System.listDirectory(raiz .."/Roms")
 				if roms ~= nil then
 					for i = 1, #roms do

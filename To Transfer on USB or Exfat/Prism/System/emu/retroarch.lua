@@ -3,18 +3,18 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Carpeta de medios por identidad, incluidos los sistemas sin alias EmulationStation
---- (APPS, PS1, PS2). Es el nombre usado bajo "Roms/<aqui>/media/".
---- Arranque de RetroArch a traves de "raboot.elf". ----------------------------------
---- DESCARTADO, y el motivo esta en el codigo de RetroArch. "raboot.elf" es el
---- Salamander, y en "frontend/drivers/platform_ps2.c" el bloque que pasa el juego al
---- core esta dentro de un "#ifndef IS_SALAMANDER": el Salamander llama al core con
---- CERO argumentos. Nunca podra arrancar una ROM, solo abrir el menu de RetroArch.
---- Ademas reescribe "retroarch-salamander.cfg" con su propia eleccion, borrando la
---- nuestra. Se deja el camino por si sirve para depurar, apagado.
+--- Media folder per identity, including the systems with no EmulationStation alias
+--- (APPS, PS1, PS2). This is the name used under "Roms/<here>/media/".
+--- Booting RetroArch through "raboot.elf". ------------------------------------------
+--- DISCARDED, and the reason is in RetroArch's own code. "raboot.elf" is the
+--- Salamander, and in "frontend/drivers/platform_ps2.c" the block that hands the game
+--- to the core sits inside a "#ifndef IS_SALAMANDER": the Salamander calls the core
+--- with ZERO arguments. It can never boot a ROM, only open the RetroArch menu.
+--- It also rewrites "retroarch-salamander.cfg" with its own choice, wiping ours out.
+--- The path is left in place in case it helps with debugging, switched off.
 RABOOT_ON = false
 
---- Devuelve la ruta de raboot.elf si esta disponible, si no nil. ---------------------
+--- Returns the path to raboot.elf when available, otherwise nil. ---------------------
 function RUTA_RABOOT()
 	if RABOOT_ON ~= true or RAICES == nil then return nil end
 	for i = 1, #RAICES do
@@ -26,19 +26,19 @@ function RUTA_RABOOT()
 	return nil
 end
 
---- Escribe el core elegido en el salamander que lee raboot. -------------------------
---- Ruta del salamander que corresponde a un raboot.elf dado. -------------------------
+--- Writes the chosen core into the salamander that raboot reads. --------------------
+--- Path of the salamander matching a given raboot.elf. -------------------------------
 function RUTA_SALAMANDER(ruta_raboot)
 	if ruta_raboot == nil then return nil end
-	-- "raboot.elf" son 10 caracteres: hay que quitar 10, no 11. Con -12 se comia
-	-- tambien la barra y el fichero se escribia en una ruta inexistente, en silencio.
+	-- "raboot.elf" is 10 characters: 10 have to come off, not 11. With -12 the slash
+	-- went too, and the file was silently written to a path that did not exist.
 	local base = string.sub(ruta_raboot, 1, string.len(ruta_raboot) - 10)
 	return base .."retroarch/retroarch-salamander.cfg"
 end
 
---- Escribe el core elegido en el salamander que lee raboot. -------------------------
---- Se relee despues: si el contenido no es el esperado, se devuelve false y el
---- lanzamiento cae en la llamada directa en vez de arrancar el core anterior.
+--- Writes the chosen core into the salamander that raboot reads. --------------------
+--- It is read back afterwards: false is returned when the contents are not what was
+--- expected, the launch falls back to the direct call instead of booting the old core.
 function PREPARAR_RABOOT(ruta_raboot, ruta_core)
 	if ruta_raboot == nil or ruta_core == nil then return false end
 	local cfg = RUTA_SALAMANDER(ruta_raboot)
@@ -59,60 +59,60 @@ function PREPARAR_RABOOT(ruta_raboot, ruta_core)
 	return leido ~= nil and string.find(leido, ruta_core, 1, true) ~= nil
 end
 
---- Carpetas del modulo RetroArch. ----------------------------------------------------
+--- Folders of the RetroArch module. --------------------------------------------------
 ---
 ---   LibretroPS2Files/
----     cores/  info/  raboot.elf       la nightly, descomprimida tal cual
----     retroarch/retroarch.cfg         LA configuracion. Una. No hay copia de fabrica.
----     retroarch/config/<Core>/        los ajustes por core
+---     cores/  info/  raboot.elf       the nightly, unzipped exactly as it comes
+---     retroarch/retroarch.cfg         THE configuration. One. No factory copy.
+---     retroarch/config/<Core>/        the per-core settings
 ---
---- Hubo aqui una carpeta "DefaultCFGs/" que guardaba un segundo "retroarch.cfg" del
---- que se reconstruia el primero. Se ha quitado: dos ficheros con el mismo papel es
---- una ocasion de que difieran, y no hacia falta. Una nightly no trae "retroarch/", y
---- si falta, RetroArch se escribe el suyo con sus propios valores -- que es justamente
---- lo que una copia de fabrica intentaba imitar. El lanzador solo tiene que reimponer
---- encima sus claves, y eso lo hace en cada arranque de juego.
+--- There used to be a "DefaultCFGs/" folder here holding a second "retroarch.cfg" the
+--- first one was rebuilt from. It is gone: two files with the same job is an invitation
+--- for them to diverge, and it was not needed. A nightly ships no "retroarch/", and if
+--- it is missing, RetroArch writes its own with its own values -- which is precisely
+--- what a factory copy was trying to imitate. The launcher only has to reimpose its
+--- keys on top, and it does that on every game launch.
 ---
---- RetroArch encuentra sus carpetas solo: al arrancar, un core toma su propio
---- directorio y SUBE UN NIVEL ("path_parent_dir" en "frontend/drivers/platform_ps2.c"),
---- asi que la carpeta que contiene "cores/" es su raiz. Da igual como se llame.
---- Donde puede estar la nightly, en orden de preferencia. Se acepta tanto
---- descomprimida en su propia subcarpeta como directamente en LibretroPS2Files.
+--- RetroArch finds its own folders unaided: on boot, a core takes its own directory
+--- and GOES UP ONE LEVEL ("path_parent_dir" in "frontend/drivers/platform_ps2.c"),
+--- so the folder containing "cores/" is its root. Its name does not matter.
+--- Where the nightly may live, in order of preference. Both unzipped into its own
+--- subfolder and unzipped straight into LibretroPS2Files are accepted.
 LIBRETRO_SUBS = {"/LibretroPS2Files", "/LibretroPS2Files/UnzippedFileHere"}
 
---- La raiz de RetroArch: la carpeta que contiene "cores/". ---------------------------
---- PRIORIDAD AL SOPORTE QUE EL CORE PODRA LEER. Un core arranca haciendo SifIopReset:
---- el ELF ya esta en RAM, pero el IOP se vacia y el disco interno deja de existir para
---- el. Si sus "cores/", "info/" y "retroarch/" estan en ese disco, se queda sin nada
---- que leer y muere antes de dibujar el primer fotograma. Ni siquiera "raboot.elf"
---- sobrevive: no encuentra los cores y sale.
---- Es un problema conocido, no una particularidad de este fork: el autor de PSBBN da
---- el mismo rodeo en su issue #448 -- el ELF donde se quiera, TODO lo demas en el USB.
---- Por eso se busca primero en un soporte que no sea el disco ATA, y solo se cae al
---- disco interno si no hay otra cosa (donde funcionara con cores parcheados, y solo
---- con ellos).
---- Instalacion impuesta para este lanzamiento, si ha habido que preparar una. --------
+--- The RetroArch root: the folder that contains "cores/". ----------------------------
+--- PRIORITY TO THE MEDIUM THE CORE WILL BE ABLE TO READ. A core boots by doing
+--- SifIopReset: the ELF is already in RAM, but the IOP is wiped and the internal drive
+--- stops existing for it. If its "cores/", "info/" and "retroarch/" are on that drive,
+--- it has nothing left to read and dies before drawing the first frame. Not even
+--- "raboot.elf" survives: it finds no cores and exits.
+--- This is a known problem, not a quirk of this fork: the PSBBN author takes the same
+--- detour in his issue #448 -- the ELF wherever you like, EVERYTHING else on the USB.
+--- Hence the search starts on a medium other than the ATA drive, and only falls back
+--- to the internal drive when there is nothing else (where it will work with patched
+--- cores, and only with those).
+--- Installation forced for this launch, if one had to be prepared. -------------------
 LIBRETRO_FORZADO = nil
 
---- Y el resultado del ultimo rastreo, para no repetirlo. ------------------------------
---- Esto NO es una optimizacion cosmetica. Cada rastreo lista "cores/" en hasta seis
---- sitios, y esa carpeta lleva una decena de ELF de varios MB: sobre exFAT via BDM
---- cuesta segundos. Se llamaba tres veces solo durante el arranque -- LIBRETRO_REPARAR,
---- el diagnostico, y la pantalla de carga -- y el resultado no puede cambiar entre
---- ellas. La pantalla parecia colgada porque, sencillamente, lo estaba esperando.
---- "" quiere decir "ya se busco y no habia nada", que es distinto de "aun no se ha
---- buscado": sin esa distincion, el caso "no hay RetroArch" repetiria el rastreo entero
---- en cada llamada, que es justamente el mas caro de todos.
+--- And the result of the last scan, so it is not repeated. ----------------------------
+--- This is NOT a cosmetic optimisation. Each scan lists "cores/" in up to six places,
+--- and that folder holds a dozen ELF files of several MB: over exFAT via BDM it costs
+--- seconds. It was called three times during boot alone -- LIBRETRO_REPARAR, the
+--- diagnostics, and the loading screen -- and the result cannot change between them.
+--- The screen looked frozen because it was, quite simply, waiting for it.
+--- "" means "already searched and there was nothing", which differs from "not searched
+--- yet": without that distinction, the "no RetroArch" case would repeat the whole scan
+--- on every call, which is precisely the most expensive one of all.
 LIBRETRO_CACHE = nil
 
 function RUTA_LIBRETRO()
 	if LIBRETRO_FORZADO ~= nil then return LIBRETRO_FORZADO end
 	if LIBRETRO_CACHE == "" then return nil end
 	if LIBRETRO_CACHE ~= nil then return LIBRETRO_CACHE end
-	if RAICES == nil then return nil end   -- aun sin unidades: no se guarda nada
-	-- Tres pasadas: primero una instalacion completa fuera del disco interno, que es
-	-- la unica que un core sabra leer; luego una completa donde sea; y en ultimo
-	-- lugar cualquier cosa que tenga cores, para al menos poder decir algo.
+	if RAICES == nil then return nil end   -- no drives yet: nothing gets cached
+	-- Three passes: first a complete installation off the internal drive, which is the
+	-- only one a core will know how to read; then a complete one anywhere; and last of
+	-- all anything that has cores, so at least something can be said.
 	for pasada = 1, 3 do
 		for i = 1, #RAICES do
 			local es_ata = ES_RAIZ_ATA(RAICES[i] .."/x")
@@ -133,11 +133,11 @@ function RUTA_LIBRETRO()
 	return nil
 end
 
---- Una instalacion sirve solo si esta COMPLETA. --------------------------------------
---- Tener la carpeta no basta: una copia a medias -- cortada a mitad de un despliegue,
---- o de una version anterior del arbol -- ganaria la eleccion y bloquearia para
---- siempre el despliegue que deberia repararla. Se exige lo minimo indispensable: los
---- cores, y la configuracion.
+--- An installation is only usable if it is COMPLETE. ---------------------------------
+--- Having the folder is not enough: a half copy -- cut short mid-deployment, or from
+--- an older version of the tree -- would win the selection and would block forever
+--- the very deployment that ought to repair it. The bare minimum is required: the
+--- cores, and the configuration.
 function LIBRETRO_COMPLETO(base)
 	if base == nil then return false end
 	if System.listDirectory(base .."/cores") == nil then return false end
@@ -145,22 +145,22 @@ function LIBRETRO_COMPLETO(base)
 	return true
 end
 
---- Monta la carpeta "retroarch/" que RetroArch exige. --------------------------------
---- El contrato con el usuario es simple: descomprimir una nightly dentro de
---- "LibretroPS2Files/" -- raboot.elf, cores/, info/ -- y que funcione. Todo lo demas
---- lo pone el lanzador aqui.
+--- Builds the "retroarch/" folder RetroArch demands. ---------------------------------
+--- The contract with the user is simple: unzip a nightly inside
+--- "LibretroPS2Files/" -- raboot.elf, cores/, info/ -- and it works. Everything else
+--- is put here by the launcher.
 ---
---- Y hace falta ponerlo, porque una nightly NO trae la carpeta "retroarch/", mientras
---- que RetroArch la exige y no admite discusion: "create_path_names()" toma el
---- directorio del core, sube un nivel y busca "retroarch/retroarch.cfg" ahi. Esa ruta
---- esta compilada dentro del binario. Es el unico anclaje rigido de todo el montaje;
---- el resto de carpetas si se pueden mover, porque el lanzador las escribe despues en
---- la configuracion ("libretro_directory", "system_directory"...).
+--- And it does need putting there, because a nightly does NOT ship the "retroarch/"
+--- folder, while RetroArch demands it and takes no argument: "create_path_names()"
+--- takes the core directory, goes up one level and looks for "retroarch/retroarch.cfg"
+--- there. That path is compiled into the binary. It is the one rigid anchor of the
+--- whole arrangement; the other folders can be moved, because the launcher writes them
+--- into the configuration afterwards ("libretro_directory", "system_directory"...).
 ---
---- Aqui no se copia nada: solo se crean las carpetas que faltan. El "retroarch.cfg"
---- no se restaura de ningun molde -- si no esta, lo escribe FORZAR_CONF_RETROARCH con
---- las claves del lanzador, y RetroArch completa el resto con sus propios valores la
---- primera vez que guarda.
+--- Nothing is copied here: only the missing folders are created. "retroarch.cfg" is
+--- not restored from any mould -- if it is absent, FORZAR_CONF_RETROARCH writes it with
+--- the launcher keys, and RetroArch fills in the rest with its own values the first
+--- time it saves.
 function LIBRETRO_REPARAR()
 	local base = RUTA_LIBRETRO()
 	if base == nil then return false end
@@ -178,18 +178,18 @@ function LIBRETRO_REPARAR()
 
 	local cfg = base .."/retroarch/retroarch.cfg"
 	if doesFileExist(cfg) == false then
-		boot_log("CONF   sin ".. cfg .." : se escribira al lanzar el primer juego")
+		boot_log("CONF   no ".. cfg .." : it will be written when the first game launches")
 		boot_flush()
 	end
 	return true
 end
 
---- Donde caen NUESTRAS tres carpetas -- Bios, Saves, SaveStates. ----------------------
---- Normalmente junto al lanzador, que es donde el usuario las ve. Pero si el lanzador
---- corre desde el disco interno ATA y el core no lleva ata_bd, ese disco no existe para
---- el: entonces van al mismo sitio que la ROM transbordada, y el puente de partidas las
---- trae de vuelta al arrancar. Devuelve la raiz y, si el core SI lee ATA, el nombre que
---- ese disco tendra del otro lado del SifIopReset.
+--- Where OUR three folders land -- Bios, Saves, SaveStates. ---------------------------
+--- Normally next to the launcher, which is where the user sees them. But if the
+--- launcher runs from the internal ATA drive and the core carries no ata_bd, that drive
+--- does not exist for it: they then go to the same place as the shuttled ROM, and the
+--- save bridge brings them back at boot. Returns the root and, if the core DOES read
+--- ATA, the name that drive will have on the far side of the SifIopReset.
 function RAIZ_DATOS(lee_ata)
 	local actual = System.currentDirectory()
 	if ES_RAIZ_ATA(actual .."/Saves") == false then return actual, nil end
@@ -202,15 +202,31 @@ function RAIZ_DATOS(lee_ata)
 	return actual, nil
 end
 
---- "Bios/" es la UNICA copia de referencia de cada BIOS. ------------------------------
---- Se le da a RetroArch como "system_directory", asi que no hay segunda copia que
---- mantener. Un solo caso la necesita: cuando el core no puede leer el disco donde esta
---- "Bios/", y entonces se deposita en la llave lo poco que RetroArch busca ahi.
-BIOS_LIBRETRO_LISTA = {"gba_bios.bin"}
+--- "Bios/" is the ONLY reference copy of each BIOS. -----------------------------------
+--- It is handed to RetroArch as "system_directory", so there is no second copy to
+--- maintain. Only one case needs one: when the core cannot read the drive holding
+--- "Bios/", and then the little that RetroArch looks for there is dropped on the stick.
+--- Every file here is small - the largest is 128 KB - so the list is the whole set of
+--- BIOS the installed cores can ask for, not just the one that was noticed first. A
+--- missing entry is not an error message: it is a core that boots to a blank screen on
+--- the stick and works on the internal drive, which is the worst kind of bug to chase.
+--- Anything absent from Bios/ is simply skipped.
+BIOS_LIBRETRO_LISTA = {
+	"gba_bios.bin",                                   -- gpSP (required), mGBA (optional)
+	"gb_bios.bin", "gbc_bios.bin", "sgb_bios.bin",    -- Gambatte, Gearboy, mGBA: optional
+	"lynxboot.img",                                   -- Handy, Gearlynx, Beetle Lynx: REQUIRED
+	"exec.bin", "grom.bin",                           -- FreeIntv (Intellivision): REQUIRED
+	"colecovision.rom", "coleco.rom", "bios.col",     -- Gearcoleco: REQUIRED, one of these
+	"o2rom.bin", "c52.bin", "g7400.bin", "jopac.bin", -- O2EM (Odyssey 2 / Videopac): REQUIRED
+	"disksys.rom",                                    -- FCEUmm, for Famicom Disk System
+	"bios.sms", "bios.gg",                            -- Gearsystem: optional boot ROMs
+	"bios_CD_E.bin", "bios_CD_U.bin", "bios_CD_J.bin",-- PicoDrive, for Sega CD only
+	"neocd.bin", "ng-lo.rom",                         -- NeoCD: REQUIRED
+}
 
 function BIOS_LIBRETRO(lee_ata)
 	local raiz = RAIZ_DATOS(lee_ata)
-	if raiz == System.currentDirectory() then return end   -- ya la lee donde esta
+	if raiz == System.currentDirectory() then return end   -- already read where it is
 	local destino = raiz .."/Bios"
 	if System.listDirectory(destino) == nil then
 		System.createDirectory(destino)
@@ -224,20 +240,20 @@ function BIOS_LIBRETRO(lee_ata)
 				pcall(System.copyFile, origen, destino .."/".. fichero)
 				boot_log("BIOS   ".. fichero .." -> ".. destino .." : ".. tostring(doesFileExist(destino .."/".. fichero)))
 			else
-				boot_log("BIOS   ".. fichero .." AUSENTE en Bios/")
+				boot_log("BIOS   ".. fichero .." MISSING from Bios/")
 			end
 			boot_flush()
 		end
 	end
 end
 
---- Se puede arrancar HOY un core de RetroArch? ---------------------------------------
---- Devuelve false y el motivo cuando no. Dos casos: no hay instalacion en ningun sitio,
---- o la hay pero en el disco interno y no hay llave USB donde transbordarla. La tarjeta
---- de memoria no cuenta: 8 MB no dan ni para un core.
+--- Can a RetroArch core be booted TODAY? ---------------------------------------------
+--- Returns false and the reason when not. Two cases: there is no installation anywhere,
+--- or there is one but on the internal drive and no USB stick to shuttle it to. The
+--- memory card does not count: 8 MB is not even enough for one core.
 function LIBRETRO_POSIBLE()
-	-- "Hay instalacion?" se pregunta a la maestra; "podra leerla un core?" tambien,
-	-- porque de ella se copia lo que acabe en la llave.
+	-- "Is there an installation?" is asked of the master; "will a core be able to read
+	-- it?" too, because what ends up on the stick is copied from it.
 	local base = libretro_master_path()
 	if base == nil then return false, "no RetroArch installation found" end
 	if ES_RAIZ_ATA(base) == false then return true, base end
@@ -250,9 +266,9 @@ function LIBRETRO_POSIBLE()
 	return false, "RetroArch on the internal drive and no USB stick"
 end
 
---- Sin core posible, los doce sistemas libretro no se ofrecen. ------------------------
---- Mas vale una consola ausente que una consola que abre y devuelve "Games or
---- RetroArch not found" en cada juego.
+--- With no core possible, the twelve libretro systems are not offered. ----------------
+--- An absent console is better than a console that opens and returns "Games or
+--- RetroArch not found" for every game.
 LIBRETRO_SISTEMAS_OFF = false
 LIBRETRO_SISTEMAS_MOTIVO = nil
 
@@ -261,11 +277,11 @@ function LIBRETRO_APAGAR_SI_IMPOSIBLE()
 	LIBRETRO_SISTEMAS_OFF = (ok ~= true)
 	LIBRETRO_SISTEMAS_MOTIVO = motivo
 	if ok == true then
-		boot_log("SISTEMAS  libretro disponibles: ".. tostring(motivo))
+		boot_log("SISTEMAS  libretro available: ".. tostring(motivo))
 		boot_flush()
 		return false
 	end
-	boot_log("SISTEMAS  libretro DESACTIVADOS: ".. tostring(motivo))
+	boot_log("SISTEMAS  libretro DISABLED: ".. tostring(motivo))
 	boot_flush()
 	SISTEMAS.MEGADRIVE_ON = 0
 	SISTEMAS.MASTERSYSTEM_ON = 0
@@ -282,33 +298,33 @@ function LIBRETRO_APAGAR_SI_IMPOSIBLE()
 	return true
 end
 
---- Interruptores de diagnostico. -----------------------------------------------------
---- Pantalla negra al lanzar un juego? Poner uno de estos a false y volver a probar,
---- de uno en uno. No hace falta recompilar nada.
----   RETROARCH_FORZAR_ON     a false: no se toca "retroarch.cfg" en absoluto.
----   RETROARCH_FORZAR_VIDEO  a false: se fuerzan las carpetas, pero NO el modo de
----                           video. Un "current_resolution_id" que el televisor no
----                           acepta da exactamente una pantalla negra.
+--- Diagnostic switches. --------------------------------------------------------------
+--- Black screen when launching a game? Set one of these to false and try again,
+--- one at a time. Nothing has to be recompiled.
+---   RETROARCH_FORZAR_ON     to false: "retroarch.cfg" is not touched at all.
+---   RETROARCH_FORZAR_VIDEO  to false: the folders are forced, but NOT the video
+---                           mode. A "current_resolution_id" the television does not
+---                           accept gives exactly a black screen.
 RETROARCH_FORZAR_ON = true
---- A false, y por una razon concreta. El bloque PAL escribe current_resolution_id=1,
---- video_refresh_rate=54.5 y vrr_runloop_enable=true. Esos valores vienen de las
---- configuraciones de Boon Tobias y NUNCA se han comprobado en hardware. Lo que si se
---- ha comprobado, en esta misma consola PAL y con un juego funcionando, es lo
---- contrario: current_resolution_id=0 y 59.940063, con "[PS2_GFX] New vmode: 0,
---- 704x576" en el log de RetroArch. Forzar un modo de video que la consola no produce
---- es una de las dos formas conocidas de acabar en pantalla negra.
---- A true vuelven a imponerse, si algun dia se comprueban.
+--- False, and for a concrete reason. The PAL block writes current_resolution_id=1,
+--- video_refresh_rate=54.5 and vrr_runloop_enable=true. Those values come from Boon
+--- Tobias's configurations and have NEVER been checked on hardware. What has been
+--- checked, on this very PAL console and with a game running, is the opposite:
+--- current_resolution_id=0 and 59.940063, with "[PS2_GFX] New vmode: 0, 704x576" in
+--- the RetroArch log. Forcing a video mode the console does not produce is one of the
+--- two known ways of ending up with a black screen.
+--- Set to true they are imposed again, if they are ever verified.
 RETROARCH_FORZAR_VIDEO = false
 
---- Ajustes que el lanzador impone a RetroArch antes de cada juego. --------------------
---- RetroArch guarda su configuracion al salir y el usuario puede tocarla desde el
---- menu: lo que hay aqui se reescribe en cada arranque. Para anadir un ajuste, basta
---- con meterlo en la tabla.
+--- Settings the launcher imposes on RetroArch before every game. ----------------------
+--- RetroArch saves its configuration on exit and the user can change it from the
+--- menu: what is here is rewritten on every boot. To add a setting, just put it in
+--- the table.
 RETROARCH_FORZADO = {
-	-- Las partidas viven FUERA del arbol de RetroArch, en "Saves/" y "SaveStates/".
-	-- "in_content_dir" las pondria junto a la ROM; "sort_..._enable" las agruparia por
-	-- core, y entonces PicoDrive mezclaria cuatro consolas Sega en una sola carpeta.
-	-- Por carpeta de contenido sale "Saves/<consola>/", el mismo nombre que en "Roms/".
+	-- Saves live OUTSIDE the RetroArch tree, in "Saves/" and "SaveStates/".
+	-- "in_content_dir" would put them next to the ROM; "sort_..._enable" would group
+	-- them by core, and then PicoDrive would mix four Sega consoles into one folder.
+	-- By content folder it comes out as "Saves/<console>/", the same name as in "Roms/".
 	{"savefiles_in_content_dir",          "false"},
 	{"savestates_in_content_dir",         "false"},
 	{"sort_savefiles_enable",             "false"},
@@ -316,25 +332,25 @@ RETROARCH_FORZADO = {
 	{"sort_savefiles_by_content_enable",  "true"},
 	{"sort_savestates_by_content_enable", "true"},
 
-	-- 21 = "Square pixel": un pixel de la consola es un pixel de pantalla. Lo que
-	-- venia por defecto era 22, "Core provided", que en PS2 deja la imagen estirada.
-	-- Si lo que se queria era el "1:1" literal del menu de RetroArch, ese es el 5.
-	-- Los overrides por core siguen mandando sobre esto, que es lo correcto: una
-	-- Game Boy es 10:9 pase lo que pase.
+	-- 21 = "Square pixel": one console pixel is one screen pixel. What came as the
+	-- default was 22, "Core provided", which on PS2 leaves the picture stretched.
+	-- If what was wanted was the literal "1:1" from the RetroArch menu, that is 5.
+	-- Per-core overrides still take precedence over this, which is right: a
+	-- Game Boy is 10:9 come what may.
 	{"aspect_ratio_index", "21"},
 }
 
---- Lo unico que separa una configuracion NTSC de una PAL. -----------------------------
---- Boot Tobias mantenia para esto veinticuatro "retroarch.cfg" completos, doce por modo
---- de video. La diferencia real son estas seis claves.
---- Aqui NO estan "aspect_ratio_index" ni "video_scale_integer", que si estaban antes.
---- No son propiedades del modo de video sino gustos del usuario: una Game Boy es 10:9
---- en NTSC como en PAL. Forzarlos deshacia en cada arranque lo que se hubiera elegido
---- en el menu de RetroArch. Su valor vive en retroarch/retroarch.cfg, que es el unico,
---- cada core lo afina con su override.
---- Hay una clave que tambien cambiaba, "video_vsync", pero no de forma uniforme: en PAL
---- valia "false" solo para Neo Geo Pocket, Game Boy, Game Boy Color y Super Famicom.
---- Eso es por sistema Y por modo a la vez, que no cabe en esta tabla.
+--- The only thing separating an NTSC configuration from a PAL one. --------------------
+--- Boot Tobias kept twenty-four complete "retroarch.cfg" files for this, twelve per
+--- video mode. The real difference is these six keys.
+--- "aspect_ratio_index" and "video_scale_integer" are NOT here, though they used to be.
+--- They are not properties of the video mode but user taste: a Game Boy is 10:9 in
+--- NTSC as in PAL. Forcing them undid on every boot whatever had been chosen in the
+--- RetroArch menu. Their value lives in retroarch/retroarch.cfg, which is the only one,
+--- and each core tunes it with its override.
+--- There is one key that also changed, "video_vsync", but not uniformly: in PAL it was
+--- "false" only for Neo Geo Pocket, Game Boy, Game Boy Color and Super Famicom.
+--- That is per system AND per mode at once, which does not fit in this table.
 RETROARCH_VIDEO = {
 	NTSC = {
 		{"video_refresh_rate",     "59.940063"},
@@ -350,21 +366,21 @@ RETROARCH_VIDEO = {
 	},
 }
 
---- Escribe todo lo anterior en el "retroarch.cfg" de RetroArch. -----------------------
+--- Writes all of the above into RetroArch's "retroarch.cfg". --------------------------
 function FORZAR_CONF_RETROARCH(pal, lee_ata)
 	if RETROARCH_FORZAR_ON ~= true then
-		boot_log("CONF   desactivado (RETROARCH_FORZAR_ON = false)")
+		boot_log("CONF   disabled (RETROARCH_FORZAR_ON = false)")
 		boot_flush()
 		return false
 	end
 	local base = RUTA_LIBRETRO()
 	if base == nil then
-		boot_log("CONF   carpeta de RetroArch no encontrada, sin ajustes que forzar")
+		boot_log("CONF   RetroArch folder not found, no settings to force")
 		boot_flush()
 		return false
 	end
-	-- No hay copia de fabrica de la que sacarlo: si falta, se crea vacio y las claves
-	-- de abajo lo llenan. RetroArch anade despues las suyas al guardar.
+	-- There is no factory copy to take it from: if missing, it is created empty and
+	-- the keys below fill it. RetroArch adds its own afterwards when it saves.
 	local cfg = base .."/retroarch/retroarch.cfg"
 	if doesFileExist(cfg) == false then
 		if System.listDirectory(base .."/retroarch") == nil then
@@ -375,27 +391,27 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 			System.writeFile(f, "\n", 1)
 			System.closeFile(f)
 		end)
-		boot_log("CONF   ".. cfg .." no existia, creado")
+		boot_log("CONF   ".. cfg .." did not exist, created")
 		if doesFileExist(cfg) == false then
-			boot_log("CONF   imposible crearlo: soporte de solo lectura?")
+			boot_log("CONF   cannot create it: read-only medium?")
 			boot_flush()
 			return false
 		end
 	end
 
-	-- Las partidas tienen que caer en un soporte que el core PUEDA leer. Si el
-	-- lanzador corre desde el disco interno ATA y el core no lleva ata_bd, ese disco
-	-- no existe para el: se usa entonces el mismo destino que el transbordo de ROMs.
+	-- Saves have to land on a medium the core CAN read. If the launcher runs from the
+	-- internal ATA drive and the core carries no ata_bd, that drive does not exist for
+	-- it: the same destination as the ROM shuttle is then used.
 	local raiz_saves, dev_saves = RAIZ_DATOS(lee_ata)
 	if dev_saves ~= nil then
-		boot_log("CONF   lanzador en disco ATA, core compatible: datos en ".. dev_saves)
+		boot_log("CONF   launcher on ATA drive, core compatible: data on ".. dev_saves)
 	elseif raiz_saves ~= System.currentDirectory() then
-		boot_log("CONF   lanzador en disco ATA, core sin ata_bd: datos en ".. raiz_saves)
+		boot_log("CONF   launcher on ATA drive, core without ata_bd: data on ".. raiz_saves)
 	end
 
-	-- Enceladus ve "mass0:"; RetroArch reinicia el IOP y llama al mismo USB "mass:".
-	-- Pero "mc0:" se llama igual en los dos lados, y "mc:" no existe: por eso la
-	-- traduccion solo toca "massN:".
+	-- Enceladus sees "mass0:"; RetroArch resets the IOP and calls the same USB "mass:".
+	-- But "mc0:" is called the same on both sides, and "mc:" does not exist: hence the
+	-- translation only touches "massN:".
 	local function para_core(ruta)
 		if ruta == nil then return nil end
 		if dev_saves ~= nil and ES_RAIZ_ATA(ruta) then
@@ -405,9 +421,9 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		return DEV_PARA_CORE(ruta)
 	end
 
-	-- Las tres carpetas que son NUESTRAS, no de RetroArch: van junto al lanzador y no
-	-- dentro de su arbol. "Bios/" es la unica copia de referencia de los BIOS, asi que
-	-- se le da como "system_directory" en vez de mantener una segunda copia.
+	-- The three folders that are OURS, not RetroArch's: they go next to the launcher
+	-- and not inside its tree. "Bios/" is the only reference copy of the BIOS files, so
+	-- it is handed over as "system_directory" instead of keeping a second copy.
 	local quiero = {}
 	local dirs = {{"savefile_directory",  raiz_saves .."/Saves"},
 	              {"savestate_directory", raiz_saves .."/SaveStates"},
@@ -419,12 +435,12 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		quiero[dirs[i][1]] = para_core(dirs[i][2])
 	end
 
-	-- Las CARPETAS PROPIAS de RetroArch, escritas explicitamente. ----------------------
-	-- Sin estas claves RetroArch las deduce de su propio directorio, y ahi esta la
-	-- trampa: arrancado desde el disco interno ese directorio puede ser un nombre que
-	-- existe pero cuya raiz no se lista, y entonces assets, config, system y savefiles
-	-- apuntan todos a un sitio vacio. Se recalculan en cada arranque a partir de donde
-	-- esta REALMENTE la carpeta, asi que mover el lanzador las corrige solo.
+	-- RetroArch's OWN FOLDERS, written out explicitly. ---------------------------------
+	-- Without these keys RetroArch works them out from its own directory, and there is
+	-- the trap: booted from the internal drive that directory can be a name that exists
+	-- but whose root does not list, and then assets, config, system and savefiles all
+	-- point at an empty place. They are recomputed on every boot from where the folder
+	-- REALLY is, so moving the launcher fixes them by itself.
 	local base_ra = para_core(base)
 	if base_ra ~= nil then
 		local carpetas = {
@@ -441,9 +457,9 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 			{"cache_directory",           "/retroarch/temp"},
 			{"log_dir",                   "/retroarch/logs"},
 			{"overlay_directory",         "/retroarch/overlays"},
-			-- Estas cinco no son carpetas sino ficheros, y RetroArch las guarda por
-			-- separado: cambiar "playlist_directory" no las arrastra. Sin ponerlas
-			-- aqui se quedan apuntando a donde estuviera la instalacion anterior.
+			-- These five are not folders but files, and RetroArch stores them
+			-- separately: changing "playlist_directory" does not drag them. Without
+			-- putting them here they keep pointing at wherever the last install was.
 			{"content_favorites_path",      "/retroarch/playlists/builtin/content_favorites.lpl"},
 			{"content_history_path",        "/retroarch/playlists/builtin/content_history.lpl"},
 			{"content_image_history_path",  "/retroarch/playlists/builtin/content_image_history.lpl"},
@@ -453,7 +469,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		for i = 1, #carpetas do
 			quiero[carpetas[i][1]] = base_ra .. carpetas[i][2]
 		end
-		boot_log("CONF   carpetas de RetroArch fijadas en ".. base_ra)
+		boot_log("CONF   RetroArch folders set to ".. base_ra)
 	end
 
 	for i = 1, #RETROARCH_FORZADO do
@@ -465,7 +481,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		local vid = RETROARCH_VIDEO[modo]
 		for i = 1, #vid do quiero[vid[i][1]] = vid[i][2] end
 	else
-		modo = modo .." (video NO forzado)"
+		modo = modo .." (video NOT forced)"
 	end
 
 	local txt = nil
@@ -477,20 +493,20 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		System.closeFile(f)
 	end)
 	if txt == nil then
-		boot_log("CONF   ilegible: ".. cfg)
+		boot_log("CONF   unreadable: ".. cfg)
 		boot_flush()
 		return false
 	end
 
-	-- El fichero ya termina en salto de linea. Sin quitarlo, el "txt..salto" de abajo
-	-- anadiria una linea vacia en cada arranque.
+	-- The file already ends in a newline. Without removing it, the "txt..newline" below
+	-- would add an empty line on every boot.
 	if string.sub(txt, -1) == "\n" then txt = string.sub(txt, 1, -2) end
 
-	-- Una sola pasada por lineas: mas barato que un gsub por clave sobre 44 KB.
+	-- A single pass over the lines: cheaper than one gsub per key over 44 KB.
 	local salida, vistas, cambios = {}, {}, 0
 	for cruda in string.gmatch(txt .."\n", "([^\n]*)\n") do
-		-- La variable de control de un "for" es constante desde Lua 5.4: hay que
-		-- copiarla antes de tocarla. Y el fichero puede venir con finales CRLF.
+		-- The control variable of a "for" is constant since Lua 5.4: it has to be
+		-- copied before being touched. And the file may arrive with CRLF endings.
 		local linea = cruda
 		if string.sub(linea, -1) == "\r" then linea = string.sub(linea, 1, -2) end
 		local clave = string.match(linea, "^([%w_]+) = ")
@@ -511,7 +527,7 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 	end
 
 	if cambios == 0 then
-		boot_log("CONF   ".. modo .." ya correcto  ".. tostring(quiero["savefile_directory"]))
+		boot_log("CONF   ".. modo .." already correct  ".. tostring(quiero["savefile_directory"]))
 		boot_flush()
 		return true
 	end
@@ -524,26 +540,26 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		System.closeFile(f)
 		ok = true
 	end)
-	boot_log("CONF   ".. modo .."  ".. tostring(cambios) .." clave(s) forzada(s), escrito=".. tostring(ok))
+	boot_log("CONF   ".. modo .."  ".. tostring(cambios) .." key(s) forced, written=".. tostring(ok))
 	boot_log("       ".. tostring(quiero["savefile_directory"]) .." , ".. tostring(quiero["savestate_directory"]))
-	-- Esto sale justo antes de loadELF, que no vuelve nunca: si no se vuelca ahora,
-	-- el diagnostico se pierde con el proceso.
+	-- This comes out just before loadELF, which never returns: if it is not flushed
+	-- now, the diagnostics are lost with the process.
 	boot_flush()
 	return ok
 end
 
---- La instalacion MAESTRA: la que tiene TODOS los cores. ------------------------------
---- Hay dos instalaciones y confundirlas era el error de fondo:
+--- The MASTER installation: the one with ALL the cores. -------------------------------
+--- There are two installations and confusing them was the underlying bug:
 ---
----   la maestra   junto al lanzador, con los 60 cores de la nightly. Dice QUE se
----                puede jugar. No hace falta que un core sepa leerla.
----   la de la llave  "<llave>/Prism/LibretroPS2Files", con EL core del juego
----                nada mas. Dice con que se ejecuta.
+---   the master   next to the launcher, with the nightly's 60 cores. Says WHAT
+---                can be played. No core has to be able to read it.
+---   the stick    "<stick>/Prism/LibretroPS2Files", with THE core of the game
+---                and nothing else. Says what it is run with.
 ---
---- RUTA_LIBRETRO devuelve la segunda en cuanto existe, porque es la unica que un core
---- podra leer tras el SifIopReset. Preguntarle "tienes handy?" da que no, y el juego
---- se rechazaba antes de intentar nada -- que es el "Games or RetroArch not found" de
---- Lynx, GBA, GB, GBC y NES con los sesenta cores presentes en el disco.
+--- RUTA_LIBRETRO returns the second as soon as it exists, because it is the only one
+--- a core can read after the SifIopReset. Asking it "do you have handy?" gives no,
+--- and the game was rejected before trying anything -- which is the "Games or
+--- RetroArch not found" of Lynx, GBA, GB, GBC and NES with sixty cores on the drive.
 function libretro_master_path()
 	local propia = System.currentDirectory() .."/LibretroPS2Files"
 	if System.listDirectory(propia .."/cores") ~= nil then return propia end
@@ -558,7 +574,7 @@ function libretro_master_path()
 	return RUTA_LIBRETRO()
 end
 
---- Resuelve un core en la instalacion maestra. ---------------------------------------
+--- Resolves a core in the master installation. ---------------------------------------
 function core_master_path(nombre_core, ruta_original)
 	if nombre_core == nil or nombre_core == " " then return ruta_original end
 	local base = libretro_master_path()
@@ -571,8 +587,8 @@ end
 
 function RUTA_CORE(nombre_core, ruta_original)
 	if nombre_core == nil or nombre_core == " " then return ruta_original end
-	-- Una sola instalacion, la que RUTA_LIBRETRO haya elegido: la que el core podra
-	-- leer despues de reiniciar el IOP.
+	-- A single installation, whichever RUTA_LIBRETRO chose: the one the core will be
+	-- able to read after resetting the IOP.
 	local base = RUTA_LIBRETRO()
 	if base ~= nil then
 		local cand = base .."/cores/".. nombre_core
@@ -581,17 +597,17 @@ function RUTA_CORE(nombre_core, ruta_original)
 	return ruta_original
 end
 
---- Extensiones declaradas por un core, leidas de su ".info". ------------------------
+--- Extensions declared by a core, read from its ".info". ----------------------------
 --- "picodrive_libretro_ps2.elf" -> "info/picodrive_libretro.info".
 function core_extensions(ruta_core)
 	local n = nombre_fichero(ruta_core)
 	if string.len(n) < 9 or string.sub(n, -8) ~= "_ps2.elf" then return nil end
 	local info = string.sub(n, 1, -9) ..".info"
 
-	-- En la MAESTRA primero. La instalacion de la llave lleva un solo ".info", el del
-	-- core del juego en curso: buscando ahi, todos los demas cores quedaban sin
-	-- extensiones declaradas, CORE_SIRVE los daba por inutiles, y la lista de cores de
-	-- cada sistema se quedaba vacia. Los sesenta cores del disco eran invisibles.
+	-- In the MASTER first. The stick installation carries a single ".info", that of the
+	-- core of the current game: searching there, every other core was left with no
+	-- declared extensions, CORE_SIRVE wrote them off as useless, and each system's core
+	-- list came out empty. The sixty cores on the drive were invisible.
 	local sitios = {}
 	local maestra = libretro_master_path()
 	if maestra ~= nil then table.insert(sitios, maestra) end
@@ -624,7 +640,7 @@ function core_extensions(ruta_core)
 	return nil
 end
 
---- Un core sirve para un sistema si declara alguna de sus extensiones. --------------
+--- A core serves a system if it declares one of its extensions. ---------------------
 function CORE_SIRVE(ruta_core, identidad)
 	local exts = SISTEMA_EXTEN[identidad]
 	if exts == nil then return true end

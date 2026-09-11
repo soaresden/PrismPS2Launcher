@@ -200,6 +200,16 @@ function ember_park(game)
 	end
 
 	local files = disc_files(game.dir, game.file)
+
+	-- The record is written BEFORE anything moves, listing what is ABOUT to move.
+	-- Written afterwards it would be useless in the one case it exists for: the console
+	-- losing power halfway through, with the .cue in Ember/games and the .bin still in
+	-- Roms/psx and nothing anywhere saying the two belong together. Written first, the
+	-- worst case is a list that names a file which never moved - and both repair paths
+	-- cope with that, because each one checks where a file actually is before touching
+	-- it. Launch this game again and the move finishes; launch another and it is undone.
+	park_write(name, game.dir, files)
+
 	say("Moving ".. #files .." file(s) into Ember/games/".. name)
 	local moved = {}
 	for i = 1, #files do
@@ -212,9 +222,10 @@ function ember_park(game)
 			say("Could not move ".. f)
 		end
 	end
-	if #moved == 0 then return false end
-
-	park_write(name, game.dir, moved)
+	if #moved == 0 then
+		park_write(nil)
+		return false
+	end
 	game.ember, game.ember_dir = name, dest
 	return true
 end

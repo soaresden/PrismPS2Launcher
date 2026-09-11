@@ -3,15 +3,15 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Base de datos de lo que la consola ve realmente: "exfatdb.json", junto al ELF. ----
---- Se rellena a medida que se recorren los sistemas y se reescribe en cada cambio.
---- Sirve sobre todo para ajustar los scripts del PC: es la unica fuente fiable de
---- lo que la PS2 encuentra, con los nombres de unidad tal como ella los ve.
+--- Database of what the console really sees: "exfatdb.json", beside the ELF. ---------
+--- It fills up as the systems are walked and is rewritten on every change.
+--- It exists mainly to tune the PC scripts: it is the only reliable source for what
+--- the PS2 finds, with the drive names exactly as it sees them.
 EXFATDB_ON = true
 EXFATDB = {}
 EXFATDB_SUCIA = false
 
---- Escapa una cadena para JSON. -----------------------------------------------------
+--- Escapes a string for JSON. -------------------------------------------------------
 function json_txt(s)
 	s = tostring(s)
 	s = string.gsub(s, "\\", "\\\\")
@@ -20,9 +20,9 @@ function json_txt(s)
 	return "\"".. s .."\""
 end
 
---- Registra un directorio explorado y su contenido. ---------------------------------
---- "clave" permite agrupar bajo otro nombre que el de ROMS_DIR[identidad]: PS1 usa
---- una sola identidad para dos origenes ("POPS" y "Ember").
+--- Records an explored directory and its contents. ----------------------------------
+--- "clave" allows grouping under a name other than ROMS_DIR[identidad]: PS1 uses
+--- a single identity for two sources ("POPS" and "Ember").
 function exfatdb_dir(identidad, sistema, directorio, entradas, clave)
 	if EXFATDB_ON ~= true or directorio == nil then return end
 	local reg = EXFATDB[directorio]
@@ -36,25 +36,25 @@ function exfatdb_dir(identidad, sistema, directorio, entradas, clave)
 		}
 		EXFATDB[directorio] = reg
 	end
-	-- FUSIONAR, no sustituir. Un mismo directorio aparece varias veces en la lista
-	-- de busqueda: con su nombre propio y otra vez como alias EmulationStation. En
-	-- la segunda pasada los juegos ya estan en "vistos", asi que la lista llega
-	-- vacia; sustituir el registro borraba todo lo encontrado en la primera.
+	-- MERGE, do not replace. The same directory appears several times in the search
+	-- list: under its own name and again as an EmulationStation alias. On the second
+	-- pass the games are already in "vistos", so the list arrives empty; replacing
+	-- the record wiped out everything found on the first pass.
 	for i = 1, #entradas do
 		reg.juegos[entradas[i].fichero] = entradas[i].titulo
 	end
 	EXFATDB_SUCIA = true
 end
 
---- Vuelca el fichero. ---------------------------------------------------------------
---- Agrupado por soporte ("USB" / "ATA") y por sistema, no por directorio: en un
---- sistema de ficheros que ignora mayusculas, "Roms/nes" y "roms/nes" son la misma
---- carpeta y aparecian dos veces. Aqui se fusionan, y los juegos repetidos tambien.
+--- Dumps the file. ------------------------------------------------------------------
+--- Grouped by medium ("USB" / "ATA") and by system, not by directory: on a file
+--- system that ignores case, "Roms/nes" and "roms/nes" are the same folder and used
+--- to appear twice. Here they are merged, and the repeated games with them.
 function exfatdb_escribir()
 	if EXFATDB_ON ~= true or EXFATDB_SUCIA ~= true then return end
 	EXFATDB_SUCIA = false
 	pcall(function()
-		-- Reagrupar: soporte -> sistema -> conjunto de ficheros.
+		-- Regroup: medium -> system -> set of files.
 		local grupo = {USB = {}, ATA = {}}
 		for ruta, info in pairs(EXFATDB) do
 			local soporte = "USB"
@@ -79,7 +79,7 @@ function exfatdb_escribir()
 					table.insert(ficheros, f)
 				end
 				table.sort(ficheros)
-				-- "POPS" vive en la raiz de la unidad, no bajo "roms/".
+				-- "POPS" lives at the root of the drive, not under "roms/".
 			local etiqueta = "roms/".. sistemas[i]
 			if sistemas[i] == "POPS" then etiqueta = "POPS" end
 			s = s .. sangria .."  ".. json_txt(etiqueta) ..": [\n"
@@ -95,7 +95,7 @@ function exfatdb_escribir()
 			return s
 		end
 
-		--- Unidad asociada a cada soporte, para poder reconstruir la ruta completa.
+		--- Drive associated with each medium, so the full path can be rebuilt.
 		local u_usb, u_ata = "", ""
 		local pos = string.find(System.currentDirectory(), ":", 1, true)
 		if pos ~= nil then u_usb = string.sub(System.currentDirectory(), 1, pos) end

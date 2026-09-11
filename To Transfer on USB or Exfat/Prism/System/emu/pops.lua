@@ -4,14 +4,14 @@
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
 --- PlayStation 1 / POPStarter. --------------------------------------------------------
---- POPStarter lee siempre el .VCD y escribe la tarjeta de memoria virtual en
---- "<unidad>/POPS/<nombre del juego>/", este donde este su ELF (por eso funciona el
---- montaje con el ELF en "APPS/"). Los .VCD viven SOLO en "POPS/", en la raiz de la
---- unidad: es el unico sitio donde POPStarter los busca. Las imagenes y los titulos de
---- PS1, sea cual sea el formato del juego, estan en "Roms/psx/", como en EmulationStation.
+--- POPStarter always reads the .VCD and writes the virtual memory card into
+--- "<drive>/POPS/<game name>/", wherever its ELF may sit (which is why the layout with
+--- the ELF in "APPS/" works). The .VCD files live ONLY in "POPS/", at the root of the
+--- drive: it is the only place POPStarter looks for them. PS1 artwork and titles,
+--- whatever the game's format, live in "Roms/psx/", as in EmulationStation.
 
---- Unidades que pueden tener una carpeta "POPS" en su raiz: el soporte de arranque
---- y cada unidad BDM. La misma coleccion se usa para buscar y para lanzar.
+--- Drives that may hold a "POPS" folder at their root: the boot medium and every BDM
+--- drive. The same collection is used both for searching and for launching.
 function POPS_UNIDADES()
 	local u = {}
 	local actual = System.currentDirectory()
@@ -27,9 +27,9 @@ function POPS_UNIDADES()
 	return u
 end
 
---- Unidad cuyo "POPS/" contiene ese fichero. POPStarter exige que el .VCD, su ELF
---- y la tarjeta de memoria esten en la MISMA unidad, asi que lanzar con POPS_RAIZ
---- fallaba cuando el juego vivia en el otro soporte.
+--- The drive whose "POPS/" holds that file. POPStarter demands that the .VCD, its ELF
+--- and the memory card all sit on the SAME drive, so launching with POPS_RAIZ failed
+--- whenever the game lived on the other medium.
 function POPS_DE(nombre)
 	if nombre ~= nil then
 		local u = POPS_UNIDADES()
@@ -40,7 +40,7 @@ function POPS_DE(nombre)
 	return POPS_RAIZ
 end
 
---- Ruta real del .VCD en el "POPS/" de cada unidad. nil si no esta en ninguna.
+--- Real path of the .VCD in the "POPS/" of each drive. nil if it is on none of them.
 function RUTA_VCD(nombre)
 	local u = POPS_UNIDADES()
 	for i = 1, #u do
@@ -51,24 +51,24 @@ function RUTA_VCD(nombre)
 	return nil
 end
 
---- true si el .VCD esta en el "POPS/" de la unidad de POPStarter. Antes trasladaba el
---- fichero desde una biblioteca en "Roms/"; ya no hay biblioteca: o esta, o no esta.
+--- true if the .VCD is in the "POPS/" of the POPStarter drive. It used to fetch the
+--- file from a library in "Roms/"; there is no library now: it is either there or not.
 function VCD_A_POPS(nombre)
 	return doesFileExist(POPS_RAIZ .."/POPS/".. nombre)
 end
 
---- Retardo de acceso al USB de POPStarter. -------------------------------------------
---- POPStarter da por perdido el dispositivo si tarda en responder, y entonces escribe
+--- POPStarter USB access delay. ------------------------------------------------------
+--- POPStarter gives the device up for lost if it is slow to answer, and then writes
 --- "Opening mass:/POPS/... FAILED / No POPS directory ? / Increase the USB access
---- delay". El valor vive en un solo byte de su tabla de configuracion, offset 0x413,
---- y hay que parchearlo en CADA "XX.<juego>.ELF": cada atajo es un POPStarter
---- completo. De fabrica vale 3, poco para muchas llaves. 0 = no tocar nada.
---- Con los drivers modernos en la Memory Card la llave monta rapido: 20 basta y no
---- alarga el arranque. Subir hacia 60 solo si volviera el fallo de montaje.
+--- delay". The value lives in a single byte of its configuration table, offset 0x413,
+--- and it has to be patched in EVERY "XX.<juego>.ELF": each shortcut is a complete
+--- POPStarter. It ships as 3, too little for many sticks. 0 = touch nothing.
+--- With the modern drivers on the Memory Card the stick mounts fast: 20 is enough and
+--- does not lengthen the boot. Raise towards 60 only if the mount failure comes back.
 POPS_USB_DELAY = 20
 
---- Lee el byte del retardo, para poder ESCRIBIRLO EN EL JOURNAL: sin esto no hay
---- forma de saber si el parche se aplico de verdad. nil = fichero ilegible.
+--- Reads the delay byte, so it can be WRITTEN TO THE JOURNAL: without this there is
+--- no way to know whether the patch was really applied. nil = unreadable file.
 function LEE_USB_DELAY(ruta)
 	local valor = nil
 	pcall(function()
@@ -86,9 +86,9 @@ function PARCHE_USB_DELAY(ruta)
 	if ruta == nil or doesFileExist(ruta) == false then return end
 	pcall(function()
 		local f = System.openFile(ruta, FRDWR)
-		-- Comprobacion de firma: los bytes que rodean al retardo. El primero varia
-		-- entre builds (0x00 en la Rev 13 principal, 0xFF en las "USBDELAY" de la
-		-- comunidad); el resto del marco es estable.
+		-- Signature check: the bytes surrounding the delay. The first one varies
+		-- between builds (0x00 in the main Rev 13, 0xFF in the community
+		-- "USBDELAY" ones); the rest of the frame is stable.
 		System.seekFile(f, 0x410, SET)
 		local marco = System.readFile(f, 8)
 		local b1 = (marco ~= nil and string.len(marco) >= 8) and string.byte(marco, 1) or -1
@@ -105,18 +105,18 @@ function PARCHE_USB_DELAY(ruta)
 	end)
 end
 
---- Drivers USB de recambio de POPStarter, en la Memory Card. -------------------------
---- Hallazgo comprobado en esta consola: POPStarter solo monta ciertas llaves si
---- encuentra "mc0:/POPSTARTER/usbd.irx" y "usbhdfsd.irx" (BDMAssault) - y los nombres
---- van en MINUSCULAS, con mayusculas no los ve y cae en sus drivers internos de 2019,
---- que fallan con "Opening mass:/POPS/... FAILED".
---- Esta funcion REPARA la instalacion antes de cada lanzamiento: crea el directorio,
---- copia los ficheros que falten (desde SYS-CONF de la propia tarjeta, o desde un
---- POPSTARTER/ en cualquier raiz) y corrige el nombre si la caja no es la esperada.
---- Devuelve un texto multilinea para el journal de lanzamiento.
+--- POPStarter replacement USB drivers, on the Memory Card. ---------------------------
+--- Verified on this console: POPStarter only mounts certain sticks if it finds
+--- "mc0:/POPSTARTER/usbd.irx" and "usbhdfsd.irx" (BDMAssault) - and the names must be
+--- in LOWER CASE; in upper case it does not see them and falls back on its internal
+--- 2019 drivers, which fail with "Opening mass:/POPS/... FAILED".
+--- This function REPAIRS the installation before every launch: it creates the
+--- directory, copies whatever files are missing (from SYS-CONF on the card itself, or
+--- from a POPSTARTER/ on any root) and fixes the name if the case is not as expected.
+--- Returns a multi-line text for the launch journal.
 function POPSTARTER_DRIVERS_MC()
 	local dir = "mc0:/POPSTARTER"
-	local lineas = {"Drivers de recambio en ".. dir .." (minusculas obligatorias):"}
+	local lineas = {"Replacement drivers in ".. dir .." (lower case mandatory):"}
 
 	local function listar()
 		local reales = {}
@@ -135,7 +135,7 @@ function POPSTARTER_DRIVERS_MC()
 	if existe == false then
 		pcall(System.createDirectory, dir)
 		reales, existe = listar()
-		table.insert(lineas, "  directorio creado: ".. tostring(existe))
+		table.insert(lineas, "  directory created: ".. tostring(existe))
 	end
 
 	for _i, nombre in ipairs({"usbd.irx", "usbhdfsd.irx"}) do
@@ -143,8 +143,8 @@ function POPSTARTER_DRIVERS_MC()
 		if real == nombre then
 			table.insert(lineas, "  ".. nombre .." : ok")
 		elseif real ~= nil then
-			-- Mala caja. Renombrar directamente puede fallar en mcman cuando solo
-			-- cambia la caja, asi que se pasa por un nombre intermedio.
+			-- Wrong case. Renaming directly can fail in mcman when only the
+			-- case changes, so it goes through an intermediate name.
 			pcall(System.copyFile, dir .."/".. real, dir .."/fix.tmp")
 			pcall(System.removeFile, dir .."/".. real)
 			if System.rename ~= nil then
@@ -155,9 +155,9 @@ function POPSTARTER_DRIVERS_MC()
 				pcall(System.removeFile, dir .."/fix.tmp")
 			end
 			local ahora = listar()[nombre]
-			table.insert(lineas, "  ".. nombre .." : renombrado desde '".. real .."' -> ".. tostring(ahora == nombre))
+			table.insert(lineas, "  ".. nombre .." : renamed from '".. real .."' -> ".. tostring(ahora == nombre))
 		else
-			-- Ausente: copiar desde la primera fuente que exista.
+			-- Absent: copy from the first source that exists.
 			local fuentes = {"mc0:/SYS-CONF/".. string.upper(nombre),
 				"mc0:/SYS-CONF/".. nombre}
 			local pos = string.find(System.currentDirectory(), ":", 1, true)
@@ -168,9 +168,9 @@ function POPSTARTER_DRIVERS_MC()
 			end
 			if RAICES ~= nil then
 				for r = 1, #RAICES do
-					-- Los dos IRX se reparten con el lanzador, en la carpeta "IRX/" de la
-					-- raiz. Se conserva la ruta historica detras, por si alguien los tiene
-					-- ya colocados a la vieja usanza.
+					-- Both IRX ship with the launcher, in the "IRX/" folder at the
+					-- root. The historic path is kept behind it, in case someone already
+					-- has them placed the old way.
 					table.insert(fuentes, RAICES[r] .."/IRX/".. nombre)
 					table.insert(fuentes, RAICES[r] .."/Bios/POPSTARTER/".. nombre)
 				end
@@ -181,26 +181,26 @@ function POPSTARTER_DRIVERS_MC()
 					pcall(System.copyFile, fuentes[f], dir .."/".. nombre)
 					hecho = (listar()[nombre] == nombre)
 					if hecho then
-						table.insert(lineas, "  ".. nombre .." : copiado desde ".. fuentes[f])
+						table.insert(lineas, "  ".. nombre .." : copied from ".. fuentes[f])
 					end
 				end
 			end
 			if hecho == false then
-				table.insert(lineas, "  ".. nombre .." : AUSENTE y sin fuente para copiarlo.")
-				table.insert(lineas, "    Sin el, POPStarter usa sus drivers de 2019 y")
-				table.insert(lineas, "    puede no montar la llave USB.")
+				table.insert(lineas, "  ".. nombre .." : ABSENT and no source to copy it from.")
+				table.insert(lineas, "    Without it, POPStarter uses its 2019 drivers and")
+				table.insert(lineas, "    may fail to mount the USB stick.")
 			end
 		end
 	end
 	return table.concat(lineas, "\n")
 end
 
---- Reinicio del IOP para POPStarter y Ember: NUNCA. ----------------------------------
---- Confirmado en hardware real y por el autor del proyecto: "restarting the IOP
+--- IOP reboot for POPStarter and Ember: NEVER. ---------------------------------------
+--- Confirmed on real hardware and by the project's author: "restarting the IOP
 --- causes the .ELF file to be lost, resulting in the game immediately closing and
---- returning to the PS2 menu". El reset descarga los drivers USB y el cargador ya no
---- puede leer el propio ELF que debe lanzar -> vuelta al menu de la consola.
---- El valor 1 fue una hipotesis de diagnostico para los VCD; el culpable real era el
---- retardo de acceso USB de POPStarter (POPS_USB_DELAY), no el estado del IOP.
+--- returning to the PS2 menu". The reset unloads the USB drivers and the loader can no
+--- longer read the very ELF it is meant to launch -> back to the console menu.
+--- The value 1 was a diagnostic hypothesis for the VCDs; the real culprit was
+--- POPStarter's USB access delay (POPS_USB_DELAY), not the state of the IOP.
 IOP_REBOOT_POPS = 0
 IOP_REBOOT_EMBER = 0

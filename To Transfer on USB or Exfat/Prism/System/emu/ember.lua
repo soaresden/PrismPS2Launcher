@@ -3,35 +3,35 @@
 -- Split from the original system.lua (RETROLauncher, Spaghetticode / Boon Tobias).
 -- Definitions only, except where noted; loaded by System/system.lua in boot order.
 
---- Despliegue de Ember junto a los juegos. -------------------------------------------
---- Ember resuelve el .cue RELATIVO a su propio directorio: el original le pasaba solo
---- el nombre del fichero y lo lanzaba desde la carpeta de los juegos. Al mover el
---- emulador a "Bios/" se rompio ese contrato, y Ember arrancaba en la pantalla del
---- BIOS por no encontrar el disco. Se restaura el montaje de origen: "ember.elf" y
---- "bios.bin" se colocan junto a los .cue, copiados desde "Bios/" la primera vez.
---- Son dos ficheros pequenos y una sola vez por carpeta.
---- Ember Beta 1: carpeta propia, un directorio por juego. ------------------------------
---- La version demo se lanzaba desde la carpeta de las ROM y recibia el nombre del .cue.
---- Beta 1 cambia las dos cosas:
+--- Ember is laid out beside the games. -----------------------------------------------
+--- Ember resolves the .cue RELATIVE to its own directory: the original passed it only
+--- the file name and launched it from the games folder. Moving the emulator to
+--- "Bios/" broke that contract, and Ember would boot to the BIOS screen because it
+--- could not find the disc. The original layout is restored: "ember.elf" and
+--- "bios.bin" are placed beside the .cue files, copied from "Bios/" the first time.
+--- Two small files, and only once per folder.
+--- Ember Beta 1: its own folder, one directory per game. -------------------------------
+--- The demo version launched from the ROM folder and was handed the .cue file name.
+--- Beta 1 changes both of those:
 ---
 ---     Ember/
----     |- ember.elf          el emulador
----     |- bios.bin           lo pone el usuario
----     |- settings.txt       opcional:  display: 480  |  display: 240
+---     |- ember.elf          the emulator
+---     |- bios.bin           supplied by the user
+---     |- settings.txt       optional:  display: 480  |  display: 240
 ---     `- games/
----        `- Spyro/          UN DIRECTORIO POR JUEGO, con el nombre que sea
+---        `- Spyro/          ONE DIRECTORY PER GAME, named whatever you like
 ---           |- Spyro.cue
 ---           |- Spyro.bin
----           |- MC1.vmc      las crea Ember sola, una pareja por juego
+---           |- MC1.vmc      Ember creates these itself, one pair per game
 ---           |- MC2.vmc
----           `- SharedMC.txt opcional, una linea: el nombre de otra carpeta
+---           `- SharedMC.txt optional, one line: the name of another folder
 ---
---- Y el argumento ya no es un fichero sino el NOMBRE DE LA CARPETA dentro de "games".
---- Todo lo demas lo resuelve Ember relativo a donde este su propio ELF, asi que la
---- carpeta entera es portatil: vale en el USB, en el disco interno o en una MMCE.
+--- And the argument is no longer a file but the NAME OF THE FOLDER inside "games".
+--- Everything else Ember resolves relative to where its own ELF sits, so the whole
+--- folder is portable: it works on USB, on the internal drive or on an MMCE.
 EMBER_SUB = "/Ember"
 
---- Las carpetas "Ember" que existen de verdad, en orden de raiz. ----------------------
+--- The "Ember" folders that really exist, in root order. ------------------------------
 function ember_roots()
     local out = {}
     if RAICES == nil then return out end
@@ -42,9 +42,9 @@ function ember_roots()
     return out
 end
 
---- Donde vive un juego de Ember, o nil. -----------------------------------------------
---- "carpeta" es el nombre del directorio dentro de "games", que es exactamente lo que
---- se le pasa como argumento al ELF.
+--- Where an Ember game lives, or nil. -------------------------------------------------
+--- "carpeta" is the name of the directory inside "games", which is exactly what
+--- gets passed to the ELF as its argument.
 function ember_game(carpeta)
     if carpeta == nil then return nil, nil end
     local raices = ember_roots()
@@ -118,9 +118,9 @@ function ember_ready()
 	return false, "No PlayStation 1 BIOS: put scph1001.bin (or any SCPH dump) in Bios/"
 end
 
---- Que hay dentro de una carpeta de juego: ".cue", ".bin", ".chd" o nil. --------------
---- Ember toma el .cue si lo hay y si no el .bin. Un .chd NO le sirve, y conviene saberlo
---- antes de arrancar en vez de aterrizar en el shell de la BIOS sin explicacion.
+--- What is inside a game folder: ".cue", ".bin", ".chd" or nil. -----------------------
+--- Ember takes the .cue if there is one, and the .bin if not. A .chd is no use to it, and
+--- it is worth knowing before booting rather than landing in the BIOS shell unexplained.
 function ember_contents(dir)
     local c = System.listDirectory(dir)
     if c == nil then return nil end
@@ -139,11 +139,11 @@ function ember_contents(dir)
     return nil
 end
 
---- Clave de un juego de PS1, para no listarlo dos veces. ------------------------------
---- El mismo juego puede estar como .VCD para POPStarter y como carpeta para Ember, y
---- son dos formas de arrancar UNA cosa. Se comparan sin extension, sin el prefijo de
---- OPL ("SCES_009.84.") y sin nada que no sea letra o cifra, porque los dos nombres
---- vienen de sitios distintos y rara vez coinciden al caracter.
+--- Key for a PS1 game, so it is not listed twice. -------------------------------------
+--- The same game can be there as a .VCD for POPStarter and as a folder for Ember, and
+--- those are two ways of booting ONE thing. They are compared without the extension,
+--- without the OPL prefix ("SCES_009.84.") and without anything but letters and digits,
+--- because the two names come from different places and rarely match character for character.
 function ps1_key(nombre)
     if nombre == nil then return nil end
     local n = nombre
@@ -155,8 +155,8 @@ function ps1_key(nombre)
     return n
 end
 
---- Con que arranca ESTE juego de PS1: "ember" o "pops". -------------------------------
---- Un fichero por decision, como Launcher.cfg para PS2 y VMC.cfg para las tarjetas.
+--- What THIS PS1 game boots with: "ember" or "pops". ----------------------------------
+--- One file per decision, like Launcher.cfg for PS2 and VMC.cfg for the memory cards.
 PS1_GAMES = {}
 ps1_cfg_loaded = false
 
