@@ -209,7 +209,7 @@ function gamelist_draw()
 
 	-- The list's own title line: which system, how many games.
 	gfx_text_scroll(system_label(s), L.x, top, THEME.size_text, THEME.text_head, L.w - 60)
-	gfx_text(#s.games .." games", L.x, top + 2, THEME.size_small, THEME.text_dim, "right", L.w)
+	gfx_text(games_count(#s.games), L.x, top + 2, THEME.size_small, THEME.text_dim, "right", L.w)
 
 	-- The games. Colour says where the file is; the marks say what you decided about it.
 	local ly = top + 20
@@ -316,7 +316,7 @@ function gamelist_draw()
 		else
 			gfx_text("No gamelist.xml for this system yet.", D.x, y, small, THEME.text_dim)
 			gfx_text("Scrape Roms/".. g.kind .."/ with ARRM or", D.x, y + 12, small, THEME.text_dim)
-			gfx_text("Skraper, or run HelperScripts/BatoceraGamelistandBatoceraGamelistandMediaCopier.py.", D.x, y + 24, small, THEME.text_dim)
+			gfx_text("Skraper, or run HelperScripts/BatoceraGamelistandMediaCopier.py.", D.x, y + 24, small, THEME.text_dim)
 		end
 
 		-- Where the saves go, and which memory card. The line that matters tomorrow.

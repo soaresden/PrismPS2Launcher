@@ -1,7 +1,7 @@
 -- Prism PS2 Launcher - library/gamelist_xml.lua
 -- gamelist.xml, the EmulationStation format, read and written. This is what lets a
 -- scraper made for ES (ARRM, Skraper, Batocera's own) fill in titles, descriptions
--- and artwork for Prism, and what HelperScripts/BatoceraGamelistandBatoceraGamelistandMediaCopier.py can copy straight from
+-- and artwork for Prism, and what HelperScripts/BatoceraGamelistandMediaCopier.py can copy straight from
 -- an existing Batocera install.
 --
 --   <gameList>

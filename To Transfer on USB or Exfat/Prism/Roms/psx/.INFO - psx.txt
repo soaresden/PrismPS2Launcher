@@ -19,5 +19,5 @@ container, so its picture is kept ONCE, here, laid out as EmulationStation does:
     Roms/psx/titles.txt
 
 <name> is the .VCD file name without its extension, or the Ember folder name.
-HelperScripts/BatoceraGamelistandBatoceraGamelistandMediaCopier.py and PS1toPOPS.py fill this from a Batocera
+HelperScripts/BatoceraGamelistandMediaCopier.py and PS1toPOPS.py fill this from a Batocera
 gamelist.xml; pictures must be 320x240 or smaller, PNG with an alpha channel.

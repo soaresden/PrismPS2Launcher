@@ -417,7 +417,7 @@ def make_rom_folders(systems):
 
     PlayStation 1 and 2 are skipped: their games live in POPS/, Ember/games/, DVD/ and
     CD/ at the root of the drive, where their emulators read them. Only their artwork
-    goes under Roms/, and BatoceraGamelistandBatoceraGamelistandMediaCopier.py makes those folders itself."""
+    goes under Roms/, and BatoceraGamelistandMediaCopier.py makes those folders itself."""
     roms = os.path.join(LAUNCHER, "Roms")
     if not os.path.isdir(roms):
         print("\nno Roms/ next to the launcher, folders not created")
@@ -453,7 +453,7 @@ def make_rom_folders(systems):
                     "    gamelist.xml                        names and descriptions\n\n"
                     "The picture is named after the ROM without its extension, so\n"
                     "\"Sonic (World).zip\" wants \"Sonic (World).png\". HelperScripts/\n"
-                    "BatoceraGamelistandBatoceraGamelistandMediaCopier.py fills all of it from a Batocera library.\n\n"
+                    "BatoceraGamelistandMediaCopier.py fills all of it from a Batocera library.\n\n"
                     "Deleting this folder is safe: it comes back the next time\n"
                     "BuildSystems.py runs, as long as the core is still installed.\n"
                     % (folder, "=" * len(folder), exts, names))

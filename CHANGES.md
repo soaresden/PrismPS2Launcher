@@ -347,7 +347,7 @@ merged now. PlayStation 1 and 2 were not inventoried at all and are included.
 
 `HelperScripts/` gains three tools. None of them is required to use the fork.
 
-- **`BatoceraGamelistandBatoceraGamelistandMediaCopier.py`** builds the artwork and title layout from a Batocera,
+- **`BatoceraGamelistandMediaCopier.py`** builds the artwork and title layout from a Batocera,
   Recalbox or EmulationStation install. It re-encodes every image to RGBA and
   fits it in 320×240 as the manual requires, folds accents out of titles (page 46
   again: a special character breaks the display), extracts GBA archives and

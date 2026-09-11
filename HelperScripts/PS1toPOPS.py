@@ -907,12 +907,12 @@ def vcd_size_of(path):
 
 # The PS2 manual asks for artwork below 320x240, and Prism reads
 # "<folder>/media/covers/<name>.png" and ".../media/screenshots/<name>.png"
-# beside the games. BatoceraGamelistandBatoceraGamelistandMediaCopier.py already builds exactly that for the ROM
+# beside the games. BatoceraGamelistandMediaCopier.py already builds exactly that for the ROM
 # folders; this does the same for the VCDs, from the same gamelist.
 MEDIA_MAX = (320, 240)
 
 # Which gamelist tag becomes which picture, best first. "cartridge" is the disc
-# art on a PlayStation scrape, which is what BatoceraGamelistandBatoceraGamelistandMediaCopier uses for covers too.
+# art on a PlayStation scrape, which is what BatoceraGamelistandMediaCopier uses for covers too.
 COVER_TAGS = ("cartridge", "boxart", "box", "image", "mix", "thumbnail")
 SCREEN_TAGS = ("screenshot", "thumbnail", "image", "mix", "titleshot")
 

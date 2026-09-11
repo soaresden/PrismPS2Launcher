@@ -50,7 +50,7 @@ These two are NOT read from here.
 Artwork and real game titles
 ----------------------------
 
-"HelperScripts/BatoceraGamelistandBatoceraGamelistandMediaCopier.py" reads the gamelist.xml of a Batocera, Recalbox
+"HelperScripts/BatoceraGamelistandMediaCopier.py" reads the gamelist.xml of a Batocera, Recalbox
 or EmulationStation install, then:
 
 - copies the artwork of your choice (image, boxart, screenshot, cartridge...)

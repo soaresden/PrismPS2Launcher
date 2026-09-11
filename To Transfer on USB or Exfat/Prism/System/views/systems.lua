@@ -47,6 +47,13 @@ function draw_footer(hints)
 	return x
 end
 
+--- "1 game" / "12 games". A launcher that says "1 games" looks unfinished, and the
+--- fix is four lines.
+function games_count(n)
+	if n == 1 then return "1 game" end
+	return tostring(n) .." games"
+end
+
 --- The colour legend: what yellow, cyan and red mean in a game list. -------------------
 --- Drawn once, where there is room, because a colour that has to be explained in a
 --- manual is a colour that failed.
@@ -185,7 +192,9 @@ function systems_view_draw()
 		if LIBRARY.systems[i].virtual ~= true then real = real + 1 end
 	end
 	trace("systems: header")
-	draw_header(real .." systems   ".. total .." games   -   sorted by ".. string.lower(sort_label()))
+	local sys_word = " systems   "
+	if real == 1 then sys_word = " system   " end
+	draw_header(real .. sys_word .. games_count(total) .."   -   sorted by ".. string.lower(sort_label()))
 	trace("systems: column")
 	draw_systems_column(true)
 
@@ -208,7 +217,7 @@ function systems_view_draw()
 		y = y + 26
 		gfx_text(s.note or "", dx, y, THEME.size_small, THEME.text_dim)
 		y = y + 22
-		gfx_text(#s.games .." games", dx, y, THEME.size_text, THEME.text)
+		gfx_text(games_count(#s.games), dx, y, THEME.size_text, THEME.text)
 		y = y + 30
 		if #s.games == 0 and s.folder == "@todo" then
 			gfx_text("Nothing here yet. Open a game list, press triangle on a game", dx, y, THEME.size_small, THEME.text_dim)
@@ -267,7 +276,7 @@ function systems_view_draw()
 			if g.ata then ata = ata + 1 else usb = usb + 1 end
 			if g.warn ~= nil then warn = warn + 1 end
 		end
-		gfx_text(#s.games .." games", dx, y, text, THEME.text_head)
+		gfx_text(games_count(#s.games), dx, y, text, THEME.text_head)
 		y = y + 18
 		if usb > 0 then
 			gfx_text(usb .." on USB", dx, y, small, THEME.usb)
@@ -303,7 +312,9 @@ function systems_view_draw()
 	end
 
 	trace("systems: legend")
-	draw_legend(dx, view_list_bottom() - 14)
+	-- Clear of the footer by a whole line: the footer is a filled bar drawn after this,
+	-- and at 14 pixels it was painting over the bottom half of the words.
+	draw_legend(dx, view_list_bottom() - THEME.size_small - 8)
 	trace("systems: footer")
 	draw_footer({ {"cross", "open"}, {"select", "sort"}, {"start", "menu"} })
 	trace("systems: done")
