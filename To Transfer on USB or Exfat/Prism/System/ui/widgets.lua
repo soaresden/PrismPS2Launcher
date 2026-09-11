@@ -62,14 +62,19 @@ function list_draw(l, x, y, w, row_h, render, focused)
 		if i > #l.items then break end
 		local ry = y + r * row_h
 		local text, color = render(l.items[i], i)
+		local ty = ry + (row_h - size) / 2
 		if i == l.sel then
 			local bar = THEME.selector
 			if focused == false then bar = THEME.panel_hi end
 			gfx_rect(x, ry, w, row_h, bar)
 			gfx_rect(x, ry, 3, row_h, THEME.selector_edge)
-			color = THEME.text_sel
+			-- The selected row is the one you are reading, so it is the one allowed to
+			-- scroll: a long system or game name walks past instead of ending in "~".
+			-- Every other row stays still, because a column of moving text is unreadable.
+			gfx_text_scroll(text, x + 10, ty, size, THEME.text_sel, w - 16)
+		else
+			gfx_text(gfx_fit(text, size, w - 16), x + 10, ty, size, color or THEME.text)
 		end
-		gfx_text(gfx_fit(text, size, w - 16), x + 10, ry + (row_h - size) / 2, size, color or THEME.text)
 	end
 	-- Scroll marks when the list is longer than the window.
 	if #l.items > l.rows then
@@ -87,7 +92,7 @@ end
 --- Each option:
 ---   label   text on the left
 ---   kind    "choice" (left/right cycles values), "toggle", "action" (cross runs it),
----           "info" (not selectable, just text)
+---           "info" (not selectable, just text), "header" (a section title, skipped too)
 ---   values  for "choice": array of display strings
 ---   get()   -> current value (index for choice, boolean for toggle, text for info)
 ---   set(v)  called with the new value
@@ -100,10 +105,15 @@ function menu_new(title, options)
 	return m
 end
 
+--- Rows the selection never lands on: plain text and section titles.
+local function menu_passive(o)
+	return o ~= nil and (o.kind == "info" or o.kind == "header")
+end
+
 function menu_skip_info(m, dir)
 	local n = #m.options
 	local tries = 0
-	while n > 0 and tries < n and m.options[m.sel] ~= nil and m.options[m.sel].kind == "info" do
+	while n > 0 and tries < n and menu_passive(m.options[m.sel]) do
 		m.sel = m.sel + dir
 		if m.sel < 1 then m.sel = n end
 		if m.sel > n then m.sel = 1 end
@@ -155,51 +165,84 @@ function menu_input(m)
 end
 
 --- Draws the menu centred, over whatever is behind (the caller dims the screen). ------
+--- Two fixed columns: labels start at a constant x, values end at a constant x. A
+--- value that is too long is cut, never allowed to run back into its own label.
 function menu_draw(m)
 	local size, small = THEME.size_text, THEME.size_small
-	local row_h = 24
-	local w = 460
-	local h = 44 + #m.options * row_h + 30
-	if h > 400 then h = 400 end
-	local x = (640 - w) // 2
-	local y = (448 - h) // 2
+	local row_h = THEME.menu_row
+	local w = THEME.menu_box.w
+	local x = THEME.menu_box.x
+	local head_h = 28
+	local foot_h = 26
+	local max_h = (gfx_bottom() - gfx_top()) - 2 * THEME.header_h
+	local h = head_h + #m.options * row_h + foot_h + 8
+	if h > max_h then h = max_h end
+	local y = gfx_top() + ((gfx_bottom() - gfx_top()) - h) // 2
+
 	gfx_rect(x, y, w, h, THEME.panel_hi)
 	gfx_rect(x, y, w, h, THEME.panel)
 	gfx_frame(x, y, w, h, THEME.selector_edge)
-	gfx_rect(x, y, w, 30, THEME.selector)
-	gfx_text(m.title, x, y + 7, THEME.size_head, THEME.text_head, "center", w)
+	gfx_rect(x, y, w, head_h, THEME.selector)
+	gfx_text(gfx_fit(m.title, THEME.size_head, w - 24), x, y + 6, THEME.size_head,
+		THEME.text_head, "center", w)
 
-	local rows = math.floor((h - 44 - 30) / row_h)
+	local pad = 16
+	local label_w = THEME.menu_label - pad
+	local value_x = x + THEME.menu_label
+	local value_w = w - THEME.menu_label - pad
+
+	local rows = math.floor((h - head_h - foot_h - 8) / row_h)
 	local top = 1
 	if m.sel > rows then top = m.sel - rows + 1 end
 	for r = 0, rows - 1 do
 		local i = top + r
 		local o = m.options[i]
 		if o == nil then break end
-		local ry = y + 38 + r * row_h
-		if i == m.sel then
-			gfx_rect(x + 6, ry, w - 12, row_h, THEME.selector)
+		local ry = y + head_h + 4 + r * row_h
+		if o.kind == "header" then
+			-- A section title: a thin band across the box, no value, never selected.
+			gfx_rect(x + 4, ry + 4, w - 8, row_h - 7, THEME.panel_hi)
+			gfx_rect(x + 4, ry + 4, 3, row_h - 7, THEME.selector_edge)
+			gfx_text(gfx_fit(o.label, small, w - 28), x + pad, ry + (row_h - small) / 2,
+				small, THEME.text_head)
+		else
+			if i == m.sel then
+				gfx_rect(x + 4, ry, w - 8, row_h, THEME.selector)
+				gfx_rect(x + 4, ry, 3, row_h, THEME.selector_edge)
+			end
+			local col = THEME.text
+			if o.kind == "info" then col = THEME.text_dim end
+			local ty = ry + (row_h - size) / 2
+			gfx_text(gfx_fit(o.label, size, label_w), x + pad, ty, size, col)
+
+			local value, vcol = "", THEME.text_head
+			if o.kind == "choice" then
+				value = "< ".. tostring((o.values or {})[o.get()] or "?") .." >"
+			elseif o.kind == "toggle" then
+				if o.get() then value = "< ON >" else value = "< OFF >"; vcol = THEME.text_dim end
+			elseif o.kind == "action" then
+				value = ">"
+			elseif o.kind == "info" then
+				value = tostring(o.get and o.get() or "")
+				vcol = THEME.text_dim
+			end
+			gfx_text(gfx_fit(value, size, value_w), value_x, ty, size, vcol, "right", value_w)
 		end
-		local col = THEME.text
-		if o.kind == "info" then col = THEME.text_dim end
-		gfx_text(gfx_fit(o.label, size, w * 0.55), x + 16, ry + (row_h - size) / 2, size, col)
-		local value = ""
-		if o.kind == "choice" then
-			local v = o.get()
-			value = "< ".. tostring((o.values or {})[v] or "?") .." >"
-		elseif o.kind == "toggle" then
-			if o.get() then value = "< ON >" else value = "< OFF >" end
-		elseif o.kind == "action" then
-			value = ">"
-		elseif o.kind == "info" then
-			value = tostring(o.get and o.get() or "")
-		end
-		gfx_text(gfx_fit(value, size, w * 0.42), x + 16, ry + (row_h - size) / 2, size, THEME.text_head, "right", w - 32)
 	end
-	local hx = x + 12
-	hx = gfx_hint(hx, y + h - 22, "cross", "select")
-	hx = gfx_hint(hx, y + h - 22, "circle", "back")
-	gfx_text("left / right : change", hx, y + h - 19, small, THEME.text_dim)
+
+	if #m.options > rows then
+		if top > 1 then
+			gfx_text("^", x + w - 14, y + head_h + 4, small, THEME.text_dim)
+		end
+		if top + rows - 1 < #m.options then
+			gfx_text("v", x + w - 14, y + h - foot_h - 14, small, THEME.text_dim)
+		end
+	end
+
+	local hy = y + h - foot_h + 4
+	local hx = gfx_hint(x + pad, hy, "cross", "select")
+	hx = gfx_hint(hx, hy, "circle", "back")
+	gfx_text("left / right : change", hx, hy + 4, small, THEME.text_dim)
 end
 
 --- Dims the whole screen: drawn before a modal. --------------------------------------

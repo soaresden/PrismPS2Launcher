@@ -9,7 +9,7 @@
 LOAD_RES_X, LOAD_RES_Y = 640, 448
 LOAD_ON = false
 LOAD_LINES, LOAD_KINDS = {}, {}
-LOAD_MAX_LINES = 5
+LOAD_MAX_LINES = 8
 LOAD_EXPECTED = 30          -- steps a normal boot takes; the bar fills against this
 LOAD_COUNT = 0
 LOAD_MARK = "System/Medias/Default/prism-mark.png"
@@ -51,9 +51,29 @@ local function draw_prism(cx, cy)
 	Graphics.drawTriangle(cx, cy - 38 + GFX.pal_y, cx - 39, cy + 30 + GFX.pal_y, cx + 39, cy + 30 + GFX.pal_y, THEME.bg_top)
 end
 
-local function credit(x, y, name, author)
-	gfx_text(name, x, y, THEME.size_small, THEME.text_head)
-	gfx_text(author, x, y + 10, THEME.size_small, THEME.text_dim)
+--- The people the launcher stands on, in equal slots across the width. Hard-coded x
+--- positions were what pushed "wLaunchELF" off the right edge the moment the font
+--- changed: the row measures itself now.
+local CREDITS = {
+	{ "Enceladus",  "DanielSant0s" },
+	{ "Neutrino",   "Maximus32" },
+	{ "POPStarter", "krHACKen" },
+	{ "Ember",      "Gageformer" },
+	{ "RetroArch",  "fjtrujy" },
+	{ "OPL",        "ps2homebrew" },
+	{ "wLaunchELF", "israpps" },
+}
+
+local function draw_credits_row(y)
+	local size = THEME.size_small
+	local left = THEME.pad
+	local total = 640 - 2 * THEME.pad
+	local slot = total / #CREDITS
+	for i = 1, #CREDITS do
+		local cx = left + (i - 1) * slot
+		gfx_text(gfx_fit(CREDITS[i][1], size, slot - 4), cx, y, size, THEME.text_head)
+		gfx_text(gfx_fit(CREDITS[i][2], size, slot - 4), cx, y + 11, size, THEME.text_dim)
+	end
 end
 
 function load_paint()
@@ -69,17 +89,20 @@ function load_paint()
 	gfx_text("Where every system converges.", 0, 206, THEME.size_small, THEME.exfat, "center", 640)
 
 	-- Progress bar, the current step written inside it.
-	local bx, by, bw, bh = 140, 228, 360, 18
+	local bx, by, bw, bh = 100, 228, 440, 18
 	gfx_rect(bx, by, bw, bh, THEME.panel)
 	gfx_frame(bx, by, bw, bh, THEME.selector_edge)
 	local frac = LOAD_COUNT / LOAD_EXPECTED
 	if frac > 1 then frac = 1 end
 	gfx_rect(bx + 1, by + 1, math.floor((bw - 2) * frac), bh - 2, THEME.selector)
+	-- The step in progress goes UNDER the bar, not inside it: a line of text across a
+	-- filling bar is unreadable exactly when the bar is half full.
 	local current = LOAD_LINES[#LOAD_LINES] or ""
-	gfx_text(gfx_fit(current, THEME.size_small, bw - 12), bx, by + 5, THEME.size_small, THEME.text_head, "center", bw)
+	local y = by + bh + 8
+	gfx_text(gfx_fit(current, THEME.size_text, 600), 0, y, THEME.size_text, THEME.text_head, "center", 640)
+	y = y + 18
 
 	-- The steps before it, most recent last, coloured by where they happened.
-	local y = by + bh + 6
 	local first = math.max(1, #LOAD_LINES - LOAD_MAX_LINES)
 	for i = first, #LOAD_LINES - 1 do
 		local col = THEME.text_dim
@@ -90,26 +113,35 @@ function load_paint()
 		y = y + 11
 	end
 
-	-- Credits.
-	local fy = 340
-	gfx_rect(0, fy, 640, 448 - fy, THEME.panel)
+	-- Credits, along the bottom. Everything is measured against the safe margin, so a
+	-- change of font moves the text but never posts it off the screen.
+	local pad = THEME.pad
+	local half = (640 - 2 * pad) / 2
+	-- Pinned to the REAL bottom of the screen, not to the bottom of the 448-line
+	-- layout: on PAL those are 32 pixels apart, and that gap under the credits is
+	-- exactly the empty band that kept showing up in the screenshots.
+	local foot_h = 112
+	local fy = gfx_bottom() - foot_h
+	gfx_rect(0, fy, 640, foot_h, THEME.panel)
 	gfx_rect(0, fy, 640, 1, THEME.line)
-	gfx_text("CREATED BY", 14, fy + 8, THEME.size_small, THEME.text_dim)
-	gfx_text("soaresden", 14, fy + 20, THEME.size_head, THEME.text_head)
-	gfx_text("SPECIAL THANKS", 320, fy + 8, THEME.size_small, THEME.text_dim, "right", 306)
-	gfx_text("Boon - Spaghetticode", 320, fy + 20, THEME.size_text, THEME.exfat, "right", 306)
-	gfx_text("original RETROLauncher, the foundation this grew from", 320, fy + 36, THEME.size_small, THEME.text_dim, "right", 306)
-	local cy = fy + 56
-	credit(14, cy, "Enceladus", "DanielSant0s")
-	credit(96, cy, "Neutrino", "Maximus32")
-	credit(178, cy, "POPStarter", "krHACKen")
-	credit(268, cy, "Ember", "Gageformer")
-	credit(340, cy, "RetroArch", "fjtrujy")
-	credit(422, cy, "OPL", "ps2homebrew")
-	credit(510, cy, "wLaunchELF", "israpps")
-	gfx_text("Inspired by EmulationStation (Batocera) - interface after PlayStation-X by pajarorrojo", 14, fy + 84, THEME.size_small, THEME.text_dim)
-	gfx_text("v1.0 - 2026 - Enceladus", 320, fy + 84, THEME.size_small, THEME.text_dim, "right", 306)
-	gfx_text("Assets redrawn, not copied. Console names and logos belong to their owners.", 14, fy + 96, THEME.size_small, THEME.text_dim)
+
+	gfx_text("CREATED BY", pad, fy + 7, THEME.size_small, THEME.text_dim)
+	gfx_text("soaresden", pad, fy + 19, THEME.size_head, THEME.text_head)
+
+	local rx = pad + half
+	gfx_text("SPECIAL THANKS", rx, fy + 7, THEME.size_small, THEME.text_dim, "right", half)
+	gfx_text(gfx_fit("Boon - Spaghetticode", THEME.size_text, half), rx, fy + 19,
+		THEME.size_text, THEME.exfat, "right", half)
+	gfx_text(gfx_fit("original RETROLauncher, what this grew from", THEME.size_small, half),
+		rx, fy + 35, THEME.size_small, THEME.text_dim, "right", half)
+
+	draw_credits_row(fy + 56)
+
+	gfx_text(gfx_fit("Inspired by EmulationStation - interface after PlayStation-X by pajarorrojo",
+		THEME.size_small, half + 40), pad, fy + 84, THEME.size_small, THEME.text_dim)
+	gfx_text("v1.0 - 2026 - Enceladus", rx, fy + 84, THEME.size_small, THEME.text_dim, "right", half)
+	gfx_text(gfx_fit("Assets redrawn, not copied. Console names and logos belong to their owners.",
+		THEME.size_small, 640 - 2 * pad), pad, fy + 96, THEME.size_small, THEME.text_dim)
 end
 
 --- One boot step: to the journal (flushed) and to the screen. ---------------------------

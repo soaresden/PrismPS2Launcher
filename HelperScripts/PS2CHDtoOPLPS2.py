@@ -87,10 +87,10 @@ CD_MAX_BYTES below if you ever need to move it.
 --------------------------------------------------------------------------------
 USAGE
 --------------------------------------------------------------------------------
-    python PS2CHDtoOPLPS2.py                 dry run - says what it would do
-    python PS2CHDtoOPLPS2.py --go            actually convert and copy
-    python PS2CHDtoOPLPS2.py --go --limit 3  the first three only, to try it out
-    python PS2CHDtoOPLPS2.py --go --replace  also overwrite different dumps
+    python PS2CHDtoOPLPS2.py                 convert and copy
+    python PS2CHDtoOPLPS2.py --dry           say what it would do, write nothing
+    python PS2CHDtoOPLPS2.py --limit 3       the first three only, to try it out
+    python PS2CHDtoOPLPS2.py --replace       also overwrite different dumps
 
 A game can be on the drive already and still not match by size: the Batocera CHD
 is simply a different dump of the same disc. That happened to God Of War I, 7 Sins
@@ -546,7 +546,9 @@ def human(n):
 
 
 def main():
-    go = "--go" in sys.argv
+    # Converts by default; --dry is the rehearsal. A game already on the drive is
+    # skipped either way, so there is nothing to protect with an extra flag.
+    go = "--dry" not in sys.argv and "--dry-run" not in sys.argv
     replace = "--replace" in sys.argv
     limit = None
     if "--limit" in sys.argv:
@@ -556,7 +558,7 @@ def main():
             pass
 
     print("=" * 74)
-    print("PS2 CHD -> OPL ISO" + ("" if go else "        DRY RUN - nothing will be written"))
+    print("PS2 CHD -> OPL ISO" + ("" if go else "        DRY RUN (--dry) - nothing will be written"))
     print("=" * 74)
     print("  source      : %s" % SOURCE_DIR)
     print("  destination : %s" % DEST_DIR)
@@ -705,7 +707,7 @@ def main():
         for name, size in todo:
             media = "CD" if size <= CD_MAX_BYTES else "DVD"
             print("    [%s] %8s  %s" % (media, human(size), titles[name]))
-        print("\n  Re-run with --go to do it.")
+        print("\n  Dry run (--dry). Run it without --dry to do it.")
         return 0
 
     # ---- work -------------------------------------------------------------

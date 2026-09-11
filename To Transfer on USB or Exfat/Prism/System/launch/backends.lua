@@ -14,6 +14,11 @@ function launch_run(game, plan)
 		launch_fail("A .chd cannot run on the PS2. Convert it on the PC first.")
 		return
 	end
+	if game.warn == "loose" then
+		launch_begin(game.title)
+		launch_fail("Neither POPStarter nor Ember reads this. Make a .VCD of it.")
+		return
+	end
 	local id = plan.backend
 	if game.kind == "psx" then
 		if id == "ember" then return launch_ember(game, plan) end
@@ -179,6 +184,14 @@ end
 --- the folder name; Ember resolves everything else from its own directory.
 function launch_ember(game, plan)
 	launch_begin(game.title)
+	-- A .cue/.bin found loose in Roms/psx is moved into Ember/games/<Game>/ first:
+	-- Ember is handed a folder name, never a path. See emu/ember_park.lua.
+	if game.ember == nil and game.disc ~= nil then
+		if ember_park(game) == false then
+			launch_fail("Could not move it into Ember/games - see the journal")
+			return
+		end
+	end
 	if game.ember == nil then
 		launch_fail("No Ember folder for this game")
 		return
@@ -190,7 +203,7 @@ function launch_ember(game, plan)
 	end
 	launch_step("Ember at ".. root)
 	if ember_bios(root) ~= true then
-		launch_fail("bios.bin missing: put a PS1 BIOS in Bios/bios.bin (copied to Ember/ once)")
+		launch_fail("No PS1 BIOS: put scph1001.bin (or any SCPH dump) in Bios/")
 		return
 	end
 	local what = ember_contents(dir)

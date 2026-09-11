@@ -13,6 +13,13 @@ PREFS = {
 		video = "auto",         -- auto | ntsc | pal  (applied at next boot)
 		show_hidden = "off",
 		last_system = "",
+		sort = "folder",        -- folder | maker | year, see library/collections.lua
+		-- Which picture goes in each of the game column's three slots.
+		art_a = "cartridges",   -- beside the title
+		art_b = "screenshots",  -- bottom left
+		art_c = "covers",       -- bottom right
+		select_color = "blue",  -- the selection bar, see SELECTION_COLORS in ui/theme
+		scroll_speed = "fast",  -- slow | normal | fast, for long lines of text
 	},
 }
 

@@ -136,6 +136,18 @@ if true then
 		Screen.setMode(PAL, 640, 512, CT24, INTERLACED, FIELD)
 		res_x, res_y = 640, 512
 	end
+	-- Then ASK, rather than believe the above. Enceladus starts a PAL console at
+	-- 640x512 on its own, whatever the marker file says, so a stick with no marker
+	-- had the interface laying itself out for 448 lines on a 512-line screen - which
+	-- is precisely the band of nothing that kept appearing under the credits.
+	pcall(function()
+		local m = Screen.getMode()
+		if m ~= nil and m.width ~= nil and m.height ~= nil
+		   and m.width > 0 and m.height > 0 then
+			res_x, res_y = m.width, m.height
+		end
+	end)
+	boot_log("BOOT   screen ".. res_x .."x".. res_y)
 	loading_init(res_x, res_y)
 	local origin, kind = origin_text()
 	load_step(origin, kind)
@@ -317,14 +329,18 @@ load_module("ui/sound")
 --- Everything above is the machine: drives, journal, emulators, sound. Everything below
 --- is what the user sees, and it only depends on the theme and the library.
 load_module("emu/retroarch_prepare")
+load_module("emu/ember_park")
 load_module("systems")
+load_module("systems_info")
 load_module("core/prefs")
 load_module("ui/input")
 load_module("ui/widgets")
 load_module("library/gamelist_xml")
 load_module("library/library")
+load_module("library/collections")
 load_module("views/systems")
 load_module("views/gamelist")
+load_module("views/viewer")
 load_module("views/launch")
 load_module("views/menu")
 load_module("launch/backends")

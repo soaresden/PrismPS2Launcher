@@ -48,7 +48,7 @@ function RUTA_ROM(identidad, sistema, nombre)
 end
 
 --- Titulos reales de los juegos. TITULOS["identidad|fichero"] = titulo. -------------
---- Los genera el script "HelperScripts/MediaCopier.py" en un "titles.txt" por
+--- Los genera el script "HelperScripts/BatoceraGamelistandBatoceraGamelistandMediaCopier.py" en un "titles.txt" por
 --- carpeta, a partir del gamelist.xml de Batocera / Recalbox / EmulationStation.
 --- Formato de cada linea: nombre_de_fichero|Titulo del juego
 TITULOS = {}

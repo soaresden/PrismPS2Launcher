@@ -1,7 +1,7 @@
 -- Prism PS2 Launcher - library/gamelist_xml.lua
 -- gamelist.xml, the EmulationStation format, read and written. This is what lets a
 -- scraper made for ES (ARRM, Skraper, Batocera's own) fill in titles, descriptions
--- and artwork for Prism, and what HelperScripts/MediaCopier.py can copy straight from
+-- and artwork for Prism, and what HelperScripts/BatoceraGamelistandBatoceraGamelistandMediaCopier.py can copy straight from
 -- an existing Batocera install.
 --
 --   <gameList>
@@ -110,6 +110,7 @@ function gamelist_parse(path)
 				image = resolve(base, field(block, "image")),
 				thumbnail = resolve(base, field(block, "thumbnail")),
 				marquee = resolve(base, field(block, "marquee")),
+				cartridge = resolve(base, field(block, "cartridge")),
 			}
 			local keys = path_keys(p)
 			for i = 1, #keys do
@@ -160,6 +161,7 @@ function gamelist_apply(folder, games)
 			end
 		end
 		if e ~= nil then
+			g.listed = true
 			if e.name ~= nil then g.title = e.name end
 			g.desc, g.developer, g.publisher = e.desc, e.developer, e.publisher
 			g.genre, g.players, g.rating = e.genre, e.players, e.rating
@@ -167,10 +169,69 @@ function gamelist_apply(folder, games)
 			-- Artwork named by the file wins over the naming convention, when it exists.
 			if e.thumbnail ~= nil and doesFileExist(e.thumbnail) then g.art_covers = e.thumbnail end
 			if e.image ~= nil and doesFileExist(e.image) then g.art_screenshots = e.image end
-			if e.marquee ~= nil and doesFileExist(e.marquee) then g.art_marquee = e.marquee end
+			if e.marquee ~= nil and doesFileExist(e.marquee) then g.art_wheels = e.marquee end
+			if e.cartridge ~= nil and doesFileExist(e.cartridge) then g.art_cartridges = e.cartridge end
 		end
 	end
 	return true
+end
+
+--- The <path> a game is written under: the file, or the folder for an Ember game. -----
+local function game_path(g)
+	if g.vcd == nil and g.ember ~= nil then return "./".. g.ember .."/" end
+	return "./".. g.file
+end
+
+--- Add the games that are on the drive but not in the gamelist. -----------------------
+--- A scraper only ever describes what it was pointed at, so a game copied in afterwards
+--- is missing from the file even though it is right there on the disk. Rather than
+--- ignore it, or rewrite the whole gamelist and lose every description in it, the new
+--- games are appended before </gameList> with the two things we know for certain: where
+--- it is and what it is called. A scraper run later fills in the rest.
+function gamelist_add_missing(folder, games)
+	local missing = {}
+	for i = 1, #games do
+		if games[i].listed ~= true then missing[#missing + 1] = games[i] end
+	end
+	if #missing == 0 then return 0 end
+
+	-- The file to grow is the one a scraper is pointed at: Roms/<system>/gamelist.xml.
+	local path = nil
+	local cands = candidates(folder)
+	for i = 1, #cands do
+		if doesFileExist(cands[i]) and string.find(string.lower(cands[i]), "/roms/", 1, true) ~= nil then
+			path = cands[i]
+			break
+		end
+	end
+	if path == nil then
+		for i = 1, #cands do
+			if doesFileExist(cands[i]) then path = cands[i]; break end
+		end
+	end
+	if path == nil then return 0 end
+
+	local xml = read_file(path)
+	if xml == nil then return 0 end
+	local cut = string.find(xml, "</gameList>", 1, true)
+	if cut == nil then return 0 end
+
+	local t = {}
+	for i = 1, #missing do
+		local g = missing[i]
+		t[#t + 1] = "\t<game>\n\t\t<path>".. encode(game_path(g)) .."</path>\n\t\t<name>"
+			.. encode(g.title) .."</name>\n\t</game>\n"
+	end
+	local text = string.sub(xml, 1, cut - 1) .. table.concat(t) .. string.sub(xml, cut)
+	pcall(function()
+		local fd = System.openFile(path, FCREATE)
+		System.writeFile(fd, text, string.len(text))
+		System.closeFile(fd)
+	end)
+	if log_event ~= nil then
+		log_event("LIB", "gamelist ".. path .."  +".. #missing .." game(s) not scraped yet")
+	end
+	return #missing
 end
 
 --- Write a starting gamelist.xml for a system that has none. -------------------------
@@ -188,9 +249,7 @@ function gamelist_write_default(folder, games)
 	local t = { "<?xml version=\"1.0\"?>\n<gameList>\n" }
 	for i = 1, #games do
 		local g = games[i]
-		local p = "./".. g.file
-		if g.vcd == nil and g.ember ~= nil then p = "./".. g.ember .."/" end
-		t[#t + 1] = "\t<game>\n\t\t<path>".. encode(p) .."</path>\n\t\t<name>".. encode(g.title) .."</name>\n"
+		t[#t + 1] = "\t<game>\n\t\t<path>".. encode(game_path(g)) .."</path>\n\t\t<name>".. encode(g.title) .."</name>\n"
 		local cover = library_art(g, "covers")
 		local shot = library_art(g, "screenshots")
 		if cover ~= nil then t[#t + 1] = "\t\t<thumbnail>./media/covers/".. encode(string.match(cover, "([^/]+)$")) .."</thumbnail>\n" end

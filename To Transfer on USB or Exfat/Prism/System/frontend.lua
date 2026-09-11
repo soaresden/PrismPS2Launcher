@@ -7,6 +7,20 @@
 
 VIEW = "systems"
 
+--- Tracing the first frames. ------------------------------------------------------------
+--- BOOT_FLUSH goes false once the boot is over, so everything logged afterwards sits in
+--- memory until something flushes it - no use at all when the thing being chased is a
+--- freeze, because a freeze never reaches the flush. This writes the line AND forces it
+--- to disk, for the first few frames only. Set TRACE_FRAMES to 0 when the interface is
+--- trusted: the cost is a whole file rewritten per line.
+TRACE_FRAMES = 3
+
+function trace(text)
+	if TRACE_FRAMES <= 0 then return end
+	boot_log("TRACE  ".. tostring(text))
+	boot_flush()
+end
+
 --- Menu sounds. S_MOVER / S_EJECUTAR / S_CANCELAR / S_NETX come from ui/sound.lua. -----
 function play_sfx(sound)
 	if sound == nil then return end
@@ -46,6 +60,8 @@ end
 
 function frontend_start()
 	prefs_load()
+	theme_selection(prefs_get("select_color"))
+	gfx_scroll_speed(prefs_get("scroll_speed"))
 	if sfx_volume ~= nil then pcall(sfx_volume, 65) end
 	-- The library is built while the boot screen is still up; then the interface
 	-- takes over. Fonts were made by the boot screen (gfx_init runs once).
@@ -53,7 +69,10 @@ function frontend_start()
 	boot_log("BOOT   frontend ready, entering the systems view")
 	boot_flush()
 	load_end()
+	trace("load_end done")
 	systems_view_init()
+	trace("systems_view_init done, ".. #LIBRARY.systems .." entries, "
+		.. tostring(SYSTEMS_VIEW.list.rows) .." rows")
 	-- Reopen where the user was.
 	local last = prefs_get("last_system")
 	if last ~= nil and last ~= "" then
@@ -66,8 +85,11 @@ function frontend_start()
 end
 
 function frontend_run()
+	trace("entering the loop")
 	while true do
+		trace("frame: input")
 		input_poll()
+		gfx_tick()
 
 		if MAIN_MENU ~= nil then
 			main_menu_input()
@@ -75,21 +97,34 @@ function frontend_run()
 			systems_view_input()
 		elseif VIEW == "gamelist" then
 			gamelist_input()
+		elseif VIEW == "viewer" then
+			viewer_input()
 		elseif VIEW == "launch" then
 			launch_view_input()
 		end
 
-		gfx_background()
+		trace("frame: background")
+		-- The viewer paints its own black background; everything else gets the gradient.
+		if VIEW ~= "viewer" then gfx_background() end
+		trace("frame: draw ".. tostring(VIEW))
 		if VIEW == "systems" then
 			systems_view_draw()
 		elseif VIEW == "gamelist" then
 			gamelist_draw()
+		elseif VIEW == "viewer" then
+			viewer_draw()
 		elseif VIEW == "launch" then
 			launch_view_draw()
 		end
 		if MAIN_MENU ~= nil then main_menu_draw() end
 
+		trace("frame: flip")
 		music_tick()
 		Screen.flip()
+		TRACE_FRAMES = TRACE_FRAMES - 1
+		if TRACE_FRAMES == 0 then
+			boot_log("TRACE  the interface is drawing; tracing stops here")
+			boot_flush()
+		end
 	end
 end

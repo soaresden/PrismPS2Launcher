@@ -120,16 +120,16 @@ To Transfer on USB or Exfat/Prism/System/Medias/Font/UI.otf
 HelperScripts/__pycache__/
 HelperScripts/PopsDelay.py
 /To Transfer on USB or Exfat/Prism/POPStarter
-MESSAGE-TO-BOON.md
-MESSAGE-TO-BOON.md
 /HelperScripts/Converted
-MESSAGE-TO-BOON.md
-To Transfer on USB or Exfat/Prism/SyncGithubFolder-HDD.ffs_gui
-To Transfer on USB or Exfat/Prism/SyncGithubFolder-HDD.ffs_gui
-To Transfer on USB or Exfat/Prism/SyncGithubFolder-HDD.ffs_gui
-*.ffs_gui
-PR-MESSAGE.md
 /HelperScripts/PopsWork
+MESSAGE-TO-BOON.md
+PR-MESSAGE.md
+
+# Console-photo tooling: the previews you look at before picking one, and the
+# untouched copy MakePhotosTransparent keeps beside each photo. Neither is shipped.
+HelperScripts/PhotoCandidates/
+HelperScripts/CHDtoConvert/
+*.orig.png
 
 # Personal FreeFileSync profile: local drive letters, nothing to share
 *.ffs_gui

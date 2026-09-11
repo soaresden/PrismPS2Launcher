@@ -67,7 +67,16 @@ local function is_ata(path)
 	return false
 end
 
---- PlayStation 1: POPS/ on each drive (.VCD) and Ember/games (one folder per game). -----
+--- A loose PlayStation 1 disc image: what you get when a rom folder is copied straight
+--- off a PC. None of these run on the PS2 as they are - POPStarter wants a .VCD and
+--- Ember wants its own folder - but they are still the game, so they are listed, in
+--- red, with what to do about it. A game you cannot see is a game you cannot fix.
+local PSX_DISC = {
+	[".cue"] = true, [".bin"] = true, [".img"] = true,
+	[".iso"] = true, [".chd"] = true, [".pbp"] = true,
+}
+
+--- PlayStation 1: POPS/ (.VCD), Ember/games (one folder per game), Roms/psx (loose). ----
 local function scan_psx(sys, games, seen)
 	for r = 1, #RAICES do
 		local dirs = scan_roots("psx", RAICES[r])
@@ -76,6 +85,16 @@ local function scan_psx(sys, games, seen)
 			local list = System.listDirectory(dir)
 			if list ~= nil then
 				local is_ember = (string.find(string.lower(dir), "/ember/games", 1, true) ~= nil)
+				-- A .cue names its .bin, so the .bin must not be listed as a game of its
+				-- own: one disc, one line. Collected first, because the directory does
+				-- not come back in any promised order.
+				local cued = {}
+				for i = 1, #list do
+					local e = list[i]
+					if e.directory == false and lower_ext(e.name) == ".cue" then
+						cued[string.lower(stem_of(e.name))] = true
+					end
+				end
 				for i = 1, #list do
 					local e = list[i]
 					local name = e.name
@@ -114,17 +133,55 @@ local function scan_psx(sys, games, seen)
 							entry.dir = dir
 							entry.path = entry.vcd
 							entry.ata = is_ata(dir)
+						elseif is_ember == false and e.directory == false
+						       and PSX_DISC[lower_ext(name)] == true then
+							local ext = lower_ext(name)
+							-- The .bin of a .cue is not a game; the .cue already is.
+							if ext ~= ".bin" or cued[string.lower(stem_of(name))] ~= true then
+								key = "psx|".. string.lower(ps1_key and ps1_key(name) or stem_of(name))
+								entry = seen[key]
+								if entry == nil then
+									entry = { file = name, stem = stem_of(name), title = title_for("psx", name),
+										kind = "psx", dir = dir, ata = is_ata(dir) }
+									seen[key] = entry
+									games[#games + 1] = entry
+								end
+								if entry.disc == nil then
+									entry.disc = dir .."/".. name
+									entry.disc_ext = ext
+									if entry.path == nil then
+										entry.file = name
+										entry.stem = stem_of(name)
+										entry.dir = dir
+										entry.path = entry.disc
+										entry.ata = is_ata(dir)
+									end
+								end
+							end
 						end
 					end
 				end
 			end
 		end
 	end
-	-- A game that only exists as an Ember folder holding a .chd cannot run anywhere.
+	-- Now decide what can actually be run. A game with a .VCD, or an Ember folder that
+	-- is not a .chd, is fine however many other copies of it are lying about.
 	for i = 1, #games do
 		local g = games[i]
-		if g.vcd == nil and g.ember_chd == true then g.warn = "chd" end
 		if g.path == nil and g.ember_dir ~= nil then g.path = g.ember_dir end
+		if g.vcd ~= nil then
+			g.warn = nil
+		elseif g.ember_dir ~= nil then
+			-- An Ember folder holding a .chd cannot run anywhere.
+			if g.ember_chd == true then g.warn = "chd" end
+		elseif g.disc ~= nil then
+			-- A loose image. A .cue or .bin is Ember's food: the launcher moves it into
+			-- Ember/games/<Game>/ on the way in (emu/ember_park.lua), so it plays. The
+			-- rest genuinely has nowhere to go without a conversion on the PC.
+			if g.disc_ext == ".cue" or g.disc_ext == ".bin" then g.warn = nil
+			elseif g.disc_ext == ".chd" then g.warn = "chd"
+			else g.warn = "loose" end
+		end
 	end
 end
 
@@ -176,6 +233,10 @@ function library_build(progress)
 			-- description and artwork paths; a system without one gets a starter file.
 			if gamelist_apply(sys.folder, games) == false then
 				gamelist_write_default(sys.folder, games)
+			else
+				-- A gamelist exists, but a game copied in since the last scrape is not
+				-- in it. Add it, with its name, instead of leaving it undescribed.
+				gamelist_add_missing(sys.folder, games)
 			end
 			table.sort(games, function(a, b) return string.lower(a.title) < string.lower(b.title) end)
 			local entry = { folder = sys.folder, name = sys.name, games = games }
@@ -185,6 +246,12 @@ function library_build(progress)
 			if progress ~= nil then progress(sys.name, #games) end
 		end
 	end
+	-- Recent, Favourites and To finish are built from the library and put at the top of
+	-- the column; then the real systems are ordered the way the user asked for.
+	collections_load()
+	collections_refresh()
+	collections_sort_systems(prefs_get("sort"))
+
 	LIBRARY.built = true
 	if boot_flush ~= nil then boot_flush() end
 end

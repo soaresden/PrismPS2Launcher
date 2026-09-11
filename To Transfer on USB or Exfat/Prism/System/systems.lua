@@ -638,9 +638,17 @@ SYSTEMS["psx"] = {
 	folder   = "psx",
 	roots    = {
 		{ path = "POPS", at = "drive" },
+		-- POPS beside Prism as well as at the root of the drive. Both layouts exist in
+		-- the wild, and under HostFS (PCSX2) the "drive" is the Prism folder itself, so
+		-- a POPS folder one level up was invisible until now.
+		{ path = "POPS", at = "launcher" },
 		{ path = "Ember/games", at = "launcher" },
+		-- Last, and on purpose: a game that is BOTH a .VCD in POPS and a loose disc
+		-- image here is the same game, and the .VCD is the copy that runs. Scanning
+		-- POPS first means the entry is already the playable one when we get here.
+		{ path = "Roms/psx", at = "launcher" },
 	},
-	ext      = {".bin", ".cue", ".vcd"},
+	ext      = {".bin", ".cue", ".vcd", ".chd", ".img", ".iso", ".pbp"},
 	backends = {
 		{ kind = "pops", id = "pops", name = "POPStarter", ext = {".vcd"} },
 		{ kind = "ember", id = "ember", name = "Ember", ext = {".cue", ".bin"} },
@@ -654,8 +662,11 @@ SYSTEMS["ps2"] = {
 	roots    = {
 		{ path = "DVD", at = "drive" },
 		{ path = "CD", at = "drive" },
+		-- Same idea as psx: whatever is dropped in Roms/ps2 is found too, so a game
+		-- is never invisible just because it is not in the folder we expected.
+		{ path = "Roms/ps2", at = "launcher" },
 	},
-	ext      = {".iso"},
+	ext      = {".iso", ".chd"},
 	backends = {
 		{ kind = "neutrino", id = "neutrino", name = "Neutrino", ext = {".iso"} },
 		{ kind = "opl", id = "opl", name = "OPL", ext = {".iso"} },

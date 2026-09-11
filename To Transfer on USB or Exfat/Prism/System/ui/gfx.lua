@@ -54,6 +54,20 @@ function gfx_set_screen(w, h)
 	GFX.pal_y = (h - 448) // 2
 end
 
+--- The real edges of the screen, in layout coordinates. -------------------------------
+--- PAL draws 512 lines, the layout is 448, so it is centred and 32 pixels are left over
+--- at each end. Anything that should sit ON an edge - the header, the footer, the
+--- credits at the foot of the boot screen - has to ask for the real edge, or it floats
+--- with a band of background under it that looks like a mistake, because it is one.
+--- NTSC: top 0, bottom 448. PAL: top -32, bottom 480.
+function gfx_top()
+	return -GFX.pal_y
+end
+
+function gfx_bottom()
+	return GFX.h - GFX.pal_y
+end
+
 --- Average character width at a size: the measured advance for a pixel font, a
 --- deliberately generous estimate for a proportional one (over-estimating makes text
 --- wrap early, under-estimating makes it run out of its box).
@@ -71,12 +85,15 @@ local NARROW = "iltjfIr.,:;'!|()[]{}/\\"
 local WIDE   = "mwMW@%"
 local CAPS   = "ABCDEFGHJKLNOPQRSTUVXYZ0123456789#$&+="
 
+--- Rounded up on purpose. An over-estimate cuts a string one letter early and nudges a
+--- centred one a pixel left; an under-estimate lets text walk off the screen, which is
+--- what the first pass did to the credits line on the boot screen.
 local function char_rel(ch)
-	if ch == " " then return 0.28 end
-	if string.find(NARROW, ch, 1, true) ~= nil then return 0.33 end
-	if string.find(WIDE, ch, 1, true) ~= nil then return 0.84 end
-	if string.find(CAPS, ch, 1, true) ~= nil then return 0.60 end
-	return 0.53
+	if ch == " " then return 0.34 end
+	if string.find(NARROW, ch, 1, true) ~= nil then return 0.40 end
+	if string.find(WIDE, ch, 1, true) ~= nil then return 1.00 end
+	if string.find(CAPS, ch, 1, true) ~= nil then return 0.74 end
+	return 0.66
 end
 
 --- Width of a string in pixels. Fixed-width fonts take the fast path. ----------------
@@ -113,6 +130,57 @@ function gfx_fit(text, size, width)
 	end
 	if n == 0 then return "" end
 	return string.sub(text, 1, n) .."~"
+end
+
+--- Cut to fit, with no mark. For the scrolling window below, where a "~" would be a
+--- letter of the text itself.
+function gfx_clip(text, size, width)
+	text = tostring(text or "")
+	if gfx_text_w(text, size) <= width then return text end
+	local w, n = 0, 0
+	for i = 1, string.len(text) do
+		local cw = gfx_char_w(size)
+		if THEME.proportional == true then cw = char_rel(string.sub(text, i, i)) * size end
+		if w + cw > width then break end
+		w = w + cw
+		n = i
+	end
+	return string.sub(text, 1, n)
+end
+
+--- A line that scrolls, right to left, for ever, when it does not fit. ----------------
+--- It moves a letter at a time rather than a pixel at a time, and for a reason:
+--- Font.ftPrint has no clipping rectangle, so a string drawn at a fractional offset
+--- would spill over whatever is beside it. Sliding the WINDOW over the string instead
+--- of the string under a window keeps every pixel inside the box. The text is wrapped
+--- with a separator so the end runs into the beginning without looking like a glitch.
+GFX.frame = 0
+SCROLL_FRAMES = 3                  -- frames per character; 3 is ~16 letters a second
+SCROLL_GAP = "     ---     "
+SCROLL_SPEEDS = { slow = 7, normal = 5, fast = 3, faster = 2 }
+SCROLL_MODES  = { "slow", "normal", "fast", "faster" }
+SCROLL_LABELS = { "Slow", "Normal", "Fast", "Very fast" }
+
+function gfx_scroll_speed(name)
+	SCROLL_FRAMES = SCROLL_SPEEDS[name] or 3
+end
+
+function gfx_tick()
+	GFX.frame = GFX.frame + 1
+end
+
+function gfx_text_scroll(text, x, y, size, color, width)
+	text = tostring(text or "")
+	if text == "" then return end
+	if gfx_text_w(text, size) <= width then
+		gfx_text(text, x, y, size, color)
+		return
+	end
+	local padded = text .. SCROLL_GAP
+	local n = string.len(padded)
+	local off = math.floor(GFX.frame / SCROLL_FRAMES) % n
+	gfx_text(gfx_clip(string.sub(padded, off + 1) .. string.sub(padded, 1, off), size, width),
+		x, y, size, color)
 end
 
 --- Word-wrap text into at most max_lines lines of "width" pixels. ----------------------
@@ -158,10 +226,18 @@ function gfx_text(text, x, y, size, color, align, width)
 	elseif size == THEME.size_small then font = GFX.font_small
 	elseif size == THEME.size_title then font = GFX.font_title end
 	if font == nil then return end
-	local tw = gfx_text_w(text, size)
+	-- Centring is handed to FreeType rather than computed here. Our width estimate is
+	-- good enough to decide where to CUT a string, but not to place it to the pixel,
+	-- and a title that sits thirty pixels left of its logo is the proof. Align 8 with
+	-- x at the middle of the box is what the original launcher used for its centred
+	-- text, and it measures the real glyphs.
 	if align == "center" then
-		x = x + ((width or 0) - tw) / 2
-	elseif align == "right" then
+		Font.ftPrint(font, math.floor(x + (width or 0) / 2), math.floor(y + GFX.pal_y),
+			8, math.floor(width or 640), 48, text, color or THEME.text)
+		return
+	end
+	local tw = gfx_text_w(text, size)
+	if align == "right" then
 		x = x + (width or 0) - tw
 	end
 	Font.ftPrint(font, math.floor(x), math.floor(y + GFX.pal_y), 0, 640, 48, text, color or THEME.text)
@@ -235,30 +311,48 @@ function gfx_image_fit(path, x, y, w, h)
 	return true
 end
 
---- A button hint: coloured disc with the button letter, then a label. ----------------
---- Returns the x after the hint, so several can be laid out in a row.
+--- The real pad buttons, redrawn for Prism in System/Medias/Pads/psx/. ---------------
+--- A coloured square with a letter in it is what you draw when you have no picture;
+--- these are the shapes people have known since 1994, and they are read without being
+--- read. Anything not in this table falls back to a pill with its name written in it,
+--- which is what L3, or a key on a USB keyboard, gets.
+BUTTON_ICON = {
+	cross    = "System/Medias/Pads/psx/ps-cross.png",
+	circle   = "System/Medias/Pads/psx/ps-circle.png",
+	square   = "System/Medias/Pads/psx/ps-square.png",
+	triangle = "System/Medias/Pads/psx/ps-triangle.png",
+	l1       = "System/Medias/Pads/psx/ps-l1.png",
+	l2       = "System/Medias/Pads/psx/ps-l2.png",
+	l3       = "System/Medias/Pads/psx/ps-l3.png",
+	r1       = "System/Medias/Pads/psx/ps-r1.png",
+	r2       = "System/Medias/Pads/psx/ps-r2.png",
+	r3       = "System/Medias/Pads/psx/ps-r3.png",
+	start    = "System/Medias/Pads/psx/ps-start.png",
+	select   = "System/Medias/Pads/psx/ps-select.png",
+}
+
+--- A button hint: the button, then what it does. -------------------------------------
+--- Returns the x after the hint, so a row of them lays itself out.
 function gfx_hint(x, y, button, label)
-	local colors = {
-		cross = THEME.btn_cross, circle = THEME.btn_circle,
-		square = THEME.btn_square, triangle = THEME.btn_triangle,
-	}
-	local letters = { cross = "X", circle = "O", square = "#", triangle = "^" }
 	local size = THEME.size_small
-	local letter = letters[button] or button
-	local d = 16
-	local c = colors[button] or THEME.btn_neutral
-	if letters[button] ~= nil then
-		-- A badge, not a circle: this build's drawCircle takes a number for "filled",
-		-- and a square with a lighter inset reads just as well at 16 px.
-		gfx_rect(x, y, d, d, c)
-		gfx_rect(x + 1, y + 1, d - 2, d - 2, THEME.panel)
+	local key = string.lower(tostring(button))
+	local d = 18
+	local icon = BUTTON_ICON[key]
+	if icon ~= nil and gfx_image_fit(icon, x, y - 1, d, d) then
+		-- drawn
 	else
-		-- L1, R1, START...: a pill wide enough for the word.
-		d = math.floor(gfx_text_w(letter, size)) + 8
+		local colors = {
+			cross = THEME.btn_cross, circle = THEME.btn_circle,
+			square = THEME.btn_square, triangle = THEME.btn_triangle,
+		}
+		local c = colors[key] or THEME.btn_neutral
+		local name = string.upper(tostring(button))
+		d = math.floor(gfx_text_w(name, size)) + 10
 		gfx_rect(x, y, d, 16, c)
+		gfx_text(name, x, y + 3, size, THEME.text_head, "center", d)
 	end
-	gfx_text(letter, x, y + 3, size, THEME.text_head, "center", d)
-	local lx = x + d + 5
+	local lx = x + d + 4
+	if label == nil or label == "" then return lx end
 	gfx_text(label, lx, y + 3, size, THEME.text)
-	return lx + gfx_text_w(label, size) + 18
+	return lx + gfx_text_w(label, size) + 14
 end

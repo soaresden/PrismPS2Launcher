@@ -58,6 +58,9 @@ end
 function launch_view_open(game)
 	LAUNCH.game = game
 	LAUNCH.plan = launch_plan(game)
+	-- Asked once, here, and not on every frame: each check is a file lookup, and this
+	-- screen redraws sixty times a second.
+	LAUNCH.plan.missing = launch_missing(game, LAUNCH.plan)
 	VIEW = "launch"
 	input_flush()
 end
@@ -77,6 +80,8 @@ function launch_view_input()
 			play_sfx(S_CANCELAR)
 		else
 			play_sfx(S_EJECUTAR)
+			-- Written NOW: loadELF never returns, so this is the last chance.
+			collections_played(LAUNCH.game)
 			launch_run(LAUNCH.game, LAUNCH.plan)
 			-- Only reached if the launch failed: the backend showed why.
 			VIEW = "gamelist"
@@ -89,6 +94,36 @@ local function row(y, label, value, color)
 	gfx_text(label, THEME.launch_box.x + 18, y, THEME.size_small, THEME.text_dim)
 	gfx_text(gfx_fit(value, THEME.size_text, THEME.launch_box.w - 36), THEME.launch_box.x + 18, y + 12, THEME.size_text, color or THEME.text)
 	return y + 34
+end
+
+--- What the chosen emulator is still missing, in one line, or nil if it is ready. ------
+--- The same checks the launch itself makes, asked early: being told the BIOS is absent
+--- while you are still looking at the game is help; being told after the screen has
+--- gone black and come back is an apology.
+function launch_missing(g, p)
+	if g == nil or p == nil then return nil end
+	if g.warn ~= nil then return nil end          -- already explained above, in red
+	if g.kind == "psx" then
+		if p.backend == "ember" or (p.backend ~= "pops" and g.vcd == nil) then
+			if ember_ready ~= nil then
+				local ok, why = ember_ready()
+				if ok == false then return why end
+			end
+			return nil
+		end
+		-- POPStarter: its binaries live beside the .VCD, on that drive.
+		if g.vcd ~= nil and POPS_DE ~= nil then
+			local pops = POPS_DE(g.file) .."/POPS"
+			if doesFileExist(pops .."/POPS_IOX.PAK") == false then
+				return "POPStarter is not installed in ".. pops .." (no POPS_IOX.PAK)"
+			end
+			if doesFileExist(pops .."/XX.".. tostring(g.stem) ..".ELF") == false
+			   and doesFileExist(System.currentDirectory() .."/POPStarter/POPSTARTER.ELF") == false then
+				return "No XX.".. tostring(g.stem) ..".ELF and no POPSTARTER.ELF to make one"
+			end
+		end
+	end
+	return nil
 end
 
 function launch_view_draw()
@@ -120,6 +155,19 @@ function launch_view_draw()
 	if g.warn == "chd" then
 		gfx_text("A .chd cannot be read on the PS2. Convert it on the PC:", b.x + 18, y, THEME.size_small, THEME.warn)
 		gfx_text("PS1toPOPS.py (to .VCD) or chdman extractcd (to .cue/.bin).", b.x + 18, y + 12, THEME.size_small, THEME.warn)
+	elseif g.warn == "loose" then
+		gfx_text("POPStarter reads .VCD, Ember reads .cue/.bin - this is neither.", b.x + 18, y, THEME.size_small, THEME.warn)
+		gfx_text("PS1toPOPS.py turns it into POPS/<name>.VCD, which runs.", b.x + 18, y + 12, THEME.size_small, THEME.warn)
+	elseif g.disc ~= nil and g.ember == nil then
+		gfx_text("It will be moved into Ember/games/".. tostring(g.stem) .."/ first,", b.x + 18, y, THEME.size_small, THEME.text_dim)
+		gfx_text("and put back in Roms/psx when you launch another game.", b.x + 18, y + 12, THEME.size_small, THEME.text_dim)
+		y = y + 26
+	end
+
+	-- What this emulator still needs, said here rather than after a failed launch.
+	local lack = p.missing
+	if lack ~= nil then
+		gfx_text(gfx_fit(lack, THEME.size_small, b.w - 36), b.x + 18, y, THEME.size_small, THEME.warn)
 	end
 	draw_footer({ {"cross", "launch"}, {"triangle", "options"}, {"circle", "back"} })
 end

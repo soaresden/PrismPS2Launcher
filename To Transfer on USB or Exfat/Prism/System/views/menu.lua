@@ -26,50 +26,114 @@ end
 
 local VIDEO = { "auto", "ntsc", "pal" }
 
+--- Finds where a stored id sits in a list of ids, for the "choice" rows. --------------
+local function index_of(list, value, fallback)
+	for i = 1, #list do if list[i] == value then return i end end
+	return fallback or 1
+end
+
+--- Builds the menu section by section. The order is meant to go from what you change
+--- often (how it looks) to what you change once (video mode, and the way out).
 function main_menu_open()
 	local opts = {}
-	opts[#opts + 1] = { label = "Video mode  (next start)", kind = "choice", values = { "Auto", "NTSC 480i", "PAL 576i" },
-		get = function()
-			local v = prefs_get("video")
-			for i = 1, #VIDEO do if VIDEO[i] == v then return i end end
-			return 1
-		end,
-		set = function(v) prefs_set("video", VIDEO[v]); apply_video_pref() end }
-	opts[#opts + 1] = { label = "Menu sounds", kind = "toggle",
-		get = function() return prefs_is("sound", "on") end,
-		set = function(v) if v then prefs_set("sound", "on") else prefs_set("sound", "off") end end }
-	if S_MUSICA ~= nil then
-		opts[#opts + 1] = { label = "Background music", kind = "toggle",
-			get = function() return prefs_is("music", "on") end,
-			set = function(v) if v then prefs_set("music", "on") else prefs_set("music", "off") end end }
+	local function header(text) opts[#opts + 1] = { label = text, kind = "header" } end
+	local function add(o) opts[#opts + 1] = o end
+
+	--- Appearance ---------------------------------------------------------------------
+	header("APPEARANCE")
+	add({ label = "Selection colour", kind = "choice", values = SELECTION_NAMES,
+		get = function() return index_of(SELECTION_IDS, prefs_get("select_color")) end,
+		set = function(v)
+			prefs_set("select_color", SELECTION_IDS[v])
+			theme_selection(SELECTION_IDS[v])
+		end })
+	add({ label = "Scrolling text speed", kind = "choice", values = SCROLL_LABELS,
+		get = function() return index_of(SCROLL_MODES, prefs_get("scroll_speed"), 3) end,
+		set = function(v)
+			prefs_set("scroll_speed", SCROLL_MODES[v])
+			gfx_scroll_speed(SCROLL_MODES[v])
+		end })
+
+	--- The game column ----------------------------------------------------------------
+	-- A is the square beside the title, B and C the pair underneath: A | name over B | C.
+	header("GAME COLUMN")
+	local SLOT_LABEL = { a = "Picture beside the title", b = "Picture bottom left", c = "Picture bottom right" }
+	for i = 1, #ART_SLOTS do
+		local slot = ART_SLOTS[i]
+		add({ label = SLOT_LABEL[slot], kind = "choice", values = ART_LABELS,
+			get = function() return index_of(ART_KINDS, prefs_get("art_".. slot)) end,
+			set = function(v) prefs_set("art_".. slot, ART_KINDS[v]) end })
 	end
-	opts[#opts + 1] = { label = "Rescan games", kind = "action", action = function()
+
+	--- Library ------------------------------------------------------------------------
+	header("LIBRARY")
+	add({ label = "Sort systems by", kind = "choice", values = SORT_LABELS,
+		get = function() return index_of(SORT_MODES, prefs_get("sort")) end,
+		set = function(v) systems_set_sort(SORT_MODES[v]) end })
+	add({ label = "Rescan games", kind = "action", action = function()
 		frontend_rescan()
 		return "close"
-	end }
+	end })
+	add({ label = "Empty the recent list", kind = "action", action = function()
+		COLLECTIONS.recent = {}
+		collections_save()
+		collections_refresh()
+		if log_event ~= nil then log_event("MENU", "recent list emptied") end
+		return "close"
+	end })
+
+	--- Sound --------------------------------------------------------------------------
+	header("SOUND")
+	add({ label = "Menu sounds", kind = "toggle",
+		get = function() return prefs_is("sound", "on") end,
+		set = function(v) if v then prefs_set("sound", "on") else prefs_set("sound", "off") end end })
+	if S_MUSICA ~= nil then
+		add({ label = "Background music", kind = "toggle",
+			get = function() return prefs_is("music", "on") end,
+			set = function(v) if v then prefs_set("music", "on") else prefs_set("music", "off") end end })
+	end
+
+	--- The console --------------------------------------------------------------------
+	header("SYSTEM")
+	add({ label = "Video mode  (next start)", kind = "choice", values = { "Auto", "NTSC 480i", "PAL 576i" },
+		get = function() return index_of(VIDEO, prefs_get("video")) end,
+		set = function(v) prefs_set("video", VIDEO[v]); apply_video_pref() end })
 	local wle = nil
 	if RUTA_WLE ~= nil then wle = RUTA_WLE(false) end
 	if wle ~= nil then
-		opts[#opts + 1] = { label = "Open wLaunchELF", kind = "action", action = function()
+		add({ label = "Open wLaunchELF", kind = "action", action = function()
 			if log_event ~= nil then log_event("MENU", "wLaunchELF ".. wle) end
 			boot_flush()
 			System.loadELF(wle, 0, System.currentDirectory() .."/uLaunchELF/")
-		end }
+		end })
 	end
-	opts[#opts + 1] = { label = "Restart Prism", kind = "action", action = function()
+	add({ label = "Restart Prism", kind = "action", action = function()
 		if log_event ~= nil then log_event("MENU", "restart") end
 		boot_flush()
 		System.loadELF(System.currentDirectory() .."/Prism.elf", 0)
-	end }
-	opts[#opts + 1] = { label = "Quit to PS2 menu", kind = "action", action = function()
+	end })
+	add({ label = "Quit to PS2 menu", kind = "action", action = function()
 		if log_event ~= nil then log_event("MENU", "quit") end
 		boot_flush()
 		System.exitToBrowser()
-	end }
-	opts[#opts + 1] = { label = "Prism PS2 Launcher", kind = "info", get = function() return "created by soaresden" end }
-	opts[#opts + 1] = { label = "Journal", kind = "info", get = function()
+	end })
+
+	--- About --------------------------------------------------------------------------
+	header("ABOUT")
+	add({ label = "Prism PS2 Launcher", kind = "info", get = function() return "created by soaresden" end })
+	add({ label = "Games in the library", kind = "info", get = function()
+		-- The collections are counted out: their entries are the same games again.
+		local n = 0
+		for i = 1, #LIBRARY.systems do
+			local s = LIBRARY.systems[i]
+			if s.virtual ~= true and s.games ~= nil then n = n + #s.games end
+		end
+		return tostring(n)
+	end })
+	add({ label = "Journal", kind = "info", get = function()
 		return gfx_fit(tostring(BOOT_LOG_DESTINO or "not written"), THEME.size_text, 190)
-	end }
+	end })
+
 	MAIN_MENU = menu_new("Main menu", opts)
 	input_flush()
 end

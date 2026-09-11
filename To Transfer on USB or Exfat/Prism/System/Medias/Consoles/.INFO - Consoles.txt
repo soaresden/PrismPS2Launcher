@@ -1,0 +1,40 @@
+Photographs of the machines
+===========================
+
+One picture per system, named after the folder Prism uses:
+
+    nes.jpg   snes.jpg   megadrive.jpg   psx.jpg   ps2.jpg   ...
+
+.jpg or .png, both work - Enceladus reads BMP, JPG and PNG. Around 420 px wide is
+right: the panel draws it at 210, and anything larger is memory spent on nothing.
+
+The systems view shows it beside the console's name, its processor, how many were
+sold and what it was. When there is no photograph it falls back to the console's
+logo from Medias/Logos/, and when there is not even that, to a plain plate in the
+manufacturer's colour. Nothing breaks; the screen just says less.
+
+
+Getting them
+------------
+
+    HelperScripts\GetConsolePhotos.ps1
+
+It searches Wikimedia Commons and keeps ONLY images in the public domain, checking
+the licence of each one from Commons' own metadata rather than assuming. Most of
+the good console photographs there were taken by Evan-Amos, who released them into
+the public domain - no attribution required, no share-alike clause to carry. It
+writes SOURCES.txt beside the pictures with the Commons page, the author and the
+licence of every file it kept, and lists what it refused and why.
+
+
+Using your own instead
+----------------------
+
+Drop any picture in, named after the folder. A photograph you took, a render, a
+screenshot of the box - it is your install.
+
+What must NOT go here is artwork from a theme you downloaded. The PlayStation-X
+theme has a beautiful console picture for every system, and it is CC BY-NC-SA:
+free to use, not free to redistribute inside a project anyone can clone, and the
+non-commercial clause is incompatible with the GPL. Copy one onto your own stick
+if you like it; do not commit it.

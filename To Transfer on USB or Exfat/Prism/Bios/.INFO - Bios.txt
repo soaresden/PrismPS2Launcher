@@ -1,0 +1,43 @@
+Bios/ - the system files Prism is not allowed to ship
+=====================================================
+
+A BIOS is a copy of the software in a console you bought. It is not ours to
+give away, so this folder arrives empty and nothing in it is ever committed to
+the repository. What goes here is dumped from your own machines.
+
+One folder for all of them. An emulator that insists on its BIOS being
+somewhere else gets a copy put there on the first launch, once, automatically -
+you are not asked to file the same dump in four places.
+
+
+PLAYSTATION 1  (Ember)
+
+Drop the dump in under whatever name it already has. All of these are
+recognised, upper case or lower:
+
+    bios.bin
+    scph1000.bin  scph1001.bin  scph1002.bin  scph101.bin
+    scph5500.bin  scph5501.bin  scph5502.bin  scph5552.bin
+    scph7001.bin  scph7002.bin  scph7502.bin
+    scph9001.bin  scph9002.bin  scph102a.bin  scph102b.bin
+
+The first one found is copied to Ember/bios.bin, which is the only name Ember
+answers to. Any region works; SCPH1001 (US) and SCPH7502 (EU) are the usual
+ones. A PS1 BIOS is 512 KB.
+
+If none is here, the launch screen says so BEFORE you press X, not after.
+
+
+GAME BOY ADVANCE  (gpSP, mGBA)
+
+    gba_bios.bin        optional - the cores have a built-in replacement, but
+                        a few games only behave with the real one.
+
+
+PLAYSTATION 2
+
+Neutrino and OPL run on the console's own BIOS. There is nothing to put here.
+
+POPStarter needs the POPS binaries (POPS.ELF, POPS_IOX.PAK, IOPRP252.IMG),
+which are not BIOS files but are just as undistributable. They go beside the
+games, in POPS/, not here - PS1toPOPS.py lays that out.

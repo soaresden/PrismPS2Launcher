@@ -17,7 +17,7 @@ you already had.
 Nothing is ever written to the source folders.
 
 --------------------------------------------------------------------------------
-ONE COPY OF THE ARTWORK, IN Roms\psx
+ONE COPY OF THE ARTWORK, IN Roms\\psx
 --------------------------------------------------------------------------------
 The .VCD go in POPS\, because that is what POPStarter and OPL expect. The
 pictures do NOT go next to them, and that is not an oversight.
@@ -145,14 +145,17 @@ PlayStation card and renaming one would hide it from the game.
 --------------------------------------------------------------------------------
 USAGE
 --------------------------------------------------------------------------------
-    python PS1toPOPS.py                  ask for the folders, then dry run
-    python PS1toPOPS.py --go             actually convert
-    python PS1toPOPS.py --go --limit 3   the first three games only
-    python PS1toPOPS.py --go --saves     memory cards only, no disc conversion
-    python PS1toPOPS.py --go --discs     discs only, no memory cards
-    python PS1toPOPS.py --go --vmode     ask cue2pops to force NTSC
-    python PS1toPOPS.py --go --no-elf    skip the launchers
+    python PS1toPOPS.py                  ask for the folders, then convert
+    python PS1toPOPS.py --dry            list what it would do, write nothing
+    python PS1toPOPS.py --limit 3        the first three games only
+    python PS1toPOPS.py --saves          memory cards only, no disc conversion
+    python PS1toPOPS.py --discs          discs only, no memory cards
+    python PS1toPOPS.py --vmode          ask cue2pops to force NTSC
+    python PS1toPOPS.py --no-elf         skip the launchers
     python PS1toPOPS.py --yes            take the defaults without asking
+
+At every question, Enter alone takes the value in brackets - there is never any
+need to retype or paste a path that is already right.
 
 Every game gets its XX.<name>.ELF, copied from POPSTARTER.ELF in the
 destination folder, without being asked for. A .VCD on its own launches
@@ -172,7 +175,7 @@ import sys
 
 # ------------------------------------------------------------------ defaults
 
-PSX_ROMS = r"D:\batocera\roms\psx"
+PSX_ROMS = r"D:\DOCS\Documents\GitHub\PrismPS2Launcher\HelperScripts\CHDtoConvert"
 PSX_SAVES = r"D:\batocera\saves\psx"
 POPS_DEST = r"E:\POPS"
 
@@ -904,12 +907,12 @@ def vcd_size_of(path):
 
 # The PS2 manual asks for artwork below 320x240, and Prism reads
 # "<folder>/media/covers/<name>.png" and ".../media/screenshots/<name>.png"
-# beside the games. MediaCopier.py already builds exactly that for the ROM
+# beside the games. BatoceraGamelistandBatoceraGamelistandMediaCopier.py already builds exactly that for the ROM
 # folders; this does the same for the VCDs, from the same gamelist.
 MEDIA_MAX = (320, 240)
 
 # Which gamelist tag becomes which picture, best first. "cartridge" is the disc
-# art on a PlayStation scrape, which is what MediaCopier uses for covers too.
+# art on a PlayStation scrape, which is what BatoceraGamelistandBatoceraGamelistandMediaCopier uses for covers too.
 COVER_TAGS = ("cartridge", "boxart", "box", "image", "mix", "thumbnail")
 SCREEN_TAGS = ("screenshot", "thumbnail", "image", "mix", "titleshot")
 
@@ -1080,19 +1083,32 @@ def write_discs_txt(folder, vcd_names):
 
 
 def ask(label, default, assume_yes):
+    """One question, with its answer already in the brackets.
+
+    Enter alone keeps that answer. The path is shown on its own line rather than
+    inside the prompt, because a prompt carrying a long Windows path wraps in the
+    console and stops looking like something you can just press Enter on.
+    """
     if assume_yes:
         print("  %-26s %s" % (label + ":", default))
         return default
+    if default:
+        print("    [%s]" % default)
     try:
-        got = input("  %s [%s]: " % (label, default)).strip().strip('"')
+        got = input("  %s: " % label).strip().strip('"').strip("'")
     except EOFError:
+        print()
         return default
     return got or default
 
 
 def main(argv):
     opts = set(a for a in argv[1:] if a.startswith("--"))
-    go = "--go" in opts
+    # It converts. Asking for --go every time was a step that never said no to
+    # anything: --dry is there for the rehearsal, and nothing is overwritten in
+    # any case - a game that already has its .VCD is skipped.  ("--go" is still
+    # accepted so an old shortcut or batch file keeps working.)
+    go = "--dry" not in opts and "--dry-run" not in opts
     assume_yes = "--yes" in opts
     do_saves = "--discs" not in opts
     do_discs = "--saves" not in opts
@@ -1112,6 +1128,10 @@ def main(argv):
                 pass
 
     print(__doc__.strip().splitlines()[0])
+    if not go:
+        print("Dry run: nothing will be written.")
+    if not assume_yes:
+        print("Press Enter to keep the value in brackets, or type another path.")
     print()
     roms = ask("Batocera PS1 roms folder", PSX_ROMS, assume_yes)
     saves = ask("Batocera PS1 saves folder", PSX_SAVES, assume_yes)
@@ -1207,7 +1227,7 @@ def main(argv):
                   "there while it converts." % (human(work_room), human(biggest)))
 
     if not go:
-        print("\nDRY RUN. Nothing will be written. Add --go to convert.")
+        print("\nDRY RUN (--dry). Nothing will be written.")
     print("-" * 78)
 
     # Which discs belong to a multi-disc set, so their saves can be shared.

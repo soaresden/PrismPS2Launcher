@@ -1,0 +1,16 @@
+﻿Console photographs in this folder
+==================================
+
+Fetched from Wikimedia Commons by HelperScripts\GetConsolePhotos.ps1.
+Every one of them was checked, at download time, to be in the public domain:
+no attribution is legally required, no share-alike clause travels with them.
+The author is recorded anyway, because credit costs nothing and is deserved.
+
+gba.png        Nintendo-Game-Boy-Advance-Purple-FL.png
+               https://commons.wikimedia.org/wiki/File:Nintendo-Game-Boy-Advance-Purple-FL.png
+               Public domain - Evan-Amos
+
+mastersystem.png Sega-Master-System-Set.png
+               https://commons.wikimedia.org/wiki/File:Sega-Master-System-Set.png
+               Public domain - Evan-Amos
+

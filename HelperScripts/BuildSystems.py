@@ -395,9 +395,71 @@ def main(argv):
         with open(OUT, "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
         print("\nwritten: %s  (%d lines)" % (OUT, text.count("\n")))
+        make_rom_folders(systems)
     else:
         print("\nadd --write to produce System/systems.lua")
     return 0
+
+
+def make_rom_folders(systems):
+    """One Roms/<system>/ per installed core, ready to drop games into.
+
+    This belongs HERE and not in the launcher, and not checked into the repository
+    either. Not in the launcher: creating sixty-eight directories on an exFAT stick at
+    every boot is slow, and writing to somebody's drive uninvited to fix a problem they
+    do not have is rude. Not in the repository: git cannot store an empty directory, so
+    each one would need a placeholder file, and the set depends on which cores YOU
+    installed - shipping all sixty-eight would be sixty-eight folders most people never
+    open.
+
+    Here it is exactly right: this script already knows which cores are present, it runs
+    on the PC, and it runs when the answer changes - when you add or remove a core.
+
+    PlayStation 1 and 2 are skipped: their games live in POPS/, Ember/games/, DVD/ and
+    CD/ at the root of the drive, where their emulators read them. Only their artwork
+    goes under Roms/, and BatoceraGamelistandBatoceraGamelistandMediaCopier.py makes those folders itself."""
+    roms = os.path.join(LAUNCHER, "Roms")
+    if not os.path.isdir(roms):
+        print("\nno Roms/ next to the launcher, folders not created")
+        return
+
+    made, existed = 0, 0
+    for folder in sorted(systems):
+        if folder in ("psx", "ps2"):
+            continue
+        base = os.path.join(roms, folder)
+        if os.path.isdir(base):
+            existed += 1
+        else:
+            made += 1
+        for sub in ("", "media/covers", "media/screenshots", "media/cartridges"):
+            os.makedirs(os.path.join(base, sub), exist_ok=True)
+
+        info = os.path.join(base, ".INFO - %s.txt" % folder)
+        if not os.path.isfile(info):
+            s = systems[folder]
+            names = ", ".join(e["name"] for e in s["cores"]) or "no core"
+            exts = " ".join(sorted(s["ext"])) or "any"
+            with open(info, "w", encoding="utf-8", newline="\n") as f:
+                f.write(
+                    "%s\n%s\n\n"
+                    "Put the games here. Prism reads this folder because a core that\n"
+                    "plays this system is installed in LibretroPS2Files/cores.\n\n"
+                    "    accepted here   %s\n"
+                    "    played by       %s\n\n"
+                    "    media/covers/<rom name>.png         box art\n"
+                    "    media/screenshots/<rom name>.png    a shot of the game\n"
+                    "    media/cartridges/<rom name>.png     the cartridge or disc\n"
+                    "    gamelist.xml                        names and descriptions\n\n"
+                    "The picture is named after the ROM without its extension, so\n"
+                    "\"Sonic (World).zip\" wants \"Sonic (World).png\". HelperScripts/\n"
+                    "BatoceraGamelistandBatoceraGamelistandMediaCopier.py fills all of it from a Batocera library.\n\n"
+                    "Deleting this folder is safe: it comes back the next time\n"
+                    "BuildSystems.py runs, as long as the core is still installed.\n"
+                    % (folder, "=" * len(folder), exts, names))
+
+    print("\nRoms/: %d folder(s) created, %d already there" % (made, existed))
+    print("each with media/covers, media/screenshots, media/cartridges and a .INFO")
 
 
 if __name__ == "__main__":

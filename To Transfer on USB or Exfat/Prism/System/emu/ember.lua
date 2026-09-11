@@ -55,6 +55,34 @@ function ember_game(carpeta)
     return nil, nil
 end
 
+--- The names a PlayStation 1 BIOS actually arrives under. ------------------------------
+--- Nobody's BIOS is called "bios.bin" when they get it: it is called scph1001.bin, or
+--- SCPH5501.BIN, or whatever the machine it was dumped from was. Ember wants it as
+--- "bios.bin" next to its ELF, which is Ember's business, not the user's - so every
+--- name a PS1 BIOS is normally found under is looked for, and the copy is renamed on
+--- the way in. Case matters on some filesystems, hence both spellings.
+PS1_BIOS_NAMES = {
+	"bios.bin", "BIOS.BIN",
+	"scph1001.bin", "SCPH1001.BIN", "scph1000.bin", "SCPH1000.BIN",
+	"scph1002.bin", "SCPH1002.BIN", "scph101.bin", "SCPH101.BIN",
+	"scph5500.bin", "SCPH5500.BIN", "scph5501.bin", "SCPH5501.BIN",
+	"scph5502.bin", "SCPH5502.BIN", "scph5552.bin", "SCPH5552.BIN",
+	"scph7001.bin", "SCPH7001.BIN", "scph7002.bin", "SCPH7002.BIN",
+	"scph7502.bin", "SCPH7502.BIN", "scph9001.bin", "SCPH9001.BIN",
+	"scph9002.bin", "SCPH9002.BIN", "scph102a.bin", "SCPH102A.BIN",
+	"scph102b.bin", "SCPH102B.BIN",
+}
+
+--- The PS1 BIOS in Bios/, whatever it is called, or nil. ------------------------------
+function ember_bios_source()
+	local dir = System.currentDirectory() .."/Bios/"
+	for i = 1, #PS1_BIOS_NAMES do
+		local p = dir .. PS1_BIOS_NAMES[i]
+		if doesFileExist(p) then return p, PS1_BIOS_NAMES[i] end
+	end
+	return nil, nil
+end
+
 --- bios.bin beside ember.elf: copied from Bios/ once, and never touched again. ---------
 --- Ember wants the BIOS next to its own ELF and nowhere else. The launcher keeps one
 --- copy of every system file in Bios/, so the first launch puts a copy where Ember
@@ -64,14 +92,30 @@ function ember_bios(raiz_emb)
 	if raiz_emb == nil then return false end
 	local dest = raiz_emb .."/bios.bin"
 	if doesFileExist(dest) then return true end
-	local origen = RUTA_BIOS("bios.bin", "")
-	if doesFileExist(origen) == false then
-		log_event("FILE", "Ember: no bios.bin in ".. raiz_emb .." and none in Bios/ to copy")
+	local origen, nombre = ember_bios_source()
+	if origen == nil then
+		log_event("FILE", "Ember: no PS1 BIOS in Bios/ (scph1001.bin and the rest were looked for)")
 		return false
 	end
-	log_event("FILE", "Ember: copying ".. origen .." -> ".. dest)
+	log_event("FILE", "Ember: copying ".. origen .." -> ".. dest .."  (from ".. tostring(nombre) ..")")
 	pcall(System.copyFile, origen, dest)
 	return doesFileExist(dest)
+end
+
+--- Can Ember run anything at all, and if not, why. ------------------------------------
+--- Asked BEFORE a launch, so the answer is on screen while there is still something to
+--- be done about it, instead of after the launch has failed.
+--- Returns true, nil  |  false, "one line saying what is missing"
+function ember_ready()
+	local roots = ember_roots()
+	if #roots == 0 then
+		return false, "Ember is not installed (no Ember/ember.elf on any drive)"
+	end
+	for i = 1, #roots do
+		if doesFileExist(roots[i] .."/bios.bin") then return true, nil end
+	end
+	if ember_bios_source() ~= nil then return true, nil end
+	return false, "No PlayStation 1 BIOS: put scph1001.bin (or any SCPH dump) in Bios/"
 end
 
 --- Que hay dentro de una carpeta de juego: ".cue", ".bin", ".chd" o nil. --------------

@@ -86,7 +86,7 @@ Windows-side tools in `HelperScripts/`. None is required to play; all of them sa
 | `BuildSystems.py` | Generates `System/systems.lua` from the installed cores' `.info` files |
 | `PS1toPOPS.py` | Batocera `.chd` → `.VCD` via `cue2pops`, memory cards merged from Batocera saves (newest wins on conflict), `DISCS.TXT`, launchers, artwork |
 | `PS2CHDtoOPLPS2.py` | Batocera `.chd` → OPL-named `.iso` on `CD/` and `DVD/`, delta by size, OPL name rules |
-| `MediaCopier.py` | Artwork and titles from a Batocera / Recalbox / EmulationStation `gamelist.xml`, fitted to 320×240 RGBA |
+| `BatoceraGamelistandBatoceraGamelistandMediaCopier.py` | Artwork and titles from a Batocera / Recalbox / EmulationStation `gamelist.xml`, fitted to 320×240 RGBA |
 | `WAVtoADP.py` | WAV ⇄ `.adp` for the menu sounds, with the format documented from ps2sdk |
 | `PopsCheck.py` | Verifies a POPStarter install: MD5s, launcher copies, `.VCD` structure |
 | `VMCManager.py` | Virtual memory card housekeeping |
