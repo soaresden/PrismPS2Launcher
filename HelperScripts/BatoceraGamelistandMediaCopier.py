@@ -13,6 +13,7 @@ description - into the layout Prism reads.
     Roms/<system>/media/covers/*.png        <thumbnail>   (or <boxart>)
     Roms/<system>/media/cartridges/*.png    <cartridge>
     Roms/<system>/gamelist.xml              everything else, in the same format
+    Bios/                                   bios/, the few files a PS2 core reads
 
 It COMPLETES, and it never throws away work. Before writing, it reads the gamelist.xml
 already on the Prism side and starts from it, so a description you scraped with ARRM,
@@ -27,6 +28,17 @@ DVD/, CD/ at the root of the drive, where their emulators read them - and, since
 learned to find loose discs, in Roms/psx and Roms/ps2 as well. All of them are looked
 at. Their artwork goes to Roms/psx/media/ and Roms/ps2/media/, because that is where
 Prism looks for it. The script knows this; you do not have to.
+
+
+THE BIOS
+
+Batocera keeps its BIOS in bios/, beside roms/ rather than inside it, so the
+folder is offered separately and guessed from the roms path. Only the handful
+of names a PlayStation 2 core can actually read are taken - a Batocera bios/
+folder holds gigabytes of Saturn, Dreamcast and PS2 files that would sit on
+your stick forever without being opened once. A dump is copied under the name
+Batocera filed it under, matched without regard to case. At the end it says
+what an installed core wants and Batocera did not have.
 
 
 TIDYING UP
@@ -51,6 +63,9 @@ USAGE
     python BatoceraGamelistandMediaCopier.py --force       redo what is already there
     python BatoceraGamelistandMediaCopier.py --keep-unused leave orphaned pictures alone
     python BatoceraGamelistandMediaCopier.py --dry-run     say what it would do
+
+It asks for three folders: where Prism is, where the Batocera roms are, and
+where the Batocera BIOS are. Answer the third with a blank line to skip it.
 
 At every question, Enter alone takes the value in brackets.
 
@@ -113,6 +128,51 @@ ROM_EXT = {".zip", ".7z", ".nes", ".fds", ".sfc", ".smc", ".gb", ".gbc", ".gba",
 # A loose PlayStation disc in Roms/psx. The .bin of a .cue is not a second game.
 PSX_LOOSE = {".cue", ".bin", ".img", ".iso", ".chd", ".pbp"}
 
+# The BIOS the installed cores can ask for, and what each one is. Batocera keeps its
+# own in <batocera>/bios/ under exactly these names, so they can be picked up in the
+# same pass. Nothing else is touched: a Batocera bios/ folder holds several gigabytes
+# of Saturn, Dreamcast and PS2 files that no PlayStation 2 core will ever read.
+#
+# The Lua side that consumes these is PS1_BIOS_NAMES in System/emu/ember.lua and
+# BIOS_LIBRETRO_LISTA in System/emu/retroarch.lua. Keep the three lists in step.
+BIOS_WANTED = [
+    ("gba_bios.bin",     "Game Boy Advance, for gpSP",            True),
+    ("gb_bios.bin",      "Game Boy boot ROM",                     False),
+    ("gbc_bios.bin",     "Game Boy Color boot ROM",               False),
+    ("sgb_bios.bin",     "Super Game Boy boot ROM",               False),
+    ("lynxboot.img",     "Atari Lynx",                            True),
+    ("exec.bin",         "Intellivision executive ROM",           True),
+    ("grom.bin",         "Intellivision graphics ROM",            True),
+    ("colecovision.rom", "ColecoVision",                          True),
+    ("coleco.rom",       "ColecoVision, other name",              False),
+    ("bios.col",         "ColecoVision, other name again",        False),
+    ("o2rom.bin",        "Magnavox Odyssey 2 / Videopac",         True),
+    ("c52.bin",          "Odyssey 2, French machine",             False),
+    ("g7400.bin",        "Videopac+ G7400",                       False),
+    ("jopac.bin",        "Jopac, the French G7400",               False),
+    ("disksys.rom",      "Famicom Disk System, for .fds",         False),
+    ("bios.sms",         "Master System boot ROM",                False),
+    ("bios.gg",          "Game Gear boot ROM",                    False),
+    ("bios_CD_E.bin",    "Sega Mega CD, Europe",                  False),
+    ("bios_CD_U.bin",    "Sega CD, US",                           False),
+    ("bios_CD_J.bin",    "Sega Mega CD, Japan",                   False),
+    ("neocd.bin",        "Neo Geo CD",                            True),
+    ("ng-lo.rom",        "Neo Geo CD, zoom table",                True),
+]
+
+# PlayStation 1, for Ember. Any one of these is enough; all that are there are taken,
+# and Prism picks the first of them it finds at launch.
+BIOS_PS1 = [
+    "bios.bin",
+    "scph1000.bin", "scph1001.bin", "scph1002.bin", "scph101.bin",
+    "scph5500.bin", "scph5501.bin", "scph5502.bin", "scph5552.bin",
+    "scph7001.bin", "scph7002.bin", "scph7502.bin",
+    "scph9001.bin", "scph9002.bin", "scph102a.bin", "scph102b.bin",
+]
+
+# Cores that want a whole tree rather than one dump. Copied only if Batocera has one.
+BIOS_FOLDERS = ["bluemsx", "fmsx", "quasi88", "atari800"]
+
 
 # --- small helpers ----------------------------------------------------------------
 
@@ -131,9 +191,25 @@ def yes_no(question, default=False):
     return answer.startswith(("y", "o"))
 
 
+def looks_like_ext(name):
+    """Is what follows the last dot an extension, or part of the name?
+
+    PlayStation names carry their disc ID: "Anna Kournikova [SCES_018.33]". An
+    Ember game is a FOLDER with that name and no extension at all, and splitext
+    happily reports ".33]" as its extension - which renamed the game to
+    "...[SCES_018", stopped it matching its own artwork, and had the tidy-up
+    sweep three perfectly good pictures into _unused. An extension is a short
+    run of letters or digits and nothing else."""
+    ext = os.path.splitext(os.path.basename(name.rstrip("/\\")))[1]
+    return bool(ext) and re.fullmatch(r"\.[A-Za-z0-9]{1,4}", ext) is not None
+
+
 def stem(name):
-    """'Sonic (World).zip' -> 'Sonic (World)'"""
-    return os.path.splitext(os.path.basename(name.rstrip("/\\")))[0]
+    """'Sonic (World).zip' -> 'Sonic (World)', and a dotted name left whole."""
+    base = os.path.basename(name.rstrip("/\\"))
+    if looks_like_ext(base):
+        return os.path.splitext(base)[0]
+    return base
 
 
 def norm(name):
@@ -368,7 +444,7 @@ def do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy):
         # Start from what the Prism gamelist already says about this game.
         entry = dict(existing.get(key, {}))
         entry["path"] = "./" + name
-        if folder == "psx" and not os.path.splitext(name)[1]:
+        if folder == "psx" and not looks_like_ext(name):
             entry["path"] = "./" + name + "/"      # an Ember folder, not a file
         entry.setdefault("name", stem(name))
 
@@ -415,6 +491,80 @@ def do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy):
     return len(games)
 
 
+def do_bios(prism_root, bios_root, force, dry):
+    """Pick the BIOS the PS2 cores need out of a Batocera bios/ folder.
+
+    Only the names Prism knows about, and only if they are not already there. The
+    file name is what a core looks for, so a dump is copied under the name Batocera
+    filed it under - matched without regard to case, since the same dump travels as
+    scph1001.bin and as SCPH1001.BIN depending on who wrote it out."""
+    if not os.path.isdir(bios_root):
+        print(f"  Not a folder: {bios_root}")
+        return
+
+    # One case-insensitive index of what Batocera has, built once.
+    have = {}
+    for entry in os.listdir(bios_root):
+        if os.path.isfile(os.path.join(bios_root, entry)):
+            have.setdefault(entry.lower(), entry)
+
+    dest_dir = os.path.join(prism_root, "Bios")
+    if not dry:
+        os.makedirs(dest_dir, exist_ok=True)
+
+    copied, already, missing = 0, 0, []
+    ps1_found = []
+
+    def take(name, what, required):
+        nonlocal copied, already
+        real = have.get(name.lower())
+        if real is None:
+            if required:
+                missing.append((name, what))
+            return False
+        target = os.path.join(dest_dir, real)
+        if os.path.isfile(target) and not force:
+            already += 1
+            return True
+        if not dry:
+            shutil.copy2(os.path.join(bios_root, real), target)
+        size = os.path.getsize(os.path.join(bios_root, real))
+        print(f"    {real:<20} {size:>8}  {what}")
+        copied += 1
+        return True
+
+    for name, what, required in BIOS_WANTED:
+        take(name, what, required)
+
+    for name in BIOS_PS1:
+        if take(name, "PlayStation 1, for Ember", False):
+            ps1_found.append(name)
+
+    # The folder-based ones, copied whole.
+    for name in BIOS_FOLDERS:
+        source = os.path.join(bios_root, name)
+        if not os.path.isdir(source):
+            continue
+        target = os.path.join(dest_dir, name)
+        if os.path.isdir(target) and not force:
+            already += 1
+            continue
+        if not dry:
+            shutil.copytree(source, target, dirs_exist_ok=True)
+        print(f"    {name + '/':<20} {'':>8}  whole folder")
+        copied += 1
+
+    print(f"\n  {copied} copied, {already} already there.")
+    if not ps1_found:
+        print("  No PlayStation 1 BIOS found: Ember will not start. Look for")
+        print("  scph1001.bin or any other SCPH dump and put it in Prism's Bios/.")
+    if missing:
+        print("  Wanted by an installed core, not in the Batocera folder:")
+        for name, what in missing:
+            print(f"    {name:<20} {what}")
+    print("  Bios/.INFO - Bios.txt lists every name, size and checksum.")
+
+
 def find_prism():
     """A drive with a Prism folder on it, so the usual case needs no typing."""
     for letter in "DEFGHIJKLMNOPQRSTUVWXYZ":
@@ -430,7 +580,7 @@ def main():
     dry = "--dry-run" in sys.argv or "--dry" in sys.argv
     tidy = "--keep-unused" not in sys.argv
 
-    print(__doc__.split("TIDYING UP")[0].strip())
+    print(__doc__.split("THE BIOS")[0].strip())
     print()
     if not HAVE_PIL:
         print("  Pillow is not installed: pictures will be copied at their original")
@@ -456,6 +606,12 @@ def main():
     if not wanted:
         print("  Nothing selected; only the names and descriptions will be written.")
 
+    # Batocera keeps its BIOS beside its roms, not inside them.
+    bios_root = ""
+    if yes_no("    BIOS too       (from Batocera's bios/ folder)", True):
+        guess = os.path.join(os.path.dirname(batocera_root.rstrip("/\\")), "bios")
+        bios_root = ask("Batocera bios folder", guess if os.path.isdir(guess) else "")
+
     # Every system folder Prism knows about: the ones under Roms/, plus the two whose
     # games can also live elsewhere.
     folders = set()
@@ -478,6 +634,10 @@ def main():
         count = do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy)
         if count:
             total += count
+
+    if bios_root:
+        print("\n  BIOS:")
+        do_bios(prism_root, bios_root, force, dry)
 
     print(f"\n  Done. {total} games looked at.")
     print("  Prism reads Roms/<system>/gamelist.xml and media/ at the next boot;")
