@@ -117,8 +117,36 @@ if true then
 	boot_log("")
 end
 
+--- Video mode, then the boot screen - as early as possible, so the console is never
+--- black while the drives are probed. The theme and the drawing helpers come first:
+--- the boot screen is drawn with them, and the fonts it creates are the interface's
+--- fonts (Font.ftInit runs once).
+load_module("ui/theme")
+load_module("ui/gfx")
+load_module("ui/loading")
+
+if true then
+	local res_x, res_y = 640, 448
+	-- A marker file picks the mode: System/Defaults/PAL or NTSC (the START menu
+	-- writes them). Neither present means NTSC, and the marker is created.
+	if doesFileExist("System/Defaults/PAL") == false and doesFileExist("System/Defaults/NTSC") == false then
+		local VMODE = System.openFile("System/Defaults/NTSC", FCREATE)
+		System.closeFile(VMODE)
+	elseif doesFileExist("System/Defaults/PAL") then
+		Screen.setMode(PAL, 640, 512, CT24, INTERLACED, FIELD)
+		res_x, res_y = 640, 512
+	end
+	loading_init(res_x, res_y)
+	local origin, kind = origin_text()
+	load_step(origin, kind)
+	boot_log("BOOT   boot screen up")
+	boot_flush()
+end
+
+load_step("loading drivers")
 load_module("core/drives")
 irx_load()
+load_step("probing drives")
 
 --- Raices de busqueda de juegos ("append" USB + disco interno). -----------------------
 --- RAICES[1] es SIEMPRE el soporte de arranque. Se anaden las unidades ATA que
@@ -231,6 +259,7 @@ boot_flush()
 
 --- Everything below is definitions: paths, then one module per emulator. Nothing
 --- runs until inventario() further down, so their order only follows the drive.
+load_step("loading emulator modules")
 load_module("core/paths")
 load_module("emu/pops")
 load_module("library/exfatdb")
@@ -279,52 +308,6 @@ usb_inventory()
 --- vuelve de un juego. Necesita RAICES y BDM_DEVICES, de ahi que este aqui.
 SAVES_RECUPERAR()
 
-load_module("ui/loading")
-
---- Pantalla de carga y comprobación de directorio. -------------------------------------
-if true then
-	local res_x, res_y = 640, 448
-	--- Reubicacion: eliminada. ----------------------------------------------------------
-	--- Aqui se comparaba la ruta guardada en "System/Respaldo/RetroarchPS2/
-	--- retroarch-salamander.cfg" con la ruta actual del lanzador, y si no coincidian se
-	--- ejecutaba "System/relocation.lua", que reescribia veinticuatro "retroarch.cfg"
-	--- -- doce sistemas por NTSC y PAL -- porque cada uno llevaba veinte rutas absolutas
-	--- del tipo "mass:/Prism/System/RetroarchPS2/<sistema>/retroarch/...".
-	--- Ya no queda ninguna ruta absoluta: RetroArch deduce todas sus carpetas de su
-	--- propio directorio, asi que cambiar el lanzador de unidad o de carpeta no obliga
-	--- a reescribir nada. La reubicacion, y las 2989 lineas que la implementaban, sobran.
-	if doesFileExist("System/Defaults/PAL") == false and doesFileExist("System/Defaults/NTSC") == false then
-		local VMODE = System.openFile("System/Defaults/NTSC", FCREATE)
-		System.closeFile(VMODE)
-	elseif doesFileExist("System/Defaults/PAL") then
-		Screen.setMode(PAL, 640, 512, CT24, INTERLACED, FIELD)
-		res_x, res_y = 640, 512
-	end
-	-- Nada de esto es local: la pantalla de carga tiene que poder repintarse desde
-	-- cualquier punto del arranque para decir en que paso va. Se libera al final,
-	-- justo antes de entrar en el menu.
-	LOAD_RES_X, LOAD_RES_Y = res_x, res_y
-	LOAD_BG = Graphics.loadImage("System/Medias/Default/FONDO.png")
-	LOAD_IMG = Graphics.loadImage("System/Medias/Default/LOADING.png")
-
-	-- La fuente se carga UNA vez: la pantalla se repinta decenas de veces y no tiene
-	-- sentido releer el TTF cada vez.
-	-- Todo entre pcall: esto es informacion, no puede tumbar el arranque.
-	LOAD_FONT = nil
-	pcall(function()
-		Font.ftInit()
-		LOAD_FONT = Font.ftLoad("System/Medias/Font/PublicPixel.ttf")
-		Font.ftSetPixelSize(LOAD_FONT, 14, 14)
-	end)
-
-	load_step("loading screen ready")
-	boot_log("BOOT   pantalla de carga pintada")
-	boot_flush()
-	if doesFileExist("System/Medias/Sound/Background/music.adp") == true and doesFileExist("System/Medias/Sound/Background/music0.adp") == true then
-		System.removeFile("System/Medias/Sound/Background/music.adp")
-	end
-end
-
 --- Formato de audio. -------------------------------------------------------------------
 Sound.setFormat(16, 48000, 3)
 
@@ -336,8 +319,6 @@ load_module("ui/sound")
 load_module("emu/retroarch_prepare")
 load_module("systems")
 load_module("core/prefs")
-load_module("ui/theme")
-load_module("ui/gfx")
 load_module("ui/input")
 load_module("ui/widgets")
 load_module("library/gamelist_xml")

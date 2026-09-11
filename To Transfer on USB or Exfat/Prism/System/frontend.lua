@@ -47,15 +47,12 @@ end
 function frontend_start()
 	prefs_load()
 	if sfx_volume ~= nil then pcall(sfx_volume, 65) end
-	-- The library is built while the boot checklist is still on screen. Only then does
-	-- the interface take the screen: Font.ftInit() a second time invalidates the boot
-	-- screen's font handle, so it must come after the last load_step().
+	-- The library is built while the boot screen is still up; then the interface
+	-- takes over. Fonts were made by the boot screen (gfx_init runs once).
 	frontend_build_library()
 	boot_log("BOOT   frontend ready, entering the systems view")
 	boot_flush()
-	if load_end ~= nil then load_end() end
-	gfx_init()
-	gfx_set_screen(LOAD_RES_X or 640, LOAD_RES_Y or 448)
+	load_end()
 	systems_view_init()
 	-- Reopen where the user was.
 	local last = prefs_get("last_system")

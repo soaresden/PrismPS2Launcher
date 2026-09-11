@@ -40,18 +40,52 @@ THEME = {
 	btn_triangle = C(90, 220, 170),
 	btn_neutral  = C(150, 150, 165),
 
-	-- Fonts (pixel sizes; the font itself is System/Medias/Font/PublicPixel.ttf). -----
+	-- Fonts. -----------------------------------------------------------------------------
+	-- The first entry whose file exists wins, and its sizes become the sizes below.
+	-- So: to change the look of the whole interface, drop a .ttf in
+	-- System/Medias/Font/ named UI.ttf. Delete it to go back to the shipped font.
+	-- Nothing else to touch, and the repository still only carries PublicPixel.
+	--
+	-- proportional = false means a fixed-width pixel font. FreeType hints those onto
+	-- whole pixels, so the advance per character is NOT proportional to the size
+	-- (PublicPixel renders 7 wide at 8 px, and 13 wide at 12 px): every size used has
+	-- to carry its measured advance in "adv". A normal font is measured per character
+	-- instead - see char_rel() in ui/gfx.lua.
+	fonts = {
+		-- Yours, whatever it is. Never committed (see .gitignore): a font you own a
+		-- licence for - VAG Rounded, Aptos Display, Sony's own SST - stays on your
+		-- drive. Rename it UI.ttf and it wins over everything below.
+		{ file = "System/Medias/Font/UI.ttf",
+		  proportional = true,
+		  title = 30, head = 18, text = 14, small = 11, row = 22 },
+		-- The one Prism ships with when it is there: Dosis, SIL Open Font License,
+		-- rounded and close in spirit to the PlayStation lettering. SemiBold, because
+		-- thin strokes crawl on an interlaced TV.
+		{ file = "System/Medias/Font/Dosis.ttf",
+		  proportional = true,
+		  title = 30, head = 18, text = 14, small = 11, row = 22 },
+		-- Last resort, always present: the pixel font inherited from RETROLauncher.
+		{ file = "System/Medias/Font/PublicPixel.ttf",
+		  proportional = false,
+		  title = 32, head = 16, text = 8, small = 8, row = 16,
+		  adv = { [32] = 26, [16] = 13, [8] = 7 } },
+	},
+	-- Filled in by gfx_init() from the entry above; these are only the defaults it
+	-- falls back on. Edit the profile, not these.
 	font_file  = "System/Medias/Font/PublicPixel.ttf",
+	proportional = false,
+	size_title = 32,
 	size_head  = 16,
-	size_text  = 12,
-	size_small = 9,
-	char_w     = 1.0,      -- advance per character, as a fraction of the pixel size
+	size_text  = 8,
+	size_small = 8,
+	char_adv   = { [32] = 26, [16] = 13, [8] = 7 },
+	char_w     = 0.82,     -- fallback ratio for any size with no measured advance
 
 	-- Layout: systems view. ------------------------------------------------------------
 	header_h    = 34,
 	footer_h    = 30,
 	systems_col = { x = 0, w = 186 },        -- the left column of systems
-	row_h       = 22,                        -- one list row
+	row_h       = 16,                        -- one list row (set from the font profile)
 	detail      = { x = 200, w = 428 },      -- everything right of the column
 
 	-- Layout: gamelist detailed view (inside "detail"). --------------------------------

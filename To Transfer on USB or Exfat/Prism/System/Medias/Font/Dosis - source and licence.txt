@@ -1,0 +1,72 @@
+Dosis - where this font comes from
+==================================
+
+    Dosis.ttf       the file Prism uses
+    Dosis-OFL.txt   its licence, copied verbatim from the download
+
+Designer   Pablo Impallari (Impallari Type), with Alvaro Thomaz
+Licence    SIL Open Font License, version 1.1
+Specimen   https://fonts.google.com/specimen/Dosis
+Source     https://github.com/google/fonts/tree/main/ofl/dosis
+
+Dosis is a rounded humanist sans. It was chosen because it is the closest thing
+under a free licence to the lettering PlayStation hardware and packaging used -
+VAG Rounded - which is not free and cannot be shipped with a project anyone can
+clone.
+
+
+What the licence asks of us
+---------------------------
+
+The OFL lets anyone use, modify and redistribute the font, including inside a
+commercial product, on three conditions that matter here:
+
+  1. The licence travels with the font. That is Dosis-OFL.txt, next to it, and it
+     must stay there - do not delete it to save 4 KB on the memory card.
+  2. The font is not sold on its own. Shipping it inside Prism is fine.
+  3. A modified version may not keep the name "Dosis". If you ever re-hint it or
+     subset it for the PS2, rename it before passing it on.
+
+Nothing in the OFL touches Prism's own licence: the font stays OFL, the launcher
+stays GPL-3.0, and the two sit side by side. Prism credits Dosis in CREDITS.md.
+
+
+Which weight, and why
+---------------------
+
+The file shipped is the SemiBold static instance. A PlayStation 2 draws 640x448
+interlaced: on an interlaced picture a hairline stroke lands on one scanline,
+which is drawn every other field, so thin text crawls and shimmers. Regular is
+readable but restless; Light is unusable. SemiBold holds still.
+
+Google's own repository now carries only the variable font, Dosis[wght].ttf. That
+one works too - FreeType renders it at its default weight, 400, which is Regular -
+but the static SemiBold is the better picture on a television.
+
+
+Exactly what was fetched, and how
+---------------------------------
+
+    Dosis.ttf       Dosis v34, weight 600 (SemiBold), static instance
+                    https://fonts.gstatic.com/s/dosis/v34/HhyJU5sn9vOmLxNkIwRSjTVNWLEJ6bQl2xMB.ttf
+    Dosis-OFL.txt   https://raw.githubusercontent.com/google/fonts/main/ofl/dosis/OFL.txt
+
+That gstatic address is not guessable: it carries a hash and the version number,
+and it changes when Google publishes a new cut. Ask the Fonts API for it instead -
+it answers with a plain CSS file naming the current file for one weight:
+
+    https://fonts.googleapis.com/css?family=Dosis:600
+
+The "Download family" button on fonts.google.com hands back a page rather than a
+zip to anything that is not a browser, which is why the CSS route is the one
+written down here.
+
+
+Replacing or updating it
+------------------------
+
+Any weight, any version: fetch the URL the CSS gives you, save it as Dosis.ttf,
+keep OFL.txt beside it. Nothing in the code names a weight or a version.
+
+To use a different font altogether without removing this one, see
+".INFO - Font.txt": a file named UI.ttf wins over Dosis.

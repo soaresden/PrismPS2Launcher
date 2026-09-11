@@ -1,0 +1,57 @@
+The interface font
+==================
+
+Prism picks the FIRST of these that exists, and takes the text sizes that go with
+it. The list, and the sizes, are in System/ui/theme.lua.
+
+    UI.ttf           yours. Wins over everything else.
+    Dosis.ttf        what Prism ships with. SIL Open Font License.
+    PublicPixel.ttf  last resort, the pixel font inherited from RETROLauncher.
+
+So changing the whole look is one file drop and a reboot. Delete the file to go
+back to the one below it. The journal writes which one was chosen:
+
+    BOOT   font System/Medias/Font/Dosis.ttf  sizes 30/18/14/11
+
+
+Putting your own font in
+------------------------
+
+Rename it UI.ttf and drop it here. An OpenType file works just as well - FreeType
+reads the contents, not the extension - so call it UI.ttf even if it was an .otf.
+
+UI.ttf is in .gitignore ON PURPOSE. A font you bought, or one that came with
+Windows, Office or a theme - VAG Rounded, Aptos, Sony's SST - is licensed to you,
+not to everyone who clones this repository. Keeping it out of git is the whole
+reason this slot is called UI.ttf and not something that sounds shippable.
+
+
+Choosing one that works on a television
+---------------------------------------
+
+A PS2 draws 640x448 interlaced, on a screen people sit two metres away from.
+That rules out more fonts than any question of taste:
+
+  - Weight. Hairlines flicker: one scanline on, one off, fifty times a second.
+    Take SemiBold or Bold, never Light.
+  - Contrast. A font whose strokes go thick-then-thin (a Didone, most serifs)
+    loses the thin parts entirely.
+  - Width. Narrow letterforms fit more of a game title before it is cut.
+  - Hinting. A pixel font like PublicPixel is designed for one size and its
+    multiples - 8, 16, 32 - and is wrong at any other. A normal outline font
+    scales freely, which is why the sizes above are odd numbers.
+
+
+Why the sizes come with the font
+---------------------------------
+
+Text has to be measured before it can be cut with a "~" or centred, and Enceladus
+offers no way to ask FreeType how wide a string came out. So ui/gfx.lua estimates
+it: exactly, from a table, for a fixed-width pixel font; per character, from
+average letter widths, for a normal one. That estimate is only as good as the
+sizes it was set up with, which is why each font in the list carries its own.
+
+If your font renders wider than the estimate, text overflows its box; if it
+renders narrower, text is cut earlier than it needed to be. Both are fixed in
+theme.lua - char_rel() in ui/gfx.lua for the shape of the font, the sizes in the
+profile for how big it is drawn.

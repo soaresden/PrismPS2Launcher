@@ -110,6 +110,12 @@ To Transfer on USB or Exfat/Prism/System/Defaults/SPA
 To Transfer on USB or Exfat/Prism/System/Config/prism.cfg
 To Transfer on USB or Exfat/Prism/System/Config/games.cfg
 
+# The interface font slot. A font you hold a licence for - VAG Rounded, Aptos,
+# Sony's SST - is yours, not everyone's: it stays on your drive. Prism ships
+# Dosis (SIL OFL) and PublicPixel (CC0), which are ours to redistribute.
+To Transfer on USB or Exfat/Prism/System/Medias/Font/UI.ttf
+To Transfer on USB or Exfat/Prism/System/Medias/Font/UI.otf
+
 # Tooling
 HelperScripts/__pycache__/
 HelperScripts/PopsDelay.py

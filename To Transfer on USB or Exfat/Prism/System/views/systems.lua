@@ -4,6 +4,30 @@
 
 SYSTEMS_VIEW = { list = nil }
 
+--- What the column shows. The libretro names are long ("Nintendo - Super Nintendo
+--- Entertainment System"); the column wants the name people use. Anything not here
+--- loses its maker prefix.
+SHORT_NAMES = {
+	snes = "Super Nintendo", nes = "NES", gb = "Game Boy", gbc = "Game Boy Color",
+	gba = "Game Boy Advance", n64 = "Nintendo 64", nds = "Nintendo DS", fds = "Famicom Disk",
+	megadrive = "Mega Drive", mastersystem = "Master System", gamegear = "Game Gear",
+	sg1000 = "SG-1000", segacd = "Mega-CD", sega32x = "32X", saturn = "Saturn",
+	psx = "PlayStation", ps2 = "PlayStation 2", psp = "PSP",
+	atari2600 = "Atari 2600", atari7800 = "Atari 7800", lynx = "Atari Lynx", jaguar = "Jaguar",
+	ngp = "Neo Geo Pocket", ngpc = "Neo Geo Pocket Color", neogeo = "Neo Geo",
+	pcengine = "PC Engine", supergrafx = "SuperGrafx", wswan = "WonderSwan", wswanc = "WonderSwan Color",
+	arcade = "Arcade", mame = "Arcade", fbneo = "Arcade (FBNeo)", dos = "DOS", scummvm = "ScummVM",
+	c64 = "Commodore 64", amiga = "Amiga", amstradcpc = "Amstrad CPC", zxspectrum = "ZX Spectrum",
+	msx = "MSX", colecovision = "ColecoVision", intellivision = "Intellivision", vectrex = "Vectrex",
+	virtualboy = "Virtual Boy", pokemini = "Pokemon Mini", gamecube = "GameCube", channelf = "Channel F",
+}
+
+function system_short_name(s)
+	if SHORT_NAMES[s.folder] ~= nil then return SHORT_NAMES[s.folder] end
+	local rest = string.match(s.name, "^.-%s%-%s(.+)$")
+	return rest or s.name
+end
+
 function systems_view_init()
 	local rows = math.floor((448 - THEME.header_h - THEME.footer_h - 8) / THEME.row_h)
 	SYSTEMS_VIEW.list = list_new(LIBRARY.systems, rows)
@@ -41,7 +65,7 @@ function draw_systems_column(focused)
 	gfx_rect(col.x, THEME.header_h, col.w, 448 - THEME.header_h - THEME.footer_h, THEME.panel)
 	gfx_rect(col.x + col.w - 1, THEME.header_h, 1, 448 - THEME.header_h - THEME.footer_h, THEME.line)
 	list_draw(SYSTEMS_VIEW.list, col.x, y, col.w - 1, THEME.row_h, function(s)
-		return s.name, THEME.text
+		return system_short_name(s), THEME.text
 	end, focused)
 end
 
@@ -73,14 +97,19 @@ function systems_view_draw()
 	local s = systems_view_current()
 	local d = THEME.detail
 	if s ~= nil then
-		local maker, short = split_name(s.name)
+		local maker, long = split_name(s.name)
 		local y = THEME.header_h + 18
 		if maker ~= nil then
 			gfx_text(maker, d.x, y, THEME.size_small, THEME.text_dim)
 			y = y + 14
 		end
-		gfx_text(gfx_fit(short, THEME.size_head, d.w), d.x, y, THEME.size_head, THEME.text_head)
-		y = y + 30
+		gfx_text(gfx_fit(system_short_name(s), THEME.size_head, d.w), d.x, y, THEME.size_head, THEME.text_head)
+		y = y + 22
+		if long ~= system_short_name(s) then
+			gfx_text(gfx_fit(long, THEME.size_small, d.w), d.x, y, THEME.size_small, THEME.text_dim)
+			y = y + 14
+		end
+		y = y + 6
 		local ata, usb, warn = 0, 0, 0
 		for i = 1, #s.games do
 			local g = s.games[i]
@@ -92,11 +121,11 @@ function systems_view_draw()
 		local x = d.x
 		if ata > 0 then
 			gfx_text(ata .." on exFAT", x, y, THEME.size_small, THEME.exfat)
-			x = x + (string.len(ata .." on exFAT") + 3) * gfx_char_w(THEME.size_small)
+			x = x + gfx_text_w(ata .." on exFAT   ", THEME.size_small)
 		end
 		if usb > 0 then
 			gfx_text(usb .." on USB", x, y, THEME.size_small, THEME.usb)
-			x = x + (string.len(usb .." on USB") + 3) * gfx_char_w(THEME.size_small)
+			x = x + gfx_text_w(usb .." on USB   ", THEME.size_small)
 		end
 		if warn > 0 then
 			gfx_text(warn .." cannot run", x, y, THEME.size_small, THEME.warn)

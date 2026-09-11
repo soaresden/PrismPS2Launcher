@@ -45,6 +45,16 @@ with the step written inside, the coloured PlayStation buttons. Every asset in
 Prism was redrawn from that description, none copied from the theme; the credit
 is owed all the same.
 
+## The font
+
+**[Dosis](https://fonts.google.com/specimen/Dosis)** by **Pablo Impallari**
+(Impallari Type), SIL Open Font License 1.1 — the interface font, shipped with
+its licence in `System/Medias/Font/`. A rounded humanist sans, the nearest thing
+under a free licence to the lettering PlayStation used.
+
+**Public Pixel** by **GGBot**, CC0 — the pixel font inherited from RETROLauncher,
+still there as the fallback when no other font is installed.
+
 ## Knowledge
 
 - The `SifIopReset()` limitation of the PS2 libretro cores, confirmed in

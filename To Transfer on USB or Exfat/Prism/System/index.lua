@@ -98,8 +98,12 @@ if disco_visible == false then
 	end
 end
 
+local EN_HOST = (string.lower(string.sub(tostring(base), 1, 5)) == "host:")
+
 if IOP == nil then
 	log("Build 2024: no se cargan IRX (Sif.loadModule cuelga en esta build).")
+elseif EN_HOST then
+	log("host: (PCSX2 / ps2link): sin disco interno, no se cargan IRX.")
 elseif PREBOOT_IRX_HECHO == true then
 	log("IRX ya cargados por el kit de la Memory Card (".. tostring(PREBOOT_ORIGEN) .."): no se recargan.")
 elseif disco_visible == true then
@@ -137,7 +141,9 @@ local cible = nil
 local local_ok = instalacion_completa(base)
 log("Instalacion local completa: ".. tostring(local_ok))
 
-if PREFERIR_DISCO_INTERNO then
+if EN_HOST then
+	log("host: no hay disco interno que esperar.")
+elseif PREFERIR_DISCO_INTERNO then
 	log("Politica: el disco interno gobierna si esta presente. Esperandolo...")
 	local espera = local_ok and 10 or 20
 	for intento = 1, espera do

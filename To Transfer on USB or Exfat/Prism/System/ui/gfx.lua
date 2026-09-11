@@ -11,16 +11,41 @@ GFX = {
 	cache_max = 12,
 }
 
---- Fonts: one FreeType handle per size (ftSetPixelSize is per handle). ------------
+--- Fonts: the first profile in THEME.fonts whose file exists wins, and its sizes
+--- become the theme's sizes - that is how dropping a .ttf into System/Medias/Font/
+--- changes the whole interface. One FreeType handle per size (ftSetPixelSize is per
+--- handle). Called ONCE, by the boot screen: Font.ftInit() a second time would
+--- invalidate every handle made before it, so nothing else may call this.
 function gfx_init()
+	if GFX.font_text ~= nil then return end
+
+	local p = nil
+	for i = 1, #THEME.fonts do
+		if p == nil and doesFileExist(THEME.fonts[i].file) then p = THEME.fonts[i] end
+	end
+	if p == nil then p = THEME.fonts[#THEME.fonts] end
+	THEME.font_file    = p.file
+	THEME.proportional = (p.proportional == true)
+	THEME.size_title   = p.title
+	THEME.size_head    = p.head
+	THEME.size_text    = p.text
+	THEME.size_small   = p.small
+	THEME.row_h        = p.row or THEME.row_h
+	THEME.char_adv     = p.adv or {}
+	if boot_log ~= nil then
+		boot_log("BOOT   font ".. p.file .."  sizes ".. p.title .."/".. p.head
+			.."/".. p.text .."/".. p.small)
+	end
+
 	Font.ftInit()
-	local f = THEME.font_file
-	GFX.font_head  = Font.ftLoad(f)
-	Font.ftSetPixelSize(GFX.font_head, THEME.size_head, THEME.size_head)
-	GFX.font_text  = Font.ftLoad(f)
-	Font.ftSetPixelSize(GFX.font_text, THEME.size_text, THEME.size_text)
-	GFX.font_small = Font.ftLoad(f)
-	Font.ftSetPixelSize(GFX.font_small, THEME.size_small, THEME.size_small)
+	GFX.font_title = Font.ftLoad(p.file)
+	Font.ftSetPixelSize(GFX.font_title, p.title, p.title)
+	GFX.font_head  = Font.ftLoad(p.file)
+	Font.ftSetPixelSize(GFX.font_head, p.head, p.head)
+	GFX.font_text  = Font.ftLoad(p.file)
+	Font.ftSetPixelSize(GFX.font_text, p.text, p.text)
+	GFX.font_small = Font.ftLoad(p.file)
+	Font.ftSetPixelSize(GFX.font_small, p.small, p.small)
 end
 
 --- Real screen size. Layout stays 640x448 and is centred vertically on PAL. ----------
@@ -29,19 +54,65 @@ function gfx_set_screen(w, h)
 	GFX.pal_y = (h - 448) // 2
 end
 
---- Character width of a font size, for measuring and clipping text. ----------------
+--- Average character width at a size: the measured advance for a pixel font, a
+--- deliberately generous estimate for a proportional one (over-estimating makes text
+--- wrap early, under-estimating makes it run out of its box).
 function gfx_char_w(size)
+	local adv = THEME.char_adv[size]
+	if adv ~= nil then return adv end
+	if THEME.proportional == true then return size * 0.62 end
 	return size * THEME.char_w
 end
 
---- Text that fits in "width" pixels, cut with an ellipsis if needed. ----------------
+--- Relative advance of one character, as a fraction of the pixel size, for a normal
+--- proportional font. SST, Inter and Roboto sit within a few percent of these. It only
+--- decides where a string is cut and how it is centred; FreeType does the real spacing.
+local NARROW = "iltjfIr.,:;'!|()[]{}/\\"
+local WIDE   = "mwMW@%"
+local CAPS   = "ABCDEFGHJKLNOPQRSTUVXYZ0123456789#$&+="
+
+local function char_rel(ch)
+	if ch == " " then return 0.28 end
+	if string.find(NARROW, ch, 1, true) ~= nil then return 0.33 end
+	if string.find(WIDE, ch, 1, true) ~= nil then return 0.84 end
+	if string.find(CAPS, ch, 1, true) ~= nil then return 0.60 end
+	return 0.53
+end
+
+--- Width of a string in pixels. Fixed-width fonts take the fast path. ----------------
+function gfx_text_w(text, size)
+	text = tostring(text or "")
+	if THEME.proportional ~= true then
+		return string.len(text) * gfx_char_w(size)
+	end
+	local w = 0
+	for i = 1, string.len(text) do
+		w = w + char_rel(string.sub(text, i, i)) * size
+	end
+	return w
+end
+
+--- Text that fits in "width" pixels, cut with a "~" if needed. ----------------------
 function gfx_fit(text, size, width)
 	text = tostring(text or "")
-	local maxc = math.floor(width / gfx_char_w(size))
-	if maxc < 1 then return "" end
-	if string.len(text) <= maxc then return text end
-	if maxc <= 2 then return string.sub(text, 1, maxc) end
-	return string.sub(text, 1, maxc - 2) .."~"
+	if THEME.proportional ~= true then
+		local maxc = math.floor(width / gfx_char_w(size))
+		if maxc < 1 then return "" end
+		if string.len(text) <= maxc then return text end
+		if maxc <= 2 then return string.sub(text, 1, maxc) end
+		return string.sub(text, 1, maxc - 2) .."~"
+	end
+	if gfx_text_w(text, size) <= width then return text end
+	local room = width - char_rel("~") * size
+	local w, n = 0, 0
+	for i = 1, string.len(text) do
+		local cw = char_rel(string.sub(text, i, i)) * size
+		if w + cw > room then break end
+		w = w + cw
+		n = i
+	end
+	if n == 0 then return "" end
+	return string.sub(text, 1, n) .."~"
 end
 
 --- Word-wrap text into at most max_lines lines of "width" pixels. ----------------------
@@ -84,8 +155,10 @@ function gfx_text(text, x, y, size, color, align, width)
 	if text == "" then return end
 	local font = GFX.font_text
 	if size == THEME.size_head then font = GFX.font_head
-	elseif size == THEME.size_small then font = GFX.font_small end
-	local tw = string.len(text) * gfx_char_w(size)
+	elseif size == THEME.size_small then font = GFX.font_small
+	elseif size == THEME.size_title then font = GFX.font_title end
+	if font == nil then return end
+	local tw = gfx_text_w(text, size)
 	if align == "center" then
 		x = x + ((width or 0) - tw) / 2
 	elseif align == "right" then
@@ -175,14 +248,17 @@ function gfx_hint(x, y, button, label)
 	local d = 16
 	local c = colors[button] or THEME.btn_neutral
 	if letters[button] ~= nil then
-		Graphics.drawCircle(x + d / 2, y + d / 2 + GFX.pal_y, d / 2, c, true)
+		-- A badge, not a circle: this build's drawCircle takes a number for "filled",
+		-- and a square with a lighter inset reads just as well at 16 px.
+		gfx_rect(x, y, d, d, c)
+		gfx_rect(x + 1, y + 1, d - 2, d - 2, THEME.panel)
 	else
 		-- L1, R1, START...: a pill wide enough for the word.
-		d = math.floor(string.len(letter) * gfx_char_w(size)) + 8
+		d = math.floor(gfx_text_w(letter, size)) + 8
 		gfx_rect(x, y, d, 16, c)
 	end
 	gfx_text(letter, x, y + 3, size, THEME.text_head, "center", d)
 	local lx = x + d + 5
 	gfx_text(label, lx, y + 3, size, THEME.text)
-	return lx + string.len(label) * gfx_char_w(size) + 18
+	return lx + gfx_text_w(label, size) + 18
 end
