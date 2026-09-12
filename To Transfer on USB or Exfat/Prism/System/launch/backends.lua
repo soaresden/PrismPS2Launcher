@@ -211,6 +211,11 @@ function launch_ember(game, plan)
 		launch_fail("This folder holds a .chd - Ember reads .cue/.bin only")
 		return
 	end
+	-- The saves. One card per game, kept in POPS/<game>/ whichever emulator plays it;
+	-- Ember gets a copy for the session and it is brought home at the next start-up.
+	local card_dir = nil
+	if ps1_card_borrow ~= nil then card_dir = ps1_card_borrow(game, dir) end
+
 	local reboot = IOP_REBOOT_EMBER
 	if ES_RAIZ_ATA(root) then reboot = 0 end
 	log_lanzamiento("PS1  Ember", {
@@ -221,11 +226,25 @@ function launch_ember(game, plan)
 		log_existe("ember.elf", root .."/ember.elf"),
 		log_existe("bios.bin ", root .."/bios.bin"),
 		"",
+		"card     : ".. tostring(card_dir or "none"),
+		"",
 		"argument   : ".. tostring(game.ember),
 		"IOP reboot : ".. tostring(reboot),
 	})
 	launch_step("Launching ".. game.title, true)
-	System.loadELF(root .."/ember.elf", reboot, root .."/", game.ember)
+	-- ONE argument, the folder name, and nothing else.
+	--
+	-- This was the four-argument form of loadELF, with the Ember folder passed as a
+	-- working directory ahead of the game name. Enceladus hands both of them on as
+	-- arguments, so Ember read argv[1] as "mass0:/PRISM/Ember/", looked for a game
+	-- folder of that name, found none, and did exactly what its README promises when
+	-- it cannot mount anything: dropped to the BIOS shell. Every check Prism prints
+	-- before the launch was green, which is what made it so hard to see.
+	--
+	-- Ember's own launcher passes the name alone and works, and every other backend
+	-- here already uses the three-argument form. Ember resolves its home folder from
+	-- the path it was started with, so it never needed the directory.
+	System.loadELF(root .."/ember.elf", reboot, game.ember)
 end
 
 --- Neutrino ------------------------------------------------------------------------------

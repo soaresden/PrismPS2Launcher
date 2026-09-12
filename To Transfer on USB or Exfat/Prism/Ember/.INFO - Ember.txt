@@ -78,6 +78,29 @@ the .VCD and it will pair up; name it differently and you get two entries,
 which is not wrong, only untidy.
 
 
+Memory cards: ONE per game, kept with POPStarter
+------------------------------------------------
+Ember writes MC1.vmc and MC2.vmc inside the game's folder. POPStarter writes
+SLOT0.VMC in POPS/<game>/. Both are the same thing: a raw 128 KiB PlayStation
+memory card image. Two of them for one game is how you lose an afternoon -
+finish a session on one emulator, come back on the other, and the save is not
+where you left it.
+
+So there is one card per game and it lives in POPS/<game>/, whichever emulator
+plays it. Ember borrows a copy for the session:
+
+    before the launch     POPS/<game>/SLOT0.VMC  ->  games/<folder>/MC1.vmc
+    at the next start-up  games/<folder>/MC1.vmc  ->  POPS/<game>/SLOT0.VMC
+                          and Ember's copy is removed
+
+Slot 1 travels the same way, MC2.vmc <-> SLOT1.VMC. A game with no POPS folder
+yet gets one, seeded with whatever Ember already had - nothing is thrown away.
+
+The loan is written to System/Config/ps1_card.cfg BEFORE the copying starts, so
+a console unplugged mid-game still knows at the next boot that a card is out and
+where it belongs. See System/emu/ps1_card.lua.
+
+
 Artwork and titles
 ------------------
 Shared with every other PS1 format, in Roms/psx/media/ - see the note in that

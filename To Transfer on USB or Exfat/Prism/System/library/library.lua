@@ -76,6 +76,25 @@ local PSX_DISC = {
 	[".iso"] = true, [".chd"] = true, [".pbp"] = true,
 }
 
+--- Names that are never a game, whatever folder they turn up in. ----------------------
+--- POPStarter's own files share their extensions with disc images - PATCH_5.BIN,
+--- TROJAN_7.BIN, IOPRP252.IMG - and a copy of them beside the games is normal. The
+--- prefix is what identifies them, so a game called "Patch Quest" is safe.
+local PSX_SUPPORT = {
+	"pops", "popstarter", "ioprp", "patch_", "trojan_", "igr_", "cheats",
+	"usbd", "usbhdfsd", "bdm", "bdmfs", "iomanx", "filexio", "ps2dev9",
+}
+
+function psx_support_file(name)
+	local low = string.lower(name)
+	for i = 1, #PSX_SUPPORT do
+		if string.sub(low, 1, string.len(PSX_SUPPORT[i])) == PSX_SUPPORT[i] then
+			return true
+		end
+	end
+	return false
+end
+
 --- PlayStation 1: POPS/ (.VCD), Ember/games (one folder per game), Roms/psx (loose). ----
 local function scan_psx(sys, games, seen)
 	for r = 1, #RAICES do
@@ -84,7 +103,13 @@ local function scan_psx(sys, games, seen)
 			local dir = dirs[d]
 			local list = System.listDirectory(dir)
 			if list ~= nil then
-				local is_ember = (string.find(string.lower(dir), "/ember/games", 1, true) ~= nil)
+				local low = string.lower(dir)
+				local is_ember = (string.find(low, "/ember/games", 1, true) ~= nil)
+				-- POPS/ holds ONE kind of game, the .VCD, and a pile of support files
+				-- that are not games at all: POPS.ELF, IOPRP252.IMG, PATCH_5.BIN,
+				-- TROJAN_7.BIN, the IGR screens. Reading loose disc images there put
+				-- every one of them in the list. Loose images are a Roms/psx idea.
+				local is_pops = (string.find(low, "/pops", 1, true) ~= nil)
 				-- A .cue names its .bin, so the .bin must not be listed as a game of its
 				-- own: one disc, one line. Collected first, because the directory does
 				-- not come back in any promised order.
@@ -133,8 +158,10 @@ local function scan_psx(sys, games, seen)
 							entry.dir = dir
 							entry.path = entry.vcd
 							entry.ata = is_ata(dir)
-						elseif is_ember == false and e.directory == false
-						       and PSX_DISC[lower_ext(name)] == true then
+						elseif is_ember == false and is_pops == false
+						       and e.directory == false
+						       and PSX_DISC[lower_ext(name)] == true
+						       and psx_support_file(name) == false then
 							local ext = lower_ext(name)
 							-- The .bin of a .cue is not a game; the .cue already is.
 							if ext ~= ".bin" or cued[string.lower(stem_of(name))] ~= true then

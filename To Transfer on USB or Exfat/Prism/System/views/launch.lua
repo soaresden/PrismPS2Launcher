@@ -24,13 +24,24 @@ function launch_plan(game)
 			p.card = drive .."/POPS/".. game.stem .."/SLOT0.VMC"
 			if doesFileExist(p.card) == false then p.card_note = "created by POPStarter on first run" end
 			p.discs = drive .."/POPS/".. game.stem .."/DISCS.TXT"
-		elseif game.ember ~= nil then
+		elseif game.ember ~= nil or game.disc ~= nil then
 			local root, dir = ember_game(game.ember)
 			p.ember_root, p.ember_dir = root, dir
-			p.file = dir or game.ember_dir
+			p.file = dir or game.ember_dir or game.disc
 			p.elf = (root or "?") .."/ember.elf"
-			p.card = (root or "?") .."/MC1.vmc"
-			p.card_note = "shared card managed by Ember"
+			-- The card this game actually keeps its saves on, which is POPStarter's
+			-- folder whichever emulator is playing. Ember borrows a copy for the
+			-- session; see emu/ps1_card.lua.
+			local cdir = nil
+			if ps1_card_dir ~= nil then cdir = ps1_card_dir(game, dir) end
+			if cdir ~= nil then
+				p.card = cdir .."/SLOT0.VMC"
+				if doesFileExist(p.card) then
+					p.card_note = "lent to Ember, back here when you return"
+				else
+					p.card_note = "created on this first run, and kept"
+				end
+			end
 		end
 	elseif game.kind == "ps2" then
 		-- The card Neutrino will get: the one chosen in the game menu, else this game's

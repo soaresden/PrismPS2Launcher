@@ -330,6 +330,7 @@ load_module("ui/sound")
 --- is what the user sees, and it only depends on the theme and the library.
 load_module("emu/retroarch_prepare")
 load_module("emu/ember_park")
+load_module("emu/ps1_card")
 load_module("systems")
 load_module("systems_info")
 load_module("core/prefs")
