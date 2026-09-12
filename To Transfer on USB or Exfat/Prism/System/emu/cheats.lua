@@ -204,3 +204,90 @@ end
 function cheats_forget(game)
 	if game ~= nil then game.cheats, game.cheats_lines = nil, nil end
 end
+
+--- Turn OPL's cheat engine on for this game, in OPL's own configuration. ---------------
+--- PS2RD ships OFF, and a .cht on the drive does nothing on its own. It is not a global
+--- switch though: OPL keeps per-game settings in CFG/<ID>.cfg, and from its source
+--- (guigame.c, guiGameLoadCheatsConfig / guiGameSaveConfig):
+---
+---     $CheatsSource = 1   read the two keys below from THIS file, not the global ones
+---     $EnableCheat  = 1   run the cheat engine for this game
+---     $CheatMode    = 0   auto-select: every cheat in the .cht. Mode 1, "select game
+---                         cheats", is documented as not implemented - which is why
+---                         choosing cheats has to be done by commenting their codes
+---                         out, and why Prism does it that way.
+---
+--- The file is merged, never replaced: it can also hold $VMC, $Compatibility, a start-up
+--- path. Only these keys are touched, and $EnableCheat is removed rather than set to 0,
+--- which is what OPL itself does.
+local CHEAT_KEYS = { ["$CheatsSource"] = true, ["$EnableCheat"] = true, ["$CheatMode"] = true }
+
+local function write_opl_cfg(path, on)
+	local lines = {}
+	if doesFileExist(path) then
+		pcall(function()
+			local fd = System.openFile(path, FREAD)
+			local size = System.sizeFile(fd)
+			System.seekFile(fd, 0, SET)
+			local data = System.readFile(fd, size)
+			System.closeFile(fd)
+			for raw in string.gmatch(tostring(data or ""), "([^\n]*)\n?") do
+				lines[#lines + 1] = string.gsub(raw, "\r$", "")
+			end
+			if #lines > 0 and lines[#lines] == "" then table.remove(lines) end
+		end)
+	end
+	-- Drop the keys we own, keep everything else exactly as it was.
+	local kept = {}
+	for i = 1, #lines do
+		local key = string.match(lines[i], "^%s*([%$#][%w_]+)%s*=")
+		if key == nil or CHEAT_KEYS[key] ~= true then kept[#kept + 1] = lines[i] end
+	end
+	if on then
+		kept[#kept + 1] = "$CheatsSource=1"
+		kept[#kept + 1] = "$EnableCheat=1"
+		kept[#kept + 1] = "$CheatMode=0"
+	end
+	local text = table.concat(kept, "\n")
+	if text ~= "" then text = text .."\n" end
+	pcall(function()
+		local fd = System.openFile(path, FCREATE)
+		System.writeFile(fd, text, string.len(text))
+		System.closeFile(fd)
+	end)
+	return doesFileExist(path)
+end
+
+--- Written to the CFG/ folder of every drive that has one, plus the drive the game is
+--- on. OPL picks its configuration folder itself, from the device it is reading games
+--- from, and Prism cannot know which it will settle on - so it tells all of them the
+--- same thing rather than guess and be silently wrong.
+function cheats_opl_config(game)
+	if game == nil or game.kind ~= "ps2" then return 0 end
+	local serial = cheats_serial(game.file)
+	if serial == nil then return 0 end
+	local on = cheats_want_opl(game)
+
+	local drives, seen = {}, {}
+	local function add(dev)
+		if dev ~= nil and seen[dev] == nil then seen[dev] = true; drives[#drives + 1] = dev end
+	end
+	add(string.match(tostring(game.dir), "^[^:]+:"))
+	for d = 1, #(DRIVE_ROOTS or {}) do add(DRIVE_ROOTS[d]) end
+
+	local written = 0
+	for i = 1, #drives do
+		local dir = drives[i] .."/CFG"
+		if System.listDirectory(dir) == nil and i == 1 then
+			pcall(System.createDirectory, dir)     -- only on the game's own drive
+		end
+		if System.listDirectory(dir) ~= nil then
+			if write_opl_cfg(dir .."/".. serial ..".cfg", on) then written = written + 1 end
+		end
+	end
+	if log_event ~= nil then
+		log_event("CHEAT", "OPL config for ".. serial ..": EnableCheat="
+			.. tostring(on) .."  written to ".. written .." CFG folder(s)")
+	end
+	return written
+end

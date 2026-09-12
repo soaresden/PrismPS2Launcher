@@ -1,0 +1,59 @@
+OPL - Open PS2 Loader, and the only way to get cheats
+====================================================
+
+OPNPS2LD.ELF goes here. It is not shipped with Prism: download it from
+https://github.com/ps2homebrew/Open-PS2-Loader and drop it in.
+
+
+WHY PRISM USES IT AT ALL
+
+Neutrino runs PlayStation 2 games and runs them well, and it is what Prism
+uses by default. But it has no cheat engine - its whole option list is -bsd,
+-bsdfs, -dvd, -elf, -gc, -gsm, -cwd, -cfg. OPL has one, PS2RD, and it reads
+cheat files by game serial.
+
+So a game whose cheats are switched on in the game menu is launched with OPL
+instead. Switch them all off and it goes back to Neutrino. Nothing else
+changes the emulator behind your back.
+
+
+THE ONE THING YOU MUST DO IN OPL, ONCE
+
+OPL's cheat engine is OFF out of the box. Prism cannot turn it on - it lives
+in OPL's own configuration, which OPL writes itself.
+
+    Settings  >  Cheats Settings
+        Enable PS2RD Cheat Engine   ->  ON
+        PS2RD Cheat Engine Mode     ->  Auto-select cheats
+    then Save changes
+
+"Auto-select cheats" is not a compromise: the other mode, "Select game
+cheats", is documented as not implemented. Choosing WHICH cheats apply is
+done by commenting their codes out in the .cht file, which is exactly what
+the switches in Prism's game menu do.
+
+
+WHAT PS2RD ACCEPTS
+
+    - Raw codes only. Encrypted ones (CodeBreaker and the like) must be
+      converted first, with Omniconvert or similar.
+    - A master code, and it must be a type 9 - it starts with a 9.
+      Codes do not work without one.
+    - Codes are region-locked: a NTSC code will not patch a PAL game.
+    - At most 250 codes in one file.
+
+A commercial cheat engine on a PS2RD build of OPL gives a blue screen at
+every launch. Do not mix the two.
+
+
+HOW PRISM STARTS IT
+
+Not from here. OPL needs the IOP reset before it runs, and once Enceladus has
+reset the IOP it can no longer read the USB stick it was about to load from -
+the console drops back to its menu. So Prism keeps a copy of OPNPS2LD.ELF on
+the memory card, at mc0:/PRISMBOOT/, and launches that one: the card is still
+readable after a reset, which is the same reason the disk drivers live there.
+
+The copy is made on the first launch and refreshed whenever the file here
+changes size. Update OPL here and the card follows; there is no second place
+to remember.

@@ -487,6 +487,11 @@ function cheats_menu_new(g)
 	end
 	opts[#opts + 1] = { label = "File", kind = "info",
 		get = function() return gfx_fit(tostring(g.cheats_path), THEME.size_text, 190) end }
+	-- OPL ships with its cheat engine off. Prism writes the per-game keys into OPL's own
+	-- CFG/<id>.cfg at launch, so there is nothing to do by hand - said here because it
+	-- is otherwise invisible, and because somebody who knows OPL will wonder.
+	opts[#opts + 1] = { label = "OPL", kind = "info",
+		get = function() return "PS2RD switched on per game, at launch" end }
 	opts[#opts + 1] = { label = "Back to the game menu", kind = "action", action = function()
 		GAMELIST.menu = game_menu_new(g)
 		return "stay"

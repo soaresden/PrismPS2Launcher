@@ -374,13 +374,15 @@ function launch_opl(game, plan)
 	-- OPL finds CHT/<serial>.cht by itself and reads whatever is not commented out.
 	-- The switches in the game menu wrote that into the file already, so there is
 	-- nothing to prepare here - only something to say. See emu/cheats.lua.
-	local cht, cht_on, cht_total = nil, 0, 0
+	local cht, cht_on, cht_total, cfgs = nil, 0, 0, 0
 	if cheats_count ~= nil then
 		cht_on, cht_total = cheats_count(game)
 		cht = game.cheats_path
 	end
 	if cht_total > 0 then
 		launch_step("Cheats: ".. cht_on .." of ".. cht_total)
+		-- PS2RD is off until OPL is told otherwise, per game, in its own CFG/ folder.
+		if cheats_opl_config ~= nil then cfgs = cheats_opl_config(game) end
 	end
 	log_lanzamiento("PS2  OPL", {
 		"game   : ".. tostring(game.file),
@@ -388,6 +390,7 @@ function launch_opl(game, plan)
 		"folder : ".. tostring(folder),
 		"cheats : ".. tostring(cht_on) .." of ".. tostring(cht_total)
 			.."   ".. tostring(cht or "none"),
+		"PS2RD  : enabled in ".. tostring(cfgs) .." CFG/<id>.cfg",
 		log_existe("opl", elf),
 	})
 	-- Four arguments, in this order, and they are the real interface. From the source
