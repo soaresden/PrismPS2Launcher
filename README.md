@@ -77,6 +77,32 @@ Sound, artwork, titles, save relocation between drives: all covered in [CHANGES.
 
 ---
 
+## Installing
+
+From a USB stick there is nothing to know: copy `Prism/` onto it and launch `Prism.elf` from uLaunchELF, OPL or whatever you already use.
+
+**From the internal drive there is exactly one thing to know, and it is not optional.** The menu entry has to pass Prism an argument:
+
+```
+mc0:/PRISMBOOT/boot.lua
+```
+
+In `mc0:/SYS-CONF/OSDMENU.CNF`, with the same item number on all three lines:
+
+```
+name_OSDSYS_ITEM_1  = Prism
+path1_OSDSYS_ITEM_1 = mass0:/Prism/Prism.elf
+arg_OSDSYS_ITEM_1   = mc0:/PRISMBOOT/boot.lua
+```
+
+R3Configurator writes the same thing through a form. Copy `To Transfer on MC/PRISMBOOT/` to `mc0:/PRISMBOOT/` first.
+
+Why it is needed: Enceladus reloads its own USB stack at start, without `ata_bd`, and the drive it was launched from ceases to exist. Given an argument it runs *that* script instead of its built-in boot — and the memory card is always readable. The 3 KB script loads the disc drivers from the card and hands over. Without the argument you get the red *"end of builtin script reached"* screen and nothing else.
+
+Watch for a fallback `path2_`/`path3_` pointing at a stick: it can win the race, and it will not be given the argument.
+
+---
+
 ## On the drive
 
 ```
