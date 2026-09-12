@@ -9,9 +9,13 @@ VIEWER = { game = nil, items = {}, sel = 1 }
 --- The order they are offered in. Names are what the band at the bottom says. ---------
 local VIEWER_ORDER = {
 	{ kind = "screenshots", name = "Screenshot" },
+	{ kind = "titleshot",   name = "Title screen" },
 	{ kind = "covers",      name = "Box art" },
+	{ kind = "boxback",     name = "Box, back" },
 	{ kind = "cartridges",  name = "Cartridge" },
 	{ kind = "gamelogo",    name = "Game logo" },
+	{ kind = "mix",         name = "Mix" },
+	{ kind = "fanart",      name = "Fan art" },
 }
 
 --- Opens on a game. Returns false when it has nothing to show, so the caller can say

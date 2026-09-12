@@ -80,13 +80,17 @@ and written as a non-interlaced RGBA PNG - interlaced is what makes the console 
 
 USAGE
 
-    python BatoceraGamelistandMediaCopier.py               ask, then do it
+    python BatoceraGamelistandMediaCopier.py               ask twice, then do it all
+    python BatoceraGamelistandMediaCopier.py --dry-run     say what it would do
     python BatoceraGamelistandMediaCopier.py --force       redo what is already there
     python BatoceraGamelistandMediaCopier.py --keep-unused leave orphaned pictures alone
-    python BatoceraGamelistandMediaCopier.py --dry-run     say what it would do
+    python BatoceraGamelistandMediaCopier.py --no-bios     skip the BIOS
+    python BatoceraGamelistandMediaCopier.py --media=covers,screenshots   only those
 
-It asks for three folders: where Prism is, where the Batocera roms are, and
-where the Batocera BIOS are. Answer the third with a blank line to skip it.
+Two questions: where Prism is, and where Batocera is. Everything else follows -
+roms/ and bios/ are found inside the Batocera folder, every media kind is taken,
+and every drive with DVD/, CD/ or POPS/ at its root joins in. What it is about
+to do is printed before it does it.
 
 At every question, Enter alone takes the value in brackets.
 
@@ -113,13 +117,26 @@ MAX_W, MAX_H = 320, 240
 # with another: ARRM, Skraper and Batocera's own scraper do not agree on which tag holds
 # the box. Wheels are not here on purpose - Prism has nowhere to show one.
 MEDIA = [
-    ("screenshots", ["image", "titleshot", "mix", "screenshot"], "image"),
+    # Prism's own name, the gamelist tags it is scraped under (first one that exists
+    # wins), and the tag written back out. Each one is a folder: media/<name>/.
+    #
+    # The first four are what Prism can show in the game column. The rest are carried
+    # because a scraped library already has them, they cost one question each, and a
+    # picture left behind on the PC is a picture you go looking for later.
+    ("screenshots", ["image", "screenshot"], "image"),
     ("covers",      ["thumbnail", "boxart", "box2dfront", "cover"], "thumbnail"),
     ("cartridges",  ["cartridge", "support", "disc"], "cartridge"),
     # The scrapers call this a wheel or a marquee. It is the game's title drawn the way
     # the game draws it, and Prism puts it beside the name by default - which is the one
     # place a wide picture of a title belongs. Filed under the name it actually has.
     ("gamelogo",    ["marquee", "wheel", "logo"], "marquee"),
+    ("titleshot",   ["titleshot", "titlescreen"], "titleshot"),
+    ("boxback",     ["boxback", "box2dback"], "boxback"),
+    ("mix",         ["mix", "mixrbv1", "mixrbv2"], "mix"),
+    ("fanart",      ["fanart"], "fanart"),
+    # Not here, and on purpose: <map>, <manual> and <video>. A game map fitted into
+    # 320x240 on a television is not a map, it is a grey rectangle; a manual is a PDF;
+    # a video is a video. Carrying them would cost drive space to display nothing.
 ]
 
 MEDIA_TAGS = [row[2] for row in MEDIA]
@@ -252,9 +269,31 @@ def norm(name):
     n = stem(name)
     n = re.sub(r"^[A-Za-z]{4}[_-]?\d{3}\.\d{2}\.?", "", n)
     n = n.lower()
-    n = re.sub(r"\([^)]*\)", "", n)
-    n = re.sub(r"\[[^\]]*\]", "", n)
+    # The disc number comes out first and goes back on at the end. POPS names carry it
+    # in the open - "Final Fantasy IX France Disc 1" - and Batocera keeps it in brackets
+    # - "Final Fantasy IX (France) (Disc 1)". Removing what is inside brackets takes it
+    # from one side and not the other, and then the same game looks like two.
+    m = re.search(r"\b(?:disc|disk|cd)\s*([0-9]+)", n)
+    disc = m.group(1) if m else ""
+    n = re.sub(r"\([^)]*\)", " ", n)
+    n = re.sub(r"\[[^\]]*\]", " ", n)
+    n = re.sub(r"\b(?:disc|disk|cd)\s*[0-9]+", " ", n)
+    n = re.sub(r"\bv\d+(?:\.\d+)*[a-z]?\b", " ", n)
+    n = re.sub(r"\bno\s*edc\b", " ", n)
+    # Region words, once the brackets around them are gone. PS1toPOPS writes
+    # "Metal Slug X Europe [SLES_035.75].VCD" - it drops the parentheses but keeps the
+    # word - while Batocera has "Metal Slug X (Europe).chd", where removing what is
+    # inside the brackets takes the word with it. One name kept "europe" and the other
+    # did not, so the same game looked like two and 104 of 112 PlayStation games found
+    # no description.
+    #
+    # Disc numbers are deliberately NOT touched: "Disc 1" and "Disc 2" are two different
+    # files that must stay two different games.
+    n = re.sub(r"\b(europe|usa|japan|france|germany|italy|spain|netherlands|sweden"
+               r"|korea|australia|asia|world|pal|ntsc|unl|proto|beta|demo|rev)\b", " ", n)
     n = re.sub(r"[^a-z0-9]", "", n)
+    if disc:
+        n = n + "disc" + disc
     return n
 
 
@@ -305,6 +344,38 @@ def copy_picture(source, target, force, dry):
     except Exception as exc:
         print(f"      ! {os.path.basename(source)}: {exc}")
         return False
+
+
+def untidy_media(media_dir, keep_stems, dry):
+    """Bring back anything in _unused/ whose game is here again. Returns how many.
+
+    The tidy-up has to work both ways or it is a trap. Run this once with a drive
+    unplugged and the pictures of everything on it are swept aside; plug the drive back
+    in and, without this, they stay swept aside for ever while the games sit there
+    without covers. That is exactly what happened: eighty-seven PlayStation pictures
+    went to _unused/ during a run made before the POPS drive was connected.
+
+    So the first thing a run does is look in the attic for anything it now recognises."""
+    back = 0
+    for kind, _tags, _out in MEDIA:
+        attic = os.path.join(media_dir, "_unused", kind)
+        if not os.path.isdir(attic):
+            continue
+        for entry in sorted(os.listdir(attic)):
+            full = os.path.join(attic, entry)
+            if not os.path.isfile(full) or stem(entry) not in keep_stems:
+                continue
+            back += 1
+            if dry:
+                continue
+            target_dir = os.path.join(media_dir, kind)
+            os.makedirs(target_dir, exist_ok=True)
+            target = os.path.join(target_dir, entry)
+            if os.path.exists(target):
+                os.remove(full)          # already back by another route
+            else:
+                shutil.move(full, target)
+    return back
 
 
 def tidy_media(media_dir, keep_stems, dry):
@@ -586,12 +657,18 @@ def do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy, extra
 
     write_gamelist(list_path, entries, dry)
 
+    # The attic first, in both directions: anything whose game is back comes back with
+    # it, and only then is anything set aside.
+    keep_stems = {stem(n) for n in games.values()}
+    restored = untidy_media(media_dir, keep_stems, dry)
     unused = 0
     if tidy:
-        unused = tidy_media(media_dir, {stem(n) for n in games.values()}, dry)
+        unused = tidy_media(media_dir, keep_stems, dry)
 
     note = "" if bato_path else "   (nothing on the Batocera side)"
     tail = f"   {unused:>3} unused moved aside" if unused else ""
+    if restored:
+        tail += f"   {restored:>3} brought back"
     if unreachable:
         tail += f"   {unreachable:>3} from exfatdb.json"
     print(f"  {folder:<14} {len(games):>4} games   {matched:>4} matched   "
@@ -720,41 +797,50 @@ def main():
     print("  Press Enter to keep the value in brackets, or type another path.")
     print()
 
+    # Two questions, and everything else follows from them.
+    #
+    # There used to be eleven: one per media kind, one per drive, one for the BIOS. Every
+    # one of them had an obvious answer that was the same every single run - yes, take
+    # it - and a question whose answer is always the same is not a question, it is a
+    # keystroke. What is left is the only thing the script cannot work out on its own:
+    # where Prism is, and where Batocera is.
     prism_root = ask("Prism folder (the one holding Roms/)", find_prism())
     if not os.path.isdir(os.path.join(prism_root, "Roms")):
         print(f"  No Roms/ in {prism_root}. Nothing to do.")
         return
-    batocera_root = ask("Batocera roms folder", r"D:\batocera\roms")
+
+    batocera = ask("Batocera folder (the one holding roms/ and bios/)", r"D:\batocera")
+    batocera_root = os.path.join(batocera, "roms")
     if not os.path.isdir(batocera_root):
-        print(f"  Not a folder: {batocera_root}")
-        return
+        # Somebody pointed straight at the roms folder, which is a reasonable thing to
+        # have done and no reason to make them type it again.
+        if os.path.isdir(batocera):
+            batocera_root = batocera
+            batocera = os.path.dirname(batocera.rstrip("/\\"))
+        else:
+            print(f"  Not a folder: {batocera}")
+            return
 
-    print("\n  What to copy:")
-    wanted = set()
-    for kind, tags, _out in MEDIA:
-        if yes_no(f"    {kind:<12} (from <{tags[0]}>)", True):
-            wanted.add(kind)
-    if not wanted:
-        print("  Nothing selected; only the names and descriptions will be written.")
+    bios_root = os.path.join(batocera, "bios")
+    if not os.path.isdir(bios_root):
+        bios_root = ""
+    if "--no-bios" in sys.argv:
+        bios_root = ""
 
-    # Other drives with games on them: the internal exFAT disk, a second stick. Prism
-    # reads DVD/, CD/ and POPS/ on every drive the console sees, so their games need
-    # their artwork looked up here too - and a PS2 image named by OPL
-    # ("SLES_123.45.Xenosaga.iso") is matched to Batocera's copy by name, the serial
-    # stripped off first.
-    extra_drives = []
-    guess = find_game_drives(prism_root)
-    if guess:
-        print("\n  Other drives with DVD/ CD/ POPS/ on them:")
-        for d in guess:
-            if yes_no(f"    include {d}", True):
-                extra_drives.append(d)
+    # Every media kind, unless told otherwise. They cost nothing to carry, the folders
+    # are made as needed, and a picture left behind on the PC is a picture you go
+    # looking for in six months.
+    wanted = {kind for kind, _tags, _out in MEDIA}
+    only = None
+    for arg in sys.argv:
+        if arg.startswith("--media="):
+            only = {s.strip().lower() for s in arg.split("=", 1)[1].split(",") if s.strip()}
+    if only:
+        wanted = {k for k in wanted if k in only}
 
-    # Batocera keeps its BIOS beside its roms, not inside them.
-    bios_root = ""
-    if yes_no("    BIOS too       (from Batocera's bios/ folder)", True):
-        guess = os.path.join(os.path.dirname(batocera_root.rstrip("/\\")), "bios")
-        bios_root = ask("Batocera bios folder", guess if os.path.isdir(guess) else "")
+    # Every drive that looks like a console drive - DVD/, CD/ or POPS/ at its root -
+    # because Prism reads all of them and their games need names like any other.
+    extra_drives = find_game_drives(prism_root)
 
     # Every system folder Prism knows about: the ones under Roms/, plus the two whose
     # games can also live elsewhere.
@@ -766,11 +852,20 @@ def main():
     folders.add("psx")
     folders.add("ps2")
 
+    # Say what is about to happen, since nothing was asked.
     print(f"\n  {prism_root}  <-  {batocera_root}")
+    print("  media  : " + ", ".join(sorted(wanted)))
+    if extra_drives:
+        print("  drives : " + ", ".join(extra_drives))
+    if bios_root:
+        print("  bios   : " + bios_root)
+    if tidy:
+        print("  tidy   : gamelists rebuilt from what is really there; pictures whose")
+        print("           game has gone move to media/_unused/, they are not deleted")
+    else:
+        print("  tidy   : off (--keep-unused)")
     if dry:
         print("  (dry run: nothing will be written)")
-    if not tidy:
-        print("  (--keep-unused: orphaned pictures left where they are)")
     print()
 
     total = 0
@@ -785,6 +880,16 @@ def main():
         do_bios(prism_root, bios_root, force, dry)
 
     print(f"\n  Done. {total} games looked at.")
+    attic = []
+    for folder in sorted(folders):
+        d = os.path.join(prism_root, "Roms", folder, "media", "_unused")
+        if os.path.isdir(d):
+            n = sum(len(files) for _r, _dirs, files in os.walk(d))
+            if n:
+                attic.append(f"{folder} ({n})")
+    if attic:
+        print("  Set aside in media/_unused/: " + ", ".join(attic))
+        print("  Nothing was deleted. Empty those folders when you are happy.")
     print("  Prism reads Roms/<system>/gamelist.xml and media/ at the next boot;")
     print("  press START, then Rescan games, to see it without restarting.")
 
