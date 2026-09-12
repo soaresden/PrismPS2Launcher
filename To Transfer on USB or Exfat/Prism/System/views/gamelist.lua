@@ -16,9 +16,12 @@ local MARK_TODO = "+"
 --- The three picture slots of the game column, and what can go in them. ---------------
 --- A is the square beside the title, B and C the pair underneath. Everything is drawn
 --- from Roms/<system>/media/<kind>/, so a slot is just the name of a folder.
+--- "gamelogo" is what the scrapers call a wheel or a marquee: the game's title written
+--- the way the game writes it. Nobody outside the scraping world calls that a wheel,
+--- and it is the picture that belongs next to a name, so it is named for what it is.
 ART_SLOTS  = { "a", "b", "c" }
-ART_KINDS  = { "cartridges", "covers", "screenshots", "wheels", "none" }
-ART_LABELS = { "Cartridge", "Box art", "Screenshot", "Wheel", "Nothing" }
+ART_KINDS  = { "gamelogo", "cartridges", "covers", "screenshots", "none" }
+ART_LABELS = { "Game logo", "Cartridge", "Box art", "Screenshot", "Nothing" }
 
 function slot_art(g, slot)
 	local kind = prefs_get("art_".. slot)
@@ -133,6 +136,11 @@ function gamelist_input()
 			if r == "close" then play_sfx(S_CANCELAR) end
 			GAMELIST.menu = nil
 			input_flush()
+		elseif r == "stay" then
+			-- One menu replaced another (the cheats list, and back again). The button
+			-- must not carry through to the menu that just appeared.
+			play_sfx(S_EJECUTAR)
+			input_flush()
 		elseif r == "changed" or r == "action" then
 			play_sfx(S_MOVER)
 		end
@@ -231,12 +239,26 @@ function gamelist_draw()
 		if collections_is_todo(g) then marks = marks .. MARK_TODO end
 		local room = L.w - 16 - gfx_text_w(marks, size)
 		local ty = ry + (THEME.row_h - size) / 2
+		-- Which drive the file is on, spelled out in front of the name. The colour
+		-- says it too, but a colour has to be learnt and a word does not - and with
+		-- the same game present on a stick and on the internal disk, which one you
+		-- are about to start is worth four characters of the row.
+		local tag = ""
+		if prefs_is("show_where", "on") then
+			local wname = library_where(g)
+			tag = string.lower(wname) .."  "
+			local tw = gfx_text_w(tag, THEME.size_small)
+			gfx_text(tag, L.x + 8, ry + (THEME.row_h - THEME.size_small) / 2,
+				THEME.size_small, color)
+			room = room - tw
+		end
+		local tx = L.x + 8 + gfx_text_w(tag, THEME.size_small)
 		if i == l.sel then
 			-- Only the row under the bar scrolls. A whole list in motion is unreadable,
 			-- and the one you are looking at is the one whose full name you want.
-			gfx_text_scroll(g.title, L.x + 8, ty, size, color, room)
+			gfx_text_scroll(g.title, tx, ty, size, color, room)
 		else
-			gfx_text(gfx_fit(g.title, size, room), L.x + 8, ty, size, color)
+			gfx_text(gfx_fit(g.title, size, room), tx, ty, size, color)
 		end
 		if marks ~= "" then
 			gfx_text(marks, L.x, ry + (THEME.row_h - size) / 2, size, THEME.exfat, "right", L.w - 6)
@@ -436,6 +458,42 @@ function ps2_card_options(g, opts)
 end
 
 --- The game menu (triangle) --------------------------------------------------------------
+--- The cheats of one game, one switch each. --------------------------------------------
+--- Every choice is written to games.cfg straight away, keyed by game and cheat name, so
+--- it is still there next time. A file whose cheats are all off is not used at all, and
+--- the game goes back to Neutrino - which is the honest thing to do, since Neutrino has
+--- no cheat engine and pretending otherwise would be a lie on screen.
+function cheats_menu_new(g)
+	local opts = {}
+	local list = cheats_list(g)
+	opts[#opts + 1] = { label = "Played with", kind = "info",
+		get = function()
+			if cheats_want_opl(g) then return "OPL   (the only one with a cheat engine)" end
+			return "Neutrino   (nothing switched on)"
+		end }
+	for i = 1, #list do
+		local idx, group = i, list[i]
+		local n = #group.lines
+		if group.mandatory then
+			-- The Mastercode and its kind. Without it the rest patches nothing, so it
+			-- is shown for honesty and not offered as a choice.
+			opts[#opts + 1] = { label = group.label, kind = "info",
+				get = function() return "required   ".. n .." code(s)" end }
+		else
+			opts[#opts + 1] = { label = group.label .."   ".. n .." code(s)", kind = "toggle",
+				get = function() return cheats_is_on(list[idx]) end,
+				set = function(v) cheats_set(g, idx, v) end }
+		end
+	end
+	opts[#opts + 1] = { label = "File", kind = "info",
+		get = function() return gfx_fit(tostring(g.cheats_path), THEME.size_text, 190) end }
+	opts[#opts + 1] = { label = "Back to the game menu", kind = "action", action = function()
+		GAMELIST.menu = game_menu_new(g)
+		return "stay"
+	end }
+	return menu_new(gfx_fit(g.title, THEME.size_head, 400), opts)
+end
+
 function game_menu_new(g)
 	local opts = {}
 	local sys = SYSTEMS[g.kind]
@@ -476,6 +534,18 @@ function game_menu_new(g)
 	end
 
 	if g.kind == "ps2" then
+		-- Cheats, when a .cht for this game's serial exists on any drive. All on by
+		-- default: somebody who put a widescreen file on the drive put it there to be
+		-- used. Switching them all off hands the game back to Neutrino.
+		local on, total = 0, 0
+		if cheats_count ~= nil then on, total = cheats_count(g) end
+		if total > 0 then
+			opts[#opts + 1] = { label = "Cheats   ".. on .." of ".. total .." on",
+				kind = "action", action = function()
+					GAMELIST.menu = cheats_menu_new(g)
+					return "stay"
+				end }
+		end
 		ps2_card_options(g, opts)
 	end
 

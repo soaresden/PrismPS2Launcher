@@ -41,7 +41,9 @@ end
 function frontend_build_library()
 	load_step("scanning games")
 	library_build(function(name, count)
-		load_step(name .."  ".. count)
+		-- "Sony - PlayStation  3" reads as a console nobody makes. The word costs four
+		-- characters and removes the ambiguity for every system, not just that one.
+		load_step(name .."   ".. count .." game(s)")
 	end)
 	load_step("game lists built", true)
 end

@@ -12,6 +12,7 @@ description - into the layout Prism reads.
     Roms/<system>/media/screenshots/*.png   <image>       in gamelist.xml
     Roms/<system>/media/covers/*.png        <thumbnail>   (or <boxart>)
     Roms/<system>/media/cartridges/*.png    <cartridge>
+    Roms/<system>/media/gamelogo/*.png      <marquee>      (the "wheel" of the scrapers)
     Roms/<system>/gamelist.xml              everything else, in the same format
     Bios/                                   bios/, the few files a PS2 core reads
 
@@ -28,6 +29,26 @@ DVD/, CD/ at the root of the drive, where their emulators read them - and, since
 learned to find loose discs, in Roms/psx and Roms/ps2 as well. All of them are looked
 at. Their artwork goes to Roms/psx/media/ and Roms/ps2/media/, because that is where
 Prism looks for it. The script knows this; you do not have to.
+
+AND THE DRIVES THAT ARE NOT HERE
+
+An internal exFAT disk lives inside the PlayStation. Unplugging it to scrape it, then
+plugging it back in, is not a routine anybody should have. So this also reads
+exfatdb.json at the root of the Prism folder - the file the CONSOLE writes with what it
+found on each drive - and treats those games as real. Their artwork is written to the
+stick, where Prism looks for it on every drive anyway, so the disk is never touched.
+
+The file only lists a system once you have opened it in the Prism menu since the last
+boot; a system you never visited is absent, which is not the same as empty.
+
+
+That includes the OTHER drives. Prism reads DVD/, CD/ and POPS/ on every drive the
+console can see, so a disk full of PlayStation 2 images and no launcher folder still
+gets its games listed - and they need names and covers like any other. Any drive with
+one of those three folders at its root is offered here. A PS2 image named by OPL,
+"SLES_123.45.Xenosaga.iso", is matched to Batocera's "Xenosaga (Europe).iso" with the
+serial stripped off first; the cover is then written under the name the console sees,
+serial and all.
 
 
 THE BIOS
@@ -72,6 +93,7 @@ At every question, Enter alone takes the value in brackets.
 Needs Pillow for the resizing:  pip install pillow
 """
 
+import json
 import os
 import re
 import sys
@@ -94,6 +116,10 @@ MEDIA = [
     ("screenshots", ["image", "titleshot", "mix", "screenshot"], "image"),
     ("covers",      ["thumbnail", "boxart", "box2dfront", "cover"], "thumbnail"),
     ("cartridges",  ["cartridge", "support", "disc"], "cartridge"),
+    # The scrapers call this a wheel or a marquee. It is the game's title drawn the way
+    # the game draws it, and Prism puts it beside the name by default - which is the one
+    # place a wide picture of a title belongs. Filed under the name it actually has.
+    ("gamelogo",    ["marquee", "wheel", "logo"], "marquee"),
 ]
 
 MEDIA_TAGS = [row[2] for row in MEDIA]
@@ -217,8 +243,15 @@ def norm(name):
 
     'Gran Turismo (Europe).chd' and 'Gran Turismo.VCD' are one game. Regions,
     revisions, languages and punctuation are what differ between a Batocera set and
-    what ends up on a PlayStation 2 stick, so all of it goes."""
-    n = stem(name).lower()
+    what ends up on a PlayStation 2 stick, so all of it goes.
+
+    The OPL prefix goes too. OPL names a disc image after its serial -
+    'SLES_123.45.Xenosaga.iso' - and Batocera calls the same game
+    'Xenosaga (Europe).iso'. Left in, the serial makes the two look like different
+    games and every cover on the internal disk goes unmatched."""
+    n = stem(name)
+    n = re.sub(r"^[A-Za-z]{4}[_-]?\d{3}\.\d{2}\.?", "", n)
+    n = n.lower()
     n = re.sub(r"\([^)]*\)", "", n)
     n = re.sub(r"\[[^\]]*\]", "", n)
     n = re.sub(r"[^a-z0-9]", "", n)
@@ -303,7 +336,7 @@ def tidy_media(media_dir, keep_stems, dry):
 
 # --- where the games are ------------------------------------------------------------
 
-def prism_games(prism_root, folder):
+def prism_games(prism_root, folder, extra_drives=None):
     """Every game of one system on the Prism side, as {norm_key: display_file_name}.
 
     Roms/<folder>/ for cartridges. PlayStation 1 and 2 are where their emulators
@@ -335,17 +368,82 @@ def prism_games(prism_root, folder):
                     continue
                 found.setdefault(norm(entry), entry)
 
+    # The drives whose root may hold DVD/, CD/ and POPS/ - the stick Prism is on, and
+    # any other the console can see. Prism reads them all now, so this has to as well,
+    # or the games on the internal disk get no artwork and no names.
+    roots = [drive]
+    for d in (extra_drives or []):
+        if d and d not in roots:
+            roots.append(d)
+
     if folder == "psx":
-        add_files(os.path.join(drive, "POPS"), {".vcd"})
+        for d in roots:
+            add_files(os.path.join(d, "POPS"), {".vcd"})
         add_files(os.path.join(prism_root, "POPS"), {".vcd"})
         add_files(os.path.join(prism_root, "Ember", "games"), as_dirs=True)
         add_files(os.path.join(prism_root, "Roms", "psx"), PSX_LOOSE, skip_cued_bins=True)
     elif folder == "ps2":
-        for sub in ("DVD", "CD"):
-            add_files(os.path.join(drive, sub), {".iso"})
+        for d in roots:
+            for sub in ("DVD", "CD"):
+                add_files(os.path.join(d, sub), {".iso"})
         add_files(os.path.join(prism_root, "Roms", "ps2"), {".iso", ".chd"})
     else:
         add_files(os.path.join(prism_root, "Roms", folder), ROM_EXT)
+    return found
+
+
+def read_exfatdb(prism_root, folder):
+    """Games the CONSOLE saw, from exfatdb.json at the root of the launcher folder.
+
+    Prism writes that file with what it found on each drive, per system. It is the only
+    way this script can know about games on a disk that is inside the PlayStation and
+    not plugged into this PC - which is the normal state of an internal exFAT drive, and
+    the reason the file exists at all.
+
+    Keys look like "roms/gba", "roms/ps2", "POPS", "roms/Ember", "DVD", "CD". Anything
+    that does not map to a system is skipped rather than guessed at.
+
+    One caveat, and it is in the file's own note: Prism only records a system once you
+    have opened it in the menu since the last boot. A system you never visited is absent
+    here, which is not the same as empty."""
+    path = os.path.join(prism_root, "exfatdb.json")
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            data = json.load(handle)
+    except Exception as exc:
+        print(f"      ! exfatdb.json unreadable, ignoring it: {exc}")
+        return {}
+
+    found = {}
+    for section in data.values():
+        if not isinstance(section, dict):
+            continue
+        games = section.get("juegos")
+        if not isinstance(games, dict):
+            continue
+        for key, names in games.items():
+            if not isinstance(names, list):
+                continue
+            low = key.lower()
+            # The console writes DVD/ and CD/ as "roms/DVD" and "roms/CD" - they are
+            # listed under the PlayStation 2 scan, and the writer puts "roms/" in front
+            # of everything that is not POPS. Both spellings are accepted here so an
+            # exfatdb.json written by any version of Prism still reads.
+            if low in ("pops", "roms/ember", "roms/pops", "ember"):
+                system = "psx"
+            elif low in ("dvd", "cd", "roms/dvd", "roms/cd"):
+                system = "ps2"
+            elif low.startswith("roms/"):
+                system = key[5:]
+            else:
+                continue
+            if system.lower() != folder.lower():
+                continue
+            for name in names:
+                if name:
+                    found.setdefault(norm(name), name)
     return found
 
 
@@ -416,8 +514,16 @@ def write_gamelist(path, entries, dry):
 
 # --- the work -----------------------------------------------------------------------
 
-def do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy):
-    games = prism_games(prism_root, folder)
+def do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy, extra_drives=None):
+    games = prism_games(prism_root, folder, extra_drives)
+    # Plus whatever the console reported seeing, for the drives that are not plugged in
+    # here. A game found both ways is one game: the key is the same normalised name.
+    from_db = read_exfatdb(prism_root, folder)
+    unreachable = 0
+    for key, name in from_db.items():
+        if key not in games:
+            games[key] = name
+            unreachable += 1
     if not games:
         return None
 
@@ -486,6 +592,8 @@ def do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy):
 
     note = "" if bato_path else "   (nothing on the Batocera side)"
     tail = f"   {unused:>3} unused moved aside" if unused else ""
+    if unreachable:
+        tail += f"   {unreachable:>3} from exfatdb.json"
     print(f"  {folder:<14} {len(games):>4} games   {matched:>4} matched   "
           f"{copied:>4} pictures written{tail}{note}")
     return len(games)
@@ -565,6 +673,29 @@ def do_bios(prism_root, bios_root, force, dry):
     print("  Bios/.INFO - Bios.txt lists every name, size and checksum.")
 
 
+def find_game_drives(skip):
+    """Drives whose root looks like a console drive: DVD/, CD/ or POPS/ on it.
+
+    That is what OPL and POPStarter put there, and it is exactly what Prism scans on
+    every drive the console can see. A disk full of PlayStation 2 images and nothing
+    else has no launcher folder to recognise it by - these three names are the only
+    signature it has."""
+    found = []
+    skip = os.path.splitdrive(skip)[0].upper() if skip else ""
+    for letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+        root = f"{letter}:\\"
+        if f"{letter}:" == skip:
+            continue
+        try:
+            if not os.path.isdir(root):
+                continue
+            if any(os.path.isdir(os.path.join(root, d)) for d in ("DVD", "CD", "POPS")):
+                found.append(root)
+        except OSError:
+            continue
+    return found
+
+
 def find_prism():
     """A drive with a Prism folder on it, so the usual case needs no typing."""
     for letter in "DEFGHIJKLMNOPQRSTUVWXYZ":
@@ -606,6 +737,19 @@ def main():
     if not wanted:
         print("  Nothing selected; only the names and descriptions will be written.")
 
+    # Other drives with games on them: the internal exFAT disk, a second stick. Prism
+    # reads DVD/, CD/ and POPS/ on every drive the console sees, so their games need
+    # their artwork looked up here too - and a PS2 image named by OPL
+    # ("SLES_123.45.Xenosaga.iso") is matched to Batocera's copy by name, the serial
+    # stripped off first.
+    extra_drives = []
+    guess = find_game_drives(prism_root)
+    if guess:
+        print("\n  Other drives with DVD/ CD/ POPS/ on them:")
+        for d in guess:
+            if yes_no(f"    include {d}", True):
+                extra_drives.append(d)
+
     # Batocera keeps its BIOS beside its roms, not inside them.
     bios_root = ""
     if yes_no("    BIOS too       (from Batocera's bios/ folder)", True):
@@ -631,7 +775,8 @@ def main():
 
     total = 0
     for folder in sorted(folders):
-        count = do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy)
+        count = do_system(folder, prism_root, batocera_root, wanted, force, dry, tidy,
+                          extra_drives)
         if count:
             total += count
 

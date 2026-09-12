@@ -47,6 +47,9 @@ function main_menu_open()
 			prefs_set("select_color", SELECTION_IDS[v])
 			theme_selection(SELECTION_IDS[v])
 		end })
+	add({ label = "Show the drive in the list", kind = "toggle",
+		get = function() return prefs_is("show_where", "on") end,
+		set = function(v) if v then prefs_set("show_where", "on") else prefs_set("show_where", "off") end end })
 	add({ label = "Scrolling text speed", kind = "choice", values = SCROLL_LABELS,
 		get = function() return index_of(SCROLL_MODES, prefs_get("scroll_speed"), 3) end,
 		set = function(v)
@@ -98,6 +101,32 @@ function main_menu_open()
 	add({ label = "Video mode  (next start)", kind = "choice", values = { "Auto", "NTSC 480i", "PAL 576i" },
 		get = function() return index_of(VIDEO, prefs_get("video")) end,
 		set = function(v) prefs_set("video", VIDEO[v]); apply_video_pref() end })
+	-- Marking a drive as the internal disk, from the sofa. Detection normally does
+	-- this on its own - index.lua watches which drive appears when ata_bd loads - but
+	-- on a warm restart the drivers are already resident and nothing appears. The
+	-- alternative was to ask for a file to be created on a disk that lives inside the
+	-- console, which means opening the console. This writes it instead.
+	for i = 1, #(BDM_DEVICES or {}) do
+		local dev = BDM_DEVICES[i]
+		if BDM_ATA == nil or BDM_ATA[dev] ~= true then
+			add({ label = dev .." is the internal disk", kind = "action", action = function()
+				local flag = dev .."/internal-ata-disk.flag"
+				pcall(function()
+					local fd = System.openFile(flag, FCREATE)
+					System.writeFile(fd, "Prism", 5)
+					System.closeFile(fd)
+				end)
+				if log_event ~= nil then
+					log_event("MENU", "marked ".. dev .." as internal: "
+						.. tostring(doesFileExist(flag)))
+				end
+				if doesFileExist(flag) then BDM_ATA[dev] = true end
+				frontend_rescan()
+				return "close"
+			end })
+		end
+	end
+
 	local wle = nil
 	if RUTA_WLE ~= nil then wle = RUTA_WLE(false) end
 	if wle ~= nil then

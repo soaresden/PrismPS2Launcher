@@ -15,11 +15,13 @@ PREFS = {
 		last_system = "",
 		sort = "folder",        -- folder | maker | year, see library/collections.lua
 		-- Which picture goes in each of the game column's three slots.
-		art_a = "cartridges",   -- beside the title
+		art_a = "gamelogo",     -- beside the title: the game's own logo, which is what
+		                        -- that slot is shaped for - a wide picture next to a name
 		art_b = "screenshots",  -- bottom left
 		art_c = "covers",       -- bottom right
 		select_color = "blue",  -- the selection bar, see SELECTION_COLORS in ui/theme
 		scroll_speed = "fast",  -- slow | normal | fast, for long lines of text
+		show_where = "on",      -- "usb" / "exfat" in front of a game's name
 	},
 }
 
@@ -110,6 +112,18 @@ function prefs_backend(game)
 	if game.kind == "psx" then
 		if game.vcd ~= nil then return "pops" end
 		return "ember"
+	end
+	-- Cheats are OPL's business: Neutrino has no cheat engine at all. So a PS2 game
+	-- whose cheats are switched on goes to OPL by itself, and goes back to Neutrino the
+	-- moment they are all switched off. Widescreen was asked for as something that just
+	-- works, and this is what that costs.
+	--
+	-- Getting OPL to start at all took two hardware tests and a detour: it must have
+	-- the IOP reset before it runs, and Enceladus cannot read a USB stick after doing
+	-- that. It is launched from a copy on the memory card instead - see opl_on_card in
+	-- launch/backends.lua.
+	if game.kind == "ps2" and cheats_want_opl ~= nil and cheats_want_opl(game) then
+		return "opl"
 	end
 	if sys ~= nil then
 		local b = backends_for(game.kind, game.file)

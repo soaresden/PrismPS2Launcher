@@ -169,7 +169,7 @@ function gamelist_apply(folder, games)
 			-- Artwork named by the file wins over the naming convention, when it exists.
 			if e.thumbnail ~= nil and doesFileExist(e.thumbnail) then g.art_covers = e.thumbnail end
 			if e.image ~= nil and doesFileExist(e.image) then g.art_screenshots = e.image end
-			if e.marquee ~= nil and doesFileExist(e.marquee) then g.art_wheels = e.marquee end
+			if e.marquee ~= nil and doesFileExist(e.marquee) then g.art_gamelogo = e.marquee end
 			if e.cartridge ~= nil and doesFileExist(e.cartridge) then g.art_cartridges = e.cartridge end
 		end
 	end

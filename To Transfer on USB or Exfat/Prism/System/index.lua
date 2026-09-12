@@ -75,8 +75,43 @@ local function instalacion_completa(raiz)
 	return doesFileExist(raiz .."/System/system.lua")
 end
 
+--- THE SPLASH, BEFORE ANYTHING ELSE. ---------------------------------------------------
+--- The first thing that happens is that the screen lights up. Everything after this
+--- line can take seconds - drivers to load, a mechanical disk to spin up, drives to
+--- walk - and all of it used to happen on a black screen. A black screen is
+--- indistinguishable from a console that has died, and the user has no way to tell
+--- whether to wait or to reach for the power switch. So: picture first, work second,
+--- and every step says its name while it runs.
+---
+--- gfx_init() is guarded against a second run, so system.lua re-initialising later is
+--- a no-op for the fonts; it only re-applies the screen size once the video mode is
+--- known. All of it under pcall: a boot must never fail because a picture would not
+--- draw. If it does fail, SPLASH_OK stays false and the boot carries on in the dark,
+--- exactly as it used to.
+SPLASH_OK = false
+pcall(function()
+	dofile(base .."/System/ui/theme.lua")
+	dofile(base .."/System/ui/gfx.lua")
+	dofile(base .."/System/ui/loading.lua")
+	local rx, ry = 640, 448
+	local m = Screen.getMode()
+	if m ~= nil and m.width ~= nil and m.height ~= nil and m.width > 0 and m.height > 0 then
+		rx, ry = m.width, m.height
+	end
+	loading_init(rx, ry)
+	load_step("starting up")
+	SPLASH_OK = true
+end)
+
+--- A line on the boot screen, when there is one. Safe to call before it exists. -------
+local function paso(texto)
+	if SPLASH_OK and load_step ~= nil then pcall(load_step, texto) end
+end
+
 log("Boot medium         : ".. tostring(base))
 log("Enceladus build     : ".. ((IOP ~= nil) and "2025+ (IOP table)" or "2024 (Sif table)"))
+log("Splash up before probing anything: ".. tostring(SPLASH_OK))
+paso("looking at the drives")
 
 -- Is the internal disk already mounted? That happens when the launcher left ata_bd
 -- resident, or on a warm restart. Loading it again would be fatal.
@@ -100,6 +135,29 @@ end
 
 local EN_HOST = (string.lower(string.sub(tostring(base), 1, 5)) == "host:")
 
+
+-- Which BDM drives exist right now. Taken immediately before ata_bd is loaded and
+-- again after: whatever appears in between IS the internal disk, and that is the only
+-- moment the two can be told apart. A USB stick and an ATA disk look identical
+-- afterwards, and asking for a marker file on a disk that lives inside the console is
+-- asking someone to open the console. PREBOOT_ATA survives into system.lua.
+--
+-- It is ONLY taken on the branch that loads the drivers. Probing every massN: before
+-- that costs a real boot: a device that is still spinning up answers "not mounted",
+-- the stack remembers that for the session, and a disk that was there a minute ago is
+-- gone. On every other branch the drivers are already resident, there is no "before"
+-- to measure, and the probe would be all cost and no information.
+local function bdm_mounted()
+	local s = {}
+	for n = 0, 5 do
+		local d = "mass".. n ..":"
+		if System.listDirectory(d .."/") ~= nil then s[d] = true end
+	end
+	return s
+end
+
+PREBOOT_ATA = {}
+
 if IOP == nil then
 	log("2024 build: IRX are not loaded (Sif.loadModule hangs on this build).")
 elseif EN_HOST then
@@ -109,6 +167,9 @@ elseif PREBOOT_IRX_HECHO == true then
 elseif disco_visible == true then
 	log("The internal disk is already mounted: the IRX are not reloaded.")
 else
+	paso("loading the disk drivers")
+	-- The "before" picture, taken here and nowhere else.
+	local antes_irx = bdm_mounted()
 	-- Load dev9 + ata_bd into the Enceladus BDM stack. The order is mandatory.
 	for _i, nombre in ipairs({"dev9_ns.irx", "ata_bd.irx"}) do
 		local ruta = base .."/IRX/".. nombre
@@ -128,6 +189,20 @@ else
 			if ok == false then log("   ERROR: ".. tostring(err)) end
 		end
 	end
+
+	-- Second look, inside the same branch as the first: a drive that was not there
+	-- before ata_bd and is there now IS the internal disk, with no marker file and no
+	-- question asked. On every other branch the drivers were already resident, there
+	-- is no "before" to compare against, and nothing is claimed.
+	local despues = bdm_mounted()
+	local nuevos = ""
+	for d, _v in pairs(despues) do
+		if antes_irx[d] ~= true then
+			PREBOOT_ATA[d] = true
+			nuevos = nuevos .." ".. d
+		end
+	end
+	if nuevos ~= "" then log("Appeared with ata_bd, so INTERNAL DISK:".. nuevos) end
 end
 
 -- Policy for choosing the governing install.
@@ -145,6 +220,15 @@ if EN_HOST then
 	log("host: there is no internal disk to wait for.")
 elseif PREFERIR_DISCO_INTERNO then
 	log("Policy: the internal disk governs if it is present. Waiting for it...")
+	-- The wait runs to the end, and it has to. PRISMBOOT loads ata_bd and hands over at
+	-- once, so at the first look a mechanical disk has not finished spinning up and NO
+	-- drive is mounted yet. A disk waking up and a disk that was never there look
+	-- identical at that moment - telling them apart is the entire purpose of waiting,
+	-- so an early exit on "nothing mounted yet" gives up on precisely the case it was
+	-- meant to handle. That exit cost a working internal disk, twice.
+	--
+	-- The seconds are no longer stolen from the user either: the splash is up, and
+	-- each attempt says so on it.
 	local espera = local_ok and 10 or 20
 	for intento = 1, espera do
 		for n = 0, 5 do
@@ -155,11 +239,23 @@ elseif PREFERIR_DISCO_INTERNO then
 			end
 		end
 		if cible ~= nil then break end
+		-- A second drive HAS appeared: the disk is awake. Whether it carries a Prism
+		-- install is another question, answered above and already false - but there is
+		-- nothing left to wait for, and system.lua will find it and its games.
+		local montadas = 0
+		for n = 0, 5 do
+			if System.listDirectory("mass".. n ..":/") ~= nil then montadas = montadas + 1 end
+		end
+		if montadas >= 2 then
+			log("  a second drive is up after ".. intento .."s; no install on it, carrying on.")
+			break
+		end
 		log("  attempt ".. intento .."/".. espera ..", the disk is not answering yet")
+		paso("looking for the internal disk  ".. intento .."/".. espera)
 		if System.sleep ~= nil then System.sleep(1) end
 	end
 	if cible == nil then
-		log("Internal disk absent after ".. espera .." s.")
+		log("No governing install on an internal disk.")
 	end
 end
 
@@ -195,4 +291,5 @@ if cible ~= base then
 	log("currentDirectory   : ".. tostring(System.currentDirectory()))
 end
 log("Handing control to ".. cible .."/System/system.lua")
+paso("starting the launcher")
 dofile(cible .."/System/system.lua")

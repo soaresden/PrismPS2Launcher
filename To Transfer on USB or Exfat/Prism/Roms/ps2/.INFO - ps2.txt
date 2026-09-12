@@ -1,0 +1,58 @@
+Roms/ps2 - PlayStation 2 games, the simple way
+==============================================
+
+Drop your .iso here, like you would for any other console:
+
+    Roms/ps2/Xenosaga.iso
+    Roms/ps2/media/covers/Xenosaga.png
+    Roms/ps2/media/screenshots/Xenosaga.png
+    Roms/ps2/gamelist.xml
+
+That is all you need to know. Scrape it with ARRM or Skraper pointed at this
+folder, or run HelperScripts/BatoceraGamelistandMediaCopier.py to bring over
+what your Batocera install already has.
+
+
+THE OTHER WAY, WHICH ALSO WORKS
+
+Open PS2 Loader and Neutrino read disc images from two folders at the ROOT of
+a drive, not from here:
+
+    <drive>/DVD/      images over 700 MB
+    <drive>/CD/       images under 700 MB
+
+That is their rule, not ours, and it predates Prism by fifteen years. If you
+already have a drive laid out that way, leave it alone: Prism reads DVD/ and
+CD/ on EVERY drive the console can see, internal disk included, with or
+without a Prism folder on it. Nothing to move, nothing to rename.
+
+So there are two layouts and both are first-class. Yours is whichever one you
+already have.
+
+
+ARTWORK, IN BOTH CASES
+
+Prism looks in this order, and stops at the first hit:
+
+    1. Roms/ps2/media/<kind>/<file name>.png   on every drive, boot medium first
+    2. <drive>/ART/<serial>_COV.png            OPL's own folder, if the file name
+                                               starts with a serial
+
+The first is Prism's layout and works for everyone. The second is a courtesy to
+anyone arriving with an OPL drive already full of artwork: a game named
+"SLES_123.45.Xenosaga.iso" finds SLES_123.45_COV.png without copying a thing.
+_SCR is the screenshot, _LAB the disc label, _LGO the logo.
+
+If you have neither, you have no pictures - and the game still runs and is
+still listed. Artwork is never a requirement.
+
+The boot medium comes first on purpose: a picture you put on the USB stick
+always wins over one on the internal disk, so you can improve a cover without
+touching the drive the game lives on.
+
+
+MEMORY CARDS
+
+Not here. A PS2 virtual memory card is a .VMC file in VMC/ at the root of the
+drive, and the game menu on TRIANGLE chooses which one a game uses - the real
+card in slot 1, an existing VMC, or a new one named after the game.

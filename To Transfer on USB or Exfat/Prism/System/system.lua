@@ -121,9 +121,16 @@ end
 --- black while the drives are probed. The theme and the drawing helpers come first:
 --- the boot screen is drawn with them, and the fonts it creates are the interface's
 --- fonts (Font.ftInit runs once).
-load_module("ui/theme")
-load_module("ui/gfx")
-load_module("ui/loading")
+-- index.lua puts the splash up before it waits for anything, so on that path these
+-- three are already loaded. Loading them again would re-run "GFX = { ... }", blank the
+-- font handles, and send gfx_init() through Font.ftInit() a second time - which
+-- invalidates every handle made before it. loading_init below is safe to call twice
+-- and is what applies the real video mode.
+if SPLASH_OK ~= true then
+	load_module("ui/theme")
+	load_module("ui/gfx")
+	load_module("ui/loading")
+end
 
 if true then
 	local res_x, res_y = 640, 448
@@ -181,14 +188,43 @@ if true then
 	-- ANY BDM drive with a same-named directory, ATA or USB. The "ATA only"
 	-- restriction was right when boot always came from USB; booting FROM the
 	-- internal disk inverts it, and now it is the USB stick that must be added.
+	--
+	-- The name is tried in several spellings. The boot folder decides what the
+	-- launcher is called, but the other drive was filled in on a PC where nobody
+	-- was thinking about matching it character for character - and a stick that
+	-- says PRISM next to a disk that says Prism is not a mistake worth punishing.
+	local names = { nombre_carpeta, "PRISM", "Prism", "prism" }
 	for i = 1, #BDM_DEVICES do
-		local candidata = BDM_DEVICES[i] .."/".. nombre_carpeta
-		if System.listDirectory(candidata) ~= nil then
-			table.insert(RAICES, candidata)
+		for n = 1, #names do
+			local candidata = BDM_DEVICES[i] .."/".. names[n]
+			if System.listDirectory(candidata) ~= nil then
+				table.insert(RAICES, candidata)
+				break
+			end
 		end
 	end
+
+	-- Every drive the console can see, boot medium first. The roots above need a
+	-- launcher folder; these do not. PlayStation 1 and 2 games live in DVD/, CD/
+	-- and POPS/ at the ROOT of a drive, put there by OPL and POPStarter long
+	-- before Prism existed, and refusing to look at them because that drive has
+	-- no Prism folder on it helps nobody.
+	DRIVE_ROOTS = {}
+	if true then
+		local vistos = {}
+		local function add_drive(dev)
+			if dev == nil or dev == "" then return end
+			local k = string.lower(dev)
+			if vistos[k] == nil then vistos[k] = true; DRIVE_ROOTS[#DRIVE_ROOTS + 1] = dev end
+		end
+		add_drive(string.match(actual, "^[^:]+:"))
+		for i = 1, #BDM_DEVICES do add_drive(BDM_DEVICES[i]) end
+	end
+
 	local resumen = "\nSearch roots:\n"
 	for i = 1, #RAICES do resumen = resumen .."  ".. i ..". ".. RAICES[i] .."\n" end
+	resumen = resumen .."Drives searched for DVD/ CD/ POPS/:\n"
+	for i = 1, #DRIVE_ROOTS do resumen = resumen .."  ".. i ..". ".. DRIVE_ROOTS[i] .."\n" end
 	boot_log(resumen)
 end
 
@@ -331,6 +367,7 @@ load_module("ui/sound")
 load_module("emu/retroarch_prepare")
 load_module("emu/ember_park")
 load_module("emu/ps1_card")
+load_module("emu/cheats")
 load_module("systems")
 load_module("systems_info")
 load_module("core/prefs")

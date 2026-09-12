@@ -218,7 +218,19 @@ function collections_sort_systems(mode)
 		else real[#real + 1] = LIBRARY.systems[i] end
 	end
 
+	-- The two consoles this launcher is FOR come first, whatever the sort. Prism runs
+	-- on a PlayStation 2 and its own library is the one you reach for; burying it
+	-- between Neo Geo Pocket and Sega SG-1000 because the alphabet says so would be
+	-- letting a rule win over the reason the rule exists.
+	local FIRST = { ps2 = 1, psx = 2 }
+
 	local function cmp(a, b)
+		local fa, fb = FIRST[a.folder], FIRST[b.folder]
+		if fa ~= nil or fb ~= nil then
+			if fa == nil then return false end
+			if fb == nil then return true end
+			return fa < fb
+		end
 		if mode == "maker" then
 			local ma, mb = system_maker(a), system_maker(b)
 			if ma ~= mb then return ma < mb end

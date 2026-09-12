@@ -63,9 +63,23 @@ for n = 0, 5 do
 	if doesFileExist("mass".. n ..":/Prism".. MARCA) then visible = true end
 end
 
+-- Which BDM drives are mounted right now. This script is the ONLY place in the whole
+-- boot that sees both sides of ata_bd loading, so it is the only place that can tell an
+-- internal disk from a USB stick without being told. Everything downstream - the exFAT
+-- label, -bsd=ata for Neutrino, the path rewriting - depends on knowing which is which.
+local function bdm_montadas()
+	local s = {}
+	for n = 0, 5 do
+		local d = "mass".. n ..":"
+		if System.listDirectory(d .."/") ~= nil then s[d] = true end
+	end
+	return s
+end
+
 if visible then
 	log("El disco ya esta montado: no se cargan IRX.")
 else
+	local antes = bdm_montadas()
 	for _i, nombre in ipairs({"dev9_ns.irx", "ata_bd.irx"}) do
 		local ruta = BASE .."/".. nombre
 		log("-> ".. nombre)
@@ -79,6 +93,34 @@ else
 			LOG = LOG .."   ".. tostring(tam) .." bytes, ID = ".. tostring(id) .."\n"
 		end)
 		if ok == false then log("   ERROR: ".. tostring(err)) end
+	end
+
+	-- A mechanical disk needs a moment after its driver loads. Look for a few seconds,
+	-- and write the answer down where it will still be true next time: a marker file at
+	-- the root of the drive itself. Prism then knows, on every later boot, even one
+	-- where the drivers were already resident and nothing could be observed - and even
+	-- if this script is bypassed entirely.
+	for intento = 1, 8 do
+		local ahora = bdm_montadas()
+		local nuevas = ""
+		for d, _v in pairs(ahora) do
+			if antes[d] ~= true then
+				nuevas = nuevas .." ".. d
+				local flag = d .."/internal-ata-disk.flag"
+				if doesFileExist(flag) == false then
+					pcall(function()
+						local f = System.openFile(flag, FCREATE)
+						System.writeFile(f, "PRISMBOOT", 9)
+						System.closeFile(f)
+					end)
+				end
+				log("DISCO INTERNO: ".. d .."  (marcador escrito: "
+					.. tostring(doesFileExist(flag)) ..")")
+				antes[d] = true
+			end
+		end
+		if nuevas ~= "" then break end
+		if System.sleep ~= nil then System.sleep(1) end
 	end
 end
 

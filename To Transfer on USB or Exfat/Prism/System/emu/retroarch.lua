@@ -435,6 +435,14 @@ function FORZAR_CONF_RETROARCH(pal, lee_ata)
 		quiero[dirs[i][1]] = para_core(dirs[i][2])
 	end
 
+	-- Where RetroArch's own file browser opens. Not a folder of ours to create, but an
+	-- absolute path all the same - and an absolute path that is not rewritten is an
+	-- absolute path that goes stale the day the launcher moves to another drive.
+	-- Everything in this function is recomputed from where the launcher REALLY is, on
+	-- every boot: install Prism on the internal disk tomorrow and the whole
+	-- configuration follows it, with nothing to edit by hand.
+	quiero["rgui_browser_directory"] = para_core(raiz_saves .."/Roms")
+
 	-- RetroArch's OWN FOLDERS, written out explicitly. ---------------------------------
 	-- Without these keys RetroArch works them out from its own directory, and there is
 	-- the trap: booted from the internal drive that directory can be a name that exists

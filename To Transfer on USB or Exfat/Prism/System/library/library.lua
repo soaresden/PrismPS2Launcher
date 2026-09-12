@@ -52,11 +52,23 @@ local function read_titles(folder, dir)
 	end)
 end
 
+--- The name to SHOW, when nothing better is known. ------------------------------------
+--- OPL names a disc image after its serial: "SLES_504.08.PaRappa the Rapper 2.iso".
+--- The serial is how the console finds the file and it has to stay in the file name,
+--- but it is not the game's name, and leaving it in the list sorts a whole library by
+--- publisher code - every SCES together, every SLUS together, alphabetical by nothing
+--- anyone can see. The file keeps its name; the list shows the game's.
+function pretty_title(stem)
+	local cut = string.match(stem, "^%a%a%a%a[_%-]%d%d%d%.%d%d%.(.+)$")
+	if cut ~= nil and cut ~= "" then return cut end
+	return stem
+end
+
 local function title_for(folder, name)
 	local map = LIBRARY.titles[folder]
 	local stem = stem_of(name)
 	if map ~= nil and map[string.lower(stem)] ~= nil then return map[string.lower(stem)] end
-	return stem
+	return pretty_title(stem)
 end
 
 local function is_ata(path)
@@ -246,6 +258,10 @@ end
 --- Build (or rebuild) the whole library. Logs one line per system found. ---------------
 function library_build(progress)
 	LIBRARY.systems, LIBRARY.by_folder, LIBRARY.titles = {}, {}, {}
+	-- A rescan replaces the inventory, it does not add to it: a game deleted from the
+	-- drive has to leave exfatdb.json too, or the PC tools keep preparing artwork for
+	-- something that is not there any more.
+	if EXFATDB ~= nil then EXFATDB = {} end
 	local folders = {}
 	for folder, _s in pairs(SYSTEMS) do folders[#folders + 1] = folder end
 	table.sort(folders, function(a, b) return SYSTEMS[a].name < SYSTEMS[b].name end)
@@ -265,6 +281,33 @@ function library_build(progress)
 				-- in it. Add it, with its name, instead of leaving it undescribed.
 				gamelist_add_missing(sys.folder, games)
 			end
+			-- Write down what the console really sees, folder by folder, for the PC
+			-- tools: exfatdb.json is the only honest source for a disk that lives
+			-- inside the PlayStation and is never plugged into a computer. It used to
+			-- fill up only as you opened systems in the menu - so it described where
+			-- you had been, not what you own. It is written from the scan now, which
+			-- means the whole library, every boot.
+			if exfatdb_dir ~= nil then
+				local por_dir = {}
+				for gi = 1, #games do
+					local g = games[gi]
+					local d = g.dir
+					if d ~= nil then
+						if por_dir[d] == nil then por_dir[d] = {} end
+						local lista = por_dir[d]
+						lista[#lista + 1] = { fichero = g.file, titulo = g.title }
+					end
+				end
+				for d, lista in pairs(por_dir) do
+					local clave = sys.folder
+					local low = string.lower(d)
+					if string.find(low, "/pops", 1, true) ~= nil then clave = "POPS"
+					elseif string.find(low, "/dvd", 1, true) ~= nil then clave = "DVD"
+					elseif string.find(low, "/cd", 1, true) ~= nil then clave = "CD" end
+					pcall(exfatdb_dir, sys.folder, sys.name, d, lista, clave)
+				end
+			end
+
 			table.sort(games, function(a, b) return string.lower(a.title) < string.lower(b.title) end)
 			local entry = { folder = sys.folder, name = sys.name, games = games }
 			LIBRARY.systems[#LIBRARY.systems + 1] = entry
@@ -279,12 +322,34 @@ function library_build(progress)
 	collections_refresh()
 	collections_sort_systems(prefs_get("sort"))
 
+	-- And onto the disk, once, now that every system has been walked.
+	if exfatdb_escribir ~= nil then pcall(exfatdb_escribir) end
+
 	LIBRARY.built = true
 	if boot_flush ~= nil then boot_flush() end
 end
 
---- Artwork for a game: Roms/<folder>/media/<kind>/<stem>.png on any root. --------------
---- kind: "covers" or "screenshots". Cached on the game (false = looked, none).
+--- OPL keeps its artwork in ART/ at the root of a drive, named after the game's
+--- serial: "SLES_123.45_COV.png". A disk filled with OPL has hundreds of them and no
+--- Prism folder anywhere, and there is no reason to make anyone copy that twice.
+--- These are the suffixes it uses, mapped onto the four pictures Prism shows.
+local OPL_ART = {
+	covers      = { "_COV" },
+	screenshots = { "_SCR", "_SCR2", "_BG" },
+	cartridges  = { "_LAB" },     -- the disc label, which is a PS2 game's "cartridge"
+	gamelogo    = { "_LGO" },
+}
+
+--- The OPL serial at the head of a file name, or nil. ---------------------------------
+--- "SLES_123.45.Xenosaga.iso" -> "SLES_123.45"
+local function opl_serial(name)
+	return string.match(tostring(name or ""), "^(%a%a%a%a[_%-]%d%d%d%.%d%d)")
+end
+
+--- Artwork for a game. In order: Roms/<folder>/media/<kind>/<stem>.png on every root,
+--- boot medium first - so a picture on the USB stick always wins over one on the
+--- internal disk - and then OPL's own ART/ folder on every drive.
+--- Cached on the game (false = looked, none).
 function library_art(game, kind)
 	local field = "art_".. kind
 	if game[field] ~= nil then
@@ -302,6 +367,27 @@ function library_art(game, kind)
 			end
 		end
 	end
+
+	-- Nothing of ours. Ask OPL, if this game has a serial to ask about.
+	local serial = opl_serial(game.file)
+	local sufijos = OPL_ART[kind]
+	if serial ~= nil and sufijos ~= nil and DRIVE_ROOTS ~= nil then
+		for d = 1, #DRIVE_ROOTS do
+			for s = 1, #sufijos do
+				-- PNG only, and deliberately. Graphics.loadImage has hung this console
+				-- on a JPEG before - not returned an error, hung - and an ART/ folder
+				-- filled by OPL holds pictures of any size and format anybody happened
+				-- to download. A missing cover costs nothing; a freeze costs the
+				-- session.
+				local p = DRIVE_ROOTS[d] .."/ART/".. serial .. sufijos[s] ..".png"
+				if doesFileExist(p) then
+					game[field] = p
+					return p
+				end
+			end
+		end
+	end
+
 	game[field] = false
 	return nil
 end

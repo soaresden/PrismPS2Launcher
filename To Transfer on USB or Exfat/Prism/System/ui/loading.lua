@@ -155,8 +155,12 @@ function load_step(text, kind)
 		table.remove(LOAD_LINES, 1)
 		table.remove(LOAD_KINDS, 1)
 	end
-	boot_log("CARGA  ".. tostring(text))
-	boot_flush()
+	-- The journal may not exist yet: the splash now goes up in index.lua, before
+	-- core/log.lua is loaded, precisely so that the drive probing and the wait for a
+	-- slow disk happen on a lit screen instead of a black one. A boot screen that
+	-- refuses to draw without a journal would defeat the whole point.
+	if boot_log ~= nil then boot_log("CARGA  ".. tostring(text)) end
+	if boot_flush ~= nil then boot_flush() end
 	-- Both buffers, so the picture survives any flip done elsewhere.
 	pcall(function()
 		load_paint()

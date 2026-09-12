@@ -30,17 +30,25 @@ function launch_run(game, plan)
 	return launch_retroarch(game, plan, id)
 end
 
---- Enceladus names drives "massN:"; a program that mounts its own BDM stack sees the
---- first USB stick as "mass:". Strip the digit, for "mass" only (never "mc0:").
+--- The drive name a libretro core is handed. --------------------------------------------
+--- It used to strip the digit: Enceladus says "mass0:", a program that remounts its own
+--- BDM stack was assumed to call the first USB stick "mass:". That assumption is from
+--- the original launcher and it is wrong for this core set. Run RetroArch by hand from
+--- uLaunchELF, set its folders in its own menu, and look at what it writes into
+--- retroarch.cfg:
+---
+---     libretro_directory = "mass0:/PRISM/LibretroPS2Files/cores"
+---     system_directory   = "mass0:/PRISM/Bios"
+---     savefile_directory = "mass0:/PRISM/Saves"
+---
+--- RetroArch resolves those paths itself, on the console, and keeps the digit. Prism was
+--- handing it "mass:/PRISM/Roms/gba/..." - a path its own configuration disagrees with -
+--- and the core died with no message. The device name now goes through unchanged.
+---
+--- Kept as a function rather than deleted: if a core turns up that really does want the
+--- bare name, this is the one place to say so, with the evidence next to it.
 local function bdm_name(path)
-	local pos = string.find(path, ":", 1, true)
-	if pos == nil then return path end
-	local dev = string.sub(path, 1, pos - 1)
-	if string.lower(string.sub(dev, 1, 4)) ~= "mass" then return path end
-	while string.len(dev) > 0 and string.match(string.sub(dev, -1), "%d") ~= nil do
-		dev = string.sub(dev, 1, -2)
-	end
-	return dev ..":".. string.sub(path, pos + 1)
+	return path
 end
 
 local function file_name(path)
@@ -306,6 +314,51 @@ function launch_neutrino(game, plan)
 	System.loadELF(elf, 0, table.unpack(args))
 end
 
+--- A copy of OPL on the memory card, made once. ----------------------------------------
+--- Returns its path, or nil if it could not be put there. The copy is refreshed when
+--- the one beside the launcher is a different size, so updating OPL on the stick is
+--- enough - there is no second thing to remember to update.
+---
+--- A memory card holds 8 MB and OPNPS2LD.ELF is under 3 MB, so this is affordable but
+--- not free: the check below refuses rather than filling somebody's card to the brim
+--- behind their back.
+--- It goes in PRISMBOOT/, beside the disk drivers. One folder for everything of ours on
+--- the memory card: the card already has PRISMBOOT and a second folder would only make
+--- somebody wonder which of the two matters.
+OPL_ON_CARD = "mc0:/PRISMBOOT/OPNPS2LD.ELF"
+
+function opl_on_card(elf)
+	if doesFileExist(elf) == false then return nil end
+	local dir = "mc0:/PRISMBOOT"
+	if System.listDirectory("mc0:/") == nil then return nil end
+	if System.listDirectory(dir) == nil then pcall(System.createDirectory, dir) end
+	if System.listDirectory(dir) == nil then return nil end
+
+	local same = false
+	if doesFileExist(OPL_ON_CARD) then
+		same = true
+		pcall(function()
+			local a = System.openFile(elf, FREAD)
+			local sa = System.sizeFile(a)
+			System.closeFile(a)
+			local b = System.openFile(OPL_ON_CARD, FREAD)
+			local sb = System.sizeFile(b)
+			System.closeFile(b)
+			if sa ~= sb then same = false end
+		end)
+	end
+	if same then return OPL_ON_CARD end
+
+	launch_step("Copying OPL to the memory card (once)")
+	pcall(System.copyFile, elf, OPL_ON_CARD)
+	if doesFileExist(OPL_ON_CARD) then
+		if log_event ~= nil then log_event("OPL", "copied to ".. OPL_ON_CARD) end
+		return OPL_ON_CARD
+	end
+	if log_event ~= nil then log_event("OPL", "could not copy to ".. OPL_ON_CARD) end
+	return nil
+end
+
 --- OPL ----------------------------------------------------------------------------------------
 --- With an OPL-named image ("SLES_123.45.Title.iso") OPL can boot the game directly;
 --- otherwise it opens on its own menu.
@@ -318,15 +371,78 @@ function launch_opl(game, plan)
 	end
 	local id = string.match(game.file, "^(%u%u%u%u_%d%d%d%.%d%d)%.")
 	local folder = file_name(game.dir)   -- "DVD" or "CD"
+	-- OPL finds CHT/<serial>.cht by itself and reads whatever is not commented out.
+	-- The switches in the game menu wrote that into the file already, so there is
+	-- nothing to prepare here - only something to say. See emu/cheats.lua.
+	local cht, cht_on, cht_total = nil, 0, 0
+	if cheats_count ~= nil then
+		cht_on, cht_total = cheats_count(game)
+		cht = game.cheats_path
+	end
+	if cht_total > 0 then
+		launch_step("Cheats: ".. cht_on .." of ".. cht_total)
+	end
 	log_lanzamiento("PS2  OPL", {
 		"game   : ".. tostring(game.file),
 		"id     : ".. tostring(id),
 		"folder : ".. tostring(folder),
+		"cheats : ".. tostring(cht_on) .." of ".. tostring(cht_total)
+			.."   ".. tostring(cht or "none"),
 		log_existe("opl", elf),
 	})
-	launch_step("Launching OPL", true)
-	if id ~= nil then
-		System.loadELF(elf, 0, game.file, id, folder, "bdm")
+	-- Four arguments, in this order, and they are the real interface. From the source
+	-- of CosmicScale/OPL-Launcher-BDM, which is what PSBBN uses to boot a BDM game:
+	--
+	--     boot_argv[0] = file_name     "Ecco the Dolphin.iso"
+	--     boot_argv[1] = title_id      "SLUS_203.94"
+	--     boot_argv[2] = disc_type     "DVD" or "CD"
+	--     boot_argv[3] = "bdm"
+	--     LoadELFFromFile(oplFilePath, 4, boot_argv);
+	--
+	-- And one thing that launcher does BEFORE any of it, which Prism did not:
+	--
+	--     if (argc > 1) { SifIopReset(NULL, 0); SifIopSync(); SifInitRpc(0); }
+	--
+	-- It resets the IOP. Prism handed OPL the right arguments on top of Enceladus's
+	-- own BDM stack, already registered - and registering a BDM driver twice is the
+	-- fault this project has already met once, the one that hangs the console with
+	-- "BDM: ERROR: Already registered!". A black screen is exactly what that looks
+	-- like from the sofa.
+	--
+	-- Hence the reset here, and nowhere else: POPStarter and the libretro cores both
+	-- need 0, for reasons written down beside their own constants.
+	-- Which copy of OPL gets started, and from where.
+	--
+	-- OPL needs the IOP reset before it starts, or it brings its own BDM stack up on
+	-- top of Enceladus's and hangs. But with reboot = 1 Enceladus resets FIRST and is
+	-- then left with no driver able to read the ELF on the USB stick - straight back to
+	-- the console menu.
+	--
+	-- The way out is the one this project already uses for its own boot: mc0: survives
+	-- an IOP reset, because mcman comes back with the base modules. That is why
+	-- PRISMBOOT lives on the memory card. So a copy of OPNPS2LD.ELF is kept there, and
+	-- THAT is the one launched. Reset first, read from the card after - which is the
+	-- order OPL-Launcher-BDM uses too, by different means.
+	local from = elf
+	local reboot = IOP_REBOOT_OPL
+	if reboot == nil then reboot = 1 end
+	if reboot ~= 0 then
+		local shim = opl_on_card(elf)
+		if shim ~= nil then
+			from = shim
+		else
+			-- No room on the card, or no card. Starting from USB after a reset would
+			-- only bounce to the console menu, so it is worth saying why rather than
+			-- doing it and looking broken.
+			launch_fail("OPL needs a copy on mc0: to survive the IOP reset - no room on the card")
+			return
+		end
 	end
-	System.loadELF(elf, 0)
+
+	launch_step("Launching OPL from ".. from, true)
+	if id ~= nil then
+		System.loadELF(from, reboot, game.file, id, folder, "bdm")
+	end
+	-- No serial in the file name: OPL cannot be told which game, so it opens its list.
+	System.loadELF(from, reboot)
 end

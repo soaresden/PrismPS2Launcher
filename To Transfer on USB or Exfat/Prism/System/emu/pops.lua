@@ -204,3 +204,20 @@ end
 --- POPStarter's USB access delay (POPS_USB_DELAY), not the state of the IOP.
 IOP_REBOOT_POPS = 0
 IOP_REBOOT_EMBER = 0
+
+--- OPL is the exception, and it is not a guess. -----------------------------------------
+--- CosmicScale/OPL-Launcher-BDM - the launcher PSBBN uses to boot a BDM game - resets
+--- the IOP before handing OPL its four arguments:
+---     if (argc > 1) { SifIopReset(NULL, 0); SifIopSync(); SifInitRpc(0); }
+--- OPL brings up its own BDM stack, and bringing one up on top of Enceladus's already
+--- registered one is the "BDM: ERROR: Already registered!" hang this project has met
+--- before. Set to 0 to go back to the old behaviour, which gave a black screen.
+--- Tested on hardware, in this order:
+---   0  -> black screen that stays. OPL is brought up on top of Enceladus's BDM stack.
+---   1  -> straight back to the console menu. Enceladus resets the IOP and is then left
+---         with no driver able to read the ELF it was about to load, which is the same
+---         fault already written down for the libretro cores.
+--- Neither works from here, so OPL cannot be started directly by Prism at all: it needs
+--- a small ELF in between that resets the IOP and THEN reads OPNPS2LD.ELF itself, which
+--- is exactly what OPL-Launcher-BDM is and why PSBBN ships one.
+IOP_REBOOT_OPL = 1

@@ -112,16 +112,24 @@ function RUTA_ATA_CORE(ruta)
 end
 
 --- Device name as a RetroArch core will see it. -------------------------------------
---- Only the number has to come off "massN:": RetroArch resets the IOP and mounts its
---- own stack, where USB is called "mass:" with no number. But "mc0:" is called "mc0:"
---- on both sides, and "mc:" does not exist: applying DEV_SIN_NUM blindly produced
---- "mc:/Prism/Saves", a path RetroArch discards for not being a directory,
---- and the saves fell back inside its own folder again.
+--- It used to take the number off "massN:", on the belief that RetroArch resets the IOP,
+--- mounts its own stack, and calls USB "mass:" with no number.
+---
+--- RetroArch itself says otherwise. Started by hand from uLaunchELF and pointed at its
+--- folders through its own menu, it writes this into retroarch.cfg:
+---
+---     libretro_directory = "mass0:/PRISM/LibretroPS2Files/cores"
+---     system_directory   = "mass0:/PRISM/Bios"
+---     savefile_directory = "mass0:/PRISM/Saves"
+---
+--- Those are paths RetroArch resolved on the console, for itself, and it kept the digit.
+--- So the configuration Prism wrote pointed somewhere the core could not follow, the
+--- saves went back inside RetroArch's own folder, and a game launched with a stripped
+--- ROM path died on a black screen with nothing in any log.
+---
+--- The name now goes through untouched. ("mc0:" was already left alone: "mc:" does not
+--- exist, and blindly stripping it produced "mc:/Prism/Saves", which RetroArch discards
+--- for not being a directory - the same class of mistake, found earlier.)
 function DEV_PARA_CORE(ruta)
-	if ruta == nil then return nil end
-	local pos = string.find(ruta, ":", 1, true)
-	if pos == nil then return ruta end
-	local dev = string.sub(ruta, 1, pos-1)
-	if string.lower(string.sub(dev, 1, 4)) ~= "mass" then return ruta end
-	return DEV_SIN_NUM(ruta)
+	return ruta
 end

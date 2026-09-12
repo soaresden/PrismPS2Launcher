@@ -968,8 +968,17 @@ function scan_roots(folder, launcher_dir)
 	local out = {}
 	for i = 1, #s.roots do
 		local r = s.roots[i]
-		if r.at == "drive" then out[#out + 1] = drive .."/".. r.path
-		else out[#out + 1] = launcher_dir .."/".. r.path end
+		if r.at == "drive" then
+			-- On EVERY drive, not only the one this launcher folder sits on. DVD/,
+			-- CD/ and POPS/ live at the root of a drive and owe nothing to Prism:
+			-- an internal disk filled by OPL has them and no launcher folder at all.
+			-- Duplicates are harmless, the caller keys games by name.
+			local drives = DRIVE_ROOTS
+			if drives == nil or #drives == 0 then drives = { drive } end
+			for k = 1, #drives do out[#out + 1] = drives[k] .."/".. r.path end
+		else
+			out[#out + 1] = launcher_dir .."/".. r.path
+		end
 	end
 	return out
 end

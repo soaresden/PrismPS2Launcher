@@ -9,6 +9,21 @@ disque disparait -> "end of builtin script reached". Mais lance AVEC UN
 ARGUMENT, Enceladus execute ce script, et la carte memoire reste lisible. Le
 script monte le disque puis lui cede la main.
 
+Contenu du dossier
+------------------
+   boot.lua        le pre-demarrage : charge les pilotes du disque interne,
+                   detecte lequel des massN: est ce disque et y ecrit son
+                   marqueur, puis passe la main a Prism.
+   dev9_ns.irx     pilote du materiel reseau, dont depend ata_bd
+   ata_bd.irx      expose le disque interne a la pile BDM
+   OPNPS2LD.ELF    ECRIT PAR PRISM, pas par vous. Une copie d'OPL, faite
+                   automatiquement au premier jeu lance avec lui, et refaite
+                   si celle de la cle change. OPL exige que l'IOP soit
+                   reinitialise avant de demarrer, et apres cette operation
+                   Enceladus ne sait plus lire la cle USB : la carte memoire,
+                   elle, reste lisible. Effacez-le si vous manquez de place,
+                   il sera recree au besoin.
+
 Installation
 ------------
 1. Copier le dossier PRISMBOOT sur la carte :   mc0:/PRISMBOOT/

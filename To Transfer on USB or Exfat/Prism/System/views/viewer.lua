@@ -11,7 +11,7 @@ local VIEWER_ORDER = {
 	{ kind = "screenshots", name = "Screenshot" },
 	{ kind = "covers",      name = "Box art" },
 	{ kind = "cartridges",  name = "Cartridge" },
-	{ kind = "wheels",      name = "Wheel" },
+	{ kind = "gamelogo",    name = "Game logo" },
 }
 
 --- Opens on a game. Returns false when it has nothing to show, so the caller can say

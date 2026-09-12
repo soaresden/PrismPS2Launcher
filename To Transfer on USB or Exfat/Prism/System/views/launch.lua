@@ -58,8 +58,24 @@ function launch_plan(game)
 			p.card = "Real memory card in slot 1"
 			p.card_note = "triangle > Memory card to use a VMC file"
 		end
-		if id == "opl" then p.elf = System.currentDirectory() .."/OPL/OPNPS2LD.ELF"
-		else p.elf = System.currentDirectory() .."/Neutrino/neutrino.elf" end
+		-- What the cheat file says, before you commit to it. A game whose cheats are on
+		-- is not launched by the emulator you would expect, and that is worth reading
+		-- on the screen that exists to tell you what is about to happen.
+		if cheats_count ~= nil then
+			local on, total = cheats_count(game)
+			if total > 0 then
+				p.cheats = on .." of ".. total .." on"
+				if game.cheats_path ~= nil then
+					p.cheats = p.cheats .."   ".. game.cheats_path
+				end
+			end
+		end
+		if id == "opl" then
+			p.elf = System.currentDirectory() .."/OPL/OPNPS2LD.ELF"
+			p.note = "OPL is run from a copy on mc0: - it needs the IOP reset first"
+		else
+			p.elf = System.currentDirectory() .."/Neutrino/neutrino.elf"
+		end
 	else
 		if id ~= nil then p.elf = tostring(id) .."_libretro_ps2.elf" end
 	end
@@ -114,6 +130,17 @@ end
 function launch_missing(g, p)
 	if g == nil or p == nil then return nil end
 	if g.warn ~= nil then return nil end          -- already explained above, in red
+	-- An image on a drive that is neither the boot medium nor a known internal disk.
+	-- Neutrino and OPL remount the drives themselves and never see Enceladus's massN:
+	-- names, so the launch would hand them a path that cannot exist. Said here, while
+	-- it is still a sentence rather than a black screen.
+	if (g.kind == "ps2" or g.kind == "psx") and g.dir ~= nil then
+		local dev = string.match(g.dir, "^[^:]+:")
+		local boot = string.match(System.currentDirectory(), "^[^:]+:")
+		if dev ~= nil and dev ~= boot and ES_RAIZ_ATA ~= nil and ES_RAIZ_ATA(g.dir) == false then
+			return "This game is on ".. dev .." - create ".. dev .."/internal-ata-disk.flag if that is the internal disk"
+		end
+	end
 	if g.kind == "psx" then
 		if p.backend == "ember" or (p.backend ~= "pops" and g.vcd == nil) then
 			if ember_ready ~= nil then
@@ -160,6 +187,9 @@ function launch_view_draw()
 		if p.card_note ~= nil then note = "   - ".. p.card_note end
 		y = row(y, "Memory card", p.card .. note, THEME.ok)
 	end
+	if p.cheats ~= nil then
+		y = row(y, "Cheats", p.cheats, THEME.ok)
+	end
 	if p.elf ~= nil then
 		y = row(y, "Program", p.elf, THEME.text_dim)
 	end
@@ -173,6 +203,12 @@ function launch_view_draw()
 		gfx_text("It will be moved into Ember/games/".. tostring(g.stem) .."/ first,", b.x + 18, y, THEME.size_small, THEME.text_dim)
 		gfx_text("and put back in Roms/psx when you launch another game.", b.x + 18, y + 12, THEME.size_small, THEME.text_dim)
 		y = y + 26
+	end
+
+	if p.note ~= nil then
+		gfx_text(gfx_fit(p.note, THEME.size_small, b.w - 36), b.x + 18, y,
+			THEME.size_small, THEME.text_dim)
+		y = y + 20
 	end
 
 	-- What this emulator still needs, said here rather than after a failed launch.

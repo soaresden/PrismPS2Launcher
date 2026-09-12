@@ -7,11 +7,75 @@
 --- "antes" is the snapshot of the drives taken BEFORE loading ata_bd: a drive that
 --- was absent and is now present has been mounted by ata_bd, so it is the internal disk.
 --- The other route is the marker, which works even if the drivers were already resident.
+--- How many BDM drives the last session saw, and where that is remembered. ------------
+--- A mechanical disk takes a variable time to spin up, and the probe below looks once
+--- and concludes for ever. That is how a disk that was listed a minute ago becomes
+--- "not mounted": nothing was unplugged, it was simply asked too early.
+---
+--- Waiting on every boot would tax the common case - one stick, nothing else - so the
+--- wait only happens when we are SHORT of what we saw last time. The count is kept in
+--- a two-line file; a first boot expects nothing and waits for nothing.
+DRIVES_SEEN_FILE = "/System/Config/drives.cfg"
+
+local function drives_expected()
+	local path = System.currentDirectory() .. DRIVES_SEEN_FILE
+	local n = 0
+	if doesFileExist(path) == false then return 0 end
+	pcall(function()
+		local fd = System.openFile(path, FREAD)
+		local size = System.sizeFile(fd)
+		System.seekFile(fd, 0, SET)
+		local data = System.readFile(fd, size)
+		System.closeFile(fd)
+		n = tonumber(string.match(tostring(data or ""), "drives%s*=%s*(%d+)")) or 0
+	end)
+	return n
+end
+
+local function drives_remember(n)
+	local dir = System.currentDirectory() .."/System/Config"
+	if System.listDirectory(dir) == nil then pcall(System.createDirectory, dir) end
+	local text = "# How many BDM drives the last good boot saw. Prism waits for them.\n"
+		.. "drives=".. tostring(n) .."\n"
+	pcall(function()
+		local fd = System.openFile(System.currentDirectory() .. DRIVES_SEEN_FILE, FCREATE)
+		System.writeFile(fd, text, string.len(text))
+		System.closeFile(fd)
+	end)
+end
+
+local function bdm_count()
+	local n = 0
+	for i = 0, 5 do
+		if System.listDirectory("mass".. i ..":/") ~= nil then n = n + 1 end
+	end
+	return n
+end
+
+--- Give a slow disk its seconds, and only when one is missing. ------------------------
+function esperar_discos()
+	local quiero = drives_expected()
+	if quiero < 2 then return end
+	local hay = bdm_count()
+	local intento = 0
+	while hay < quiero and intento < 8 do
+		intento = intento + 1
+		boot_log("Waiting for a drive: ".. hay .." of ".. quiero .." mounted, try ".. intento)
+		if load_step ~= nil then pcall(load_step, "waiting for the disk  ".. intento .."/8") end
+		if System.sleep ~= nil then System.sleep(1) end
+		hay = bdm_count()
+	end
+	if hay < quiero then
+		boot_log("Still ".. hay .." of ".. quiero ..": carrying on without it.")
+	end
+end
+
 function sondear_bdm(antes)
 	local actual = System.currentDirectory()
 	local propio = ""
 	local pos = string.find(actual, ":", 1, false)
 	if pos ~= nil then propio = string.sub(actual, 1, pos) end
+	esperar_discos()
 	boot_log("")
 	boot_log("Drives detected (propio = ".. propio ..") :")
 	for n = -1, 5 do
@@ -36,7 +100,16 @@ function sondear_bdm(antes)
 			if antes[unidad] ~= true then
 				BDM_ATA[unidad] = true
 				texto = texto .."\n      -> ATA (mounted by ata_bd, NOT a USB)"
-			elseif doesFileExist(unidad .."/Prism".. MARCA_ATA) then
+			elseif PREBOOT_ATA ~= nil and PREBOOT_ATA[unidad] == true then
+				-- index.lua watched this one appear when ata_bd was loaded.
+				BDM_ATA[unidad] = true
+				texto = texto .."\n      -> ATA (appeared with ata_bd during pre-boot)"
+			elseif doesFileExist(unidad .."/Prism".. MARCA_ATA)
+			       or doesFileExist(unidad .."/internal-ata-disk.flag") then
+				-- Two places for the marker. Inside a Prism folder, as before; and
+				-- bare at the root of the drive, for a disk that holds games and no
+				-- launcher at all. That second one is a single empty file to create,
+				-- which is the whole point of offering it.
 				BDM_ATA[unidad] = true
 				texto = texto .."\n      -> ATA (internal disk marker present)"
 			elseif unidad == BOOT_DEV and BOOT_ES_ATA == true then
@@ -51,6 +124,22 @@ function sondear_bdm(antes)
 			boot_log("  ".. unidad .."  not mounted")
 		end
 	end
+	-- Said on the boot screen, in green, because "is my internal disk seen?" is the one
+	-- question the user has at that moment and reading a journal to answer it is absurd.
+	for dev, _v in pairs(BDM_ATA) do
+		if load_step ~= nil then
+			pcall(load_step, "internal exFAT disk detected  ".. dev, true)
+		end
+	end
+
+	-- What this boot actually found, so the next one knows what to wait for. Written
+	-- only when it goes UP: a stick you unplugged on purpose should not make every
+	-- later boot sit waiting eight seconds for it. Plug it back in and the count
+	-- climbs again on its own.
+	if #BDM_DEVICES + 1 > drives_expected() then
+		drives_remember(#BDM_DEVICES + 1)
+	end
+
 	local mcs = {"mc0:", "mc1:"}
 	for i = 1, #mcs do
 		if System.listDirectory(mcs[i] .."/") ~= nil then
