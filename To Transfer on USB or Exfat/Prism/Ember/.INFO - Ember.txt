@@ -78,27 +78,55 @@ the .VCD and it will pair up; name it differently and you get two entries,
 which is not wrong, only untidy.
 
 
-Memory cards: ONE per game, kept with POPStarter
-------------------------------------------------
+Memory cards: each emulator keeps its own
+-----------------------------------------
 Ember writes MC1.vmc and MC2.vmc inside the game's folder. POPStarter writes
-SLOT0.VMC in POPS/<game>/. Both are the same thing: a raw 128 KiB PlayStation
-memory card image. Two of them for one game is how you lose an afternoon -
-finish a session on one emulator, come back on the other, and the save is not
-where you left it.
+SLOT0.VMC and SLOT1.VMC in POPS/<game>/. Both are the same thing - a raw 128 KiB
+PlayStation memory card image - and each emulator keeps its own. Nothing is
+copied in or out around a launch.
 
-So there is one card per game and it lives in POPS/<game>/, whichever emulator
-plays it. Ember borrows a copy for the session:
+Prism used to lend POPStarter's card to Ember and carry it home afterwards, so
+one game could never have two divergent saves. That was worth the machinery
+while a game could genuinely be played either way. It stopped being: POPStarter
+cannot read an internal exFAT disk at all, so there it is Ember or nothing, and
+a library converted to .cue/.bin has no .VCD left to share with.
 
-    before the launch     POPS/<game>/SLOT0.VMC  ->  games/<folder>/MC1.vmc
-    at the next start-up  games/<folder>/MC1.vmc  ->  POPS/<game>/SLOT0.VMC
-                          and Ember's copy is removed
+The cost is honest and small. A game you have played under BOTH emulators has
+two saves that know nothing of each other. The game menu lists both and names
+the emulator beside each, so you can see it rather than discover it.
 
-Slot 1 travels the same way, MC2.vmc <-> SLOT1.VMC. A game with no POPS folder
-yet gets one, seeded with whatever Ember already had - nothing is thrown away.
+Cards are made by the emulators themselves at first use. The game menu can
+create one on request, and HelperScripts/POPSVCDtoBinCue.py seeds a converted
+game's folder with a copy of its POPStarter save - once, at conversion time -
+so a library moving to Ember does not start from nothing.
 
-The loan is written to System/Config/ps1_card.cfg BEFORE the copying starts, so
-a console unplugged mid-game still knows at the next boot that a card is out and
-where it belongs. See System/emu/ps1_card.lua.
+See System/emu/ps1_card.lua.
+
+
+Multi-disc games
+----------------
+Every disc of a set sits in ONE folder, and Prism picks which one to boot: the
+triangle menu has a "Disc" option, and the ELF is handed the exact image,
+games/<Folder>/<disc>.cue, rather than the folder name. Ember's README allows a
+path relative to its own folder, which is what makes this work.
+
+It has to be done this way because Ember cannot change a disc while a game is
+running - that is an open feature request on its repository, issue 20. So when
+a game asks for the next disc: save in-game, return to Prism, change the disc,
+start again. The set shares one pair of memory cards, so the save is there.
+
+See System/emu/ember.lua - ember_discs, ember_disc_get, ember_disc_set.
+
+
+Known limits of Ember Beta 1
+----------------------------
+CD audio does not play. Games whose music sits in AUDIO tracks on the disc -
+Tomb Raider, Wild Arms, Final Fantasy VIII and a great many others - run in
+silence apart from their sound effects. This is not your cuesheet and not a
+conversion fault: the author has confirmed the CDDA path exists but was not
+wired up for Beta 1 (issue 44), and a fix is expected. POPStarter plays the
+same music today, which is a reason to keep a .VCD of a game you care about
+until the next Ember build.
 
 
 Artwork and titles

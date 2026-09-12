@@ -19,9 +19,14 @@ local MARK_TODO = "+"
 --- "gamelogo" is what the scrapers call a wheel or a marquee: the game's title written
 --- the way the game writes it. Nobody outside the scraping world calls that a wheel,
 --- and it is the picture that belongs next to a name, so it is named for what it is.
+--- Everything the copier can put in Roms/<system>/media/ is offered here, not just the
+--- four that were thought of first: the folders exist, the pictures are already on the
+--- drive, and deciding what goes where is the user's business rather than ours.
 ART_SLOTS  = { "a", "b", "c" }
-ART_KINDS  = { "gamelogo", "cartridges", "covers", "screenshots", "none" }
-ART_LABELS = { "Game logo", "Cartridge", "Box art", "Screenshot", "Nothing" }
+ART_KINDS  = { "gamelogo", "cartridges", "covers", "screenshots",
+               "titleshot", "boxback", "mix", "fanart", "none" }
+ART_LABELS = { "Game logo", "Cartridge", "Box art", "Screenshot",
+               "Title screen", "Box, back", "Mix", "Fan art", "Nothing" }
 
 function slot_art(g, slot)
 	local kind = prefs_get("art_".. slot)
@@ -44,8 +49,11 @@ function game_saves_info(g)
 	if g.kind == "psx" then
 		local id = prefs_backend(g)
 		if id == "ember" and g.ember ~= nil then
-			local root = ember_game(g.ember)
-			return "Ember shared card", (root or "Ember") .."/MC1.vmc"
+			-- In the GAME's folder, not in Ember's root: ember_game returns the root
+			-- first and the game directory second, and only the first was being kept,
+			-- so this line used to name a file that was never there.
+			local _root, dir = ember_game(g.ember)
+			return "Ember card", (dir or "Ember/games/".. g.ember) .."/MC1.vmc"
 		end
 		if g.vcd ~= nil then
 			local drive = POPS_DE(g.file)
@@ -458,6 +466,136 @@ function ps2_card_options(g, opts)
 end
 
 --- The game menu (triangle) --------------------------------------------------------------
+--- What deleting this game would actually remove. --------------------------------------
+--- Everything that IS the game, and nothing that is a save. A .VCD goes with its
+--- XX.<name>.ELF launcher; a loose disc goes with the files its .cue names; an Ember
+--- folder gives up its disc images and keeps the folder, because MC1.vmc and MC2.vmc
+--- live in there and a memory card is not part of a game.
+---
+--- Artwork and the gamelist entry are left alone too: the helper tidies those on the PC,
+--- where there is a screen big enough to check what is being thrown away.
+function game_delete_list(g)
+	local out = {}
+	local function add(p)
+		if p ~= nil and doesFileExist(p) then out[#out + 1] = p end
+	end
+	if g.vcd ~= nil then
+		add(g.vcd)
+		local dir = string.match(g.vcd, "^(.*)/[^/]+$")
+		if dir ~= nil then add(dir .."/XX.".. tostring(g.stem) ..".ELF") end
+	end
+	if g.disc ~= nil then
+		add(g.disc)
+		local dir = string.match(g.disc, "^(.*)/[^/]+$")
+		local base = string.match(g.disc, "([^/]+)$")
+		if dir ~= nil and base ~= nil and string.lower(lower_ext_of(base)) == ".cue" then
+			local stem = string.match(base, "^(.*)%.[^%.]+$") or base
+			local list = System.listDirectory(dir)
+			for i = 1, #(list or {}) do
+				local e = list[i]
+				if e.directory == false and e.name ~= base then
+					local s = string.match(e.name, "^(.*)%.[^%.]+$") or e.name
+					if s == stem then add(dir .."/".. e.name) end
+				end
+			end
+		end
+	end
+	if g.ember_dir ~= nil then
+		local list = System.listDirectory(g.ember_dir)
+		for i = 1, #(list or {}) do
+			local e = list[i]
+			if e.directory == false then
+				local ext = string.lower(lower_ext_of(e.name))
+				if ext == ".cue" or ext == ".bin" or ext == ".chd"
+				   or ext == ".img" or ext == ".iso" then
+					add(g.ember_dir .."/".. e.name)
+				end
+			end
+		end
+	end
+	if g.vcd == nil and g.disc == nil and g.ember_dir == nil then
+		add(g.path)
+	end
+	return out
+end
+
+function lower_ext_of(name)
+	return string.lower(string.match(name or "", "%.[^%.]+$") or "")
+end
+
+--- Deleting, in two steps, with the list in front of you. ------------------------------
+--- The first screen names every file. The second is the only one that does anything, and
+--- it is not the default line. Nothing here can remove a memory card.
+function delete_menu_new(g)
+	local files = game_delete_list(g)
+	local opts = {}
+	opts[#opts + 1] = { label = "About to delete", kind = "info",
+		get = function() return #files .." file(s)" end }
+	for i = 1, #files do
+		local p = files[i]
+		opts[#opts + 1] = { label = "   ".. string.match(p, "([^/]+)$"), kind = "info",
+			get = function() return gfx_fit(p, THEME.size_text, 190) end }
+	end
+	opts[#opts + 1] = { label = "Memory cards", kind = "info",
+		get = function() return "kept - saves are never deleted here" end }
+	opts[#opts + 1] = { label = "No, go back", kind = "action", action = function()
+		GAMELIST.menu = game_menu_new(g)
+		return "stay"
+	end }
+	if #files > 0 then
+		opts[#opts + 1] = { label = "YES, delete these ".. #files .." file(s)",
+			kind = "action", action = function()
+				local gone = 0
+				for i = 1, #files do
+					pcall(System.removeFile, files[i])
+					if doesFileExist(files[i]) == false then gone = gone + 1 end
+				end
+				if log_event ~= nil then
+					log_event("DELETE", tostring(g.title) ..": ".. gone .." of "
+						.. #files .." file(s) removed")
+				end
+				frontend_rescan()
+				return "close"
+			end }
+	end
+	local m = menu_new(gfx_fit(g.title, THEME.size_head, 400), opts)
+	m.sel = 1
+	menu_skip_info(m, 1)
+	return m
+end
+
+--- The two PlayStation memory card slots, in the game menu. ----------------------------
+--- Named the way the console names them - port 1 and port 2 - with the file underneath,
+--- because the files are counted from zero and a save put in the wrong one is a save
+--- nobody finds again. Each emulator keeps its own card, so a game playable both ways
+--- has two of each and they are listed separately, named (emu/ps1_card.lua).
+function ps1_card_options(g, opts)
+	if ps1_slots == nil then return end
+	local _root, dir = nil, nil
+	if g.ember ~= nil and ember_game ~= nil then _root, dir = ember_game(g.ember) end
+	local slots = ps1_slots(g, dir)
+	if #slots == 0 then return end
+	-- Only worth naming the emulator when there is something to tell apart.
+	local both = g.vcd ~= nil and dir ~= nil
+
+	for i = 1, #slots do
+		local s = slots[i]
+		local name = "Memory card, port ".. s.port
+		if both then name = s.who .." card, port ".. s.port end
+		opts[#opts + 1] = { label = name, kind = "action",
+			action = function()
+				if s.exists == false then ps1_card_create(s.path) end
+				GAMELIST.menu = game_menu_new(g)
+				return "stay"
+			end }
+		opts[#opts + 1] = { label = "   ".. s.file, kind = "info",
+			get = function()
+				if doesFileExist(s.path) then return gfx_fit(s.path, THEME.size_text, 190) end
+				return "not created yet - select the line above"
+			end }
+	end
+end
+
 --- The cheats of one game, one switch each. --------------------------------------------
 --- Every choice is written to games.cfg straight away, keyed by game and cheat name, so
 --- it is still there next time. A file whose cheats are all off is not used at all, and
@@ -536,6 +674,47 @@ function game_menu_new(g)
 				end,
 				set = function(v) prefs_set_backend(g, ids[v]) end }
 		end
+		-- A multi-disc set lives in one folder, so the disc is a choice rather than a
+		-- separate game. Ember cannot swap a disc while a game is running, so this is
+		-- picked here, before the launch: save in-game, come back, change disc, carry on.
+		-- The memory cards belong to the folder, so the save is waiting on the next disc.
+		if g.ember ~= nil and ember_discs ~= nil then
+			local _root, dir = ember_game(g.ember)
+			local discos = dir ~= nil and ember_discs(dir) or nil
+			if discos ~= nil and #discos > 1 then
+				local values = {}
+				for i = 1, #discos do
+					values[i] = discos[i].n ~= nil and ("Disc ".. discos[i].n)
+						or gfx_fit(discos[i].name, THEME.size_text, 150)
+				end
+				opts[#opts + 1] = { label = "Disc", kind = "choice", values = values,
+					get = function()
+						local cur = g.ember_disc or ember_disc_get(g.ember, discos)
+						for i = 1, #discos do if discos[i].name == cur then return i end end
+						return 1
+					end,
+					set = function(v)
+						g.ember_disc = discos[v].name
+						ember_disc_set(g.ember, discos[v].name)
+					end }
+			end
+		end
+	end
+
+	-- The same game on two drives. Said out loud, because the one that is not played
+	-- keeps its own memory card and quietly collects saves for nobody.
+	if g.dupes ~= nil and #g.dupes > 0 then
+		opts[#opts + 1] = { label = "Also on another drive", kind = "info",
+			get = function() return #g.dupes .." other copy(ies) - ignored" end }
+		for i = 1, #g.dupes do
+			local p = g.dupes[i]
+			opts[#opts + 1] = { label = "   not played", kind = "info",
+				get = function() return gfx_fit(p, THEME.size_text, 190) end }
+		end
+	end
+
+	if g.kind == "psx" then
+		ps1_card_options(g, opts)
 	end
 
 	if g.kind == "ps2" then
@@ -557,6 +736,12 @@ function game_menu_new(g)
 	opts[#opts + 1] = { label = "Favourite", kind = "toggle",
 		get = function() return collections_is_fav(g) end,
 		set = function(_v) collections_toggle_fav(g) end }
+
+	opts[#opts + 1] = { label = "Delete this game from the drive", kind = "action",
+		action = function()
+			GAMELIST.menu = delete_menu_new(g)
+			return "stay"
+		end }
 	opts[#opts + 1] = { label = "To finish", kind = "toggle",
 		get = function() return collections_is_todo(g) end,
 		set = function(_v) collections_toggle_todo(g) end }

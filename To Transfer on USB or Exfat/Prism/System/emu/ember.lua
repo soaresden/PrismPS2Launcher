@@ -139,6 +139,64 @@ function ember_contents(dir)
     return nil
 end
 
+--- The discs in an Ember game folder, in disc order. -----------------------------------
+--- Ember has no disc swapping of its own - it is an open feature request on its
+--- repository - and it takes only ONE disc image per launch. So a multi-disc game is
+--- kept as one folder holding every disc, and the choice of which one to boot is made
+--- here, in the launcher, before the ELF is ever started. That is also why the whole
+--- set shares a folder: one pair of memory cards, so a save made on disc 1 is still
+--- there when disc 2 asks for it.
+--- Returns an array of { name = "....cue", n = disc number or nil }, or nil.
+function ember_discs(dir)
+	local c = System.listDirectory(dir)
+	if c == nil then return nil end
+	local out = {}
+	for i = 1, #c do
+		if c[i].directory == false and string.lower(string.sub(c[i].name, -4)) == ".cue" then
+			-- "(Disc 2)", "[Disk 2]" and a bare "Disc 2" in the middle of the title all
+			-- have to be read: POPStarter names lose their brackets on the way in, so
+			-- the marker arrives naked more often than not.
+			local bajo = string.lower(c[i].name)
+			local n = string.match(bajo, "dis[ck]%s*(%d+)")
+			if n == nil then n = string.match(bajo, "[%(%[]%s*cd%s*(%d+)") end
+			out[#out + 1] = { name = c[i].name, n = tonumber(n) }
+		end
+	end
+	if #out == 0 then return nil end
+	-- Numbered discs first and in order; anything unnumbered keeps alphabetical order
+	-- behind them, so a stray .cue cannot become "disc 1" by sorting luck.
+	table.sort(out, function(a, b)
+		if a.n ~= nil and b.n ~= nil then return a.n < b.n end
+		if a.n ~= nil then return true end
+		if b.n ~= nil then return false end
+		return string.lower(a.name) < string.lower(b.name)
+	end)
+	return out
+end
+
+--- Which disc of a set was played last, remembered per folder. -------------------------
+--- Stored in PS1.cfg beside the emulator choice: coming back to a game a week later and
+--- being handed disc 1 again, when the story is on disc 3, is the kind of small rudeness
+--- a launcher should not commit.
+function ember_disc_get(carpeta, discos)
+	if carpeta == nil or discos == nil or #discos == 0 then return nil end
+	ps1_cfg_load()
+	local guardado = PS1_GAMES["disc:".. carpeta]
+	if guardado ~= nil then
+		for i = 1, #discos do
+			if discos[i].name == guardado then return discos[i].name end
+		end
+	end
+	return discos[1].name
+end
+
+function ember_disc_set(carpeta, archivo)
+	if carpeta == nil or archivo == nil then return end
+	ps1_cfg_load()
+	PS1_GAMES["disc:".. carpeta] = archivo
+	ps1_cfg_save()
+end
+
 --- Key for a PS1 game, so it is not listed twice. -------------------------------------
 --- The same game can be there as a .VCD for POPStarter and as a folder for Ember, and
 --- those are two ways of booting ONE thing. They are compared without the extension,

@@ -143,6 +143,15 @@ function launch_pops(game, plan)
 		launch_fail("No .VCD for this game")
 		return
 	end
+	-- The one thing POPStarter cannot be talked into. Its replacement drivers come from
+	-- mc0:/POPSTARTER and they are usbd.irx and usbhdfsd.irx: USB, and nothing else. An
+	-- internal exFAT disk is invisible to it, and the symptom is a silent return to the
+	-- console menu with every file present and correct - which is where an evening goes.
+	if ES_RAIZ_ATA ~= nil and ES_RAIZ_ATA(game.dir) == true then
+		launch_fail("POPStarter cannot read the internal exFAT disk. Use Ember for this game,")
+		launch_step("or put the .VCD on the USB stick.", "warn")
+		return
+	end
 	local drive = POPS_DE(game.file)
 	local pops = drive .."/POPS"
 	local elf = pops .."/XX.".. game.stem ..".ELF"
@@ -219,11 +228,22 @@ function launch_ember(game, plan)
 		launch_fail("This folder holds a .chd - Ember reads .cue/.bin only")
 		return
 	end
-	-- The saves. One card per game, kept in POPS/<game>/ whichever emulator plays it;
-	-- Ember gets a copy for the session and it is brought home at the next start-up.
-	local card_dir = nil
-	if ps1_card_borrow ~= nil then card_dir = ps1_card_borrow(game, dir) end
-
+	-- Which disc. One .cue in the folder and the folder name is argument enough; several,
+	-- and Ember has to be told exactly which image to mount, because it takes "the .cue"
+	-- and a set has more than one. Its README allows a path relative to Ember's own
+	-- folder, so "games/<Folder>/<Disc>.cue" is the whole of the disc-swapping story.
+	local arg, discos = game.ember, ember_discs(dir)
+	if discos ~= nil and #discos > 1 then
+		local elegido = game.ember_disc or ember_disc_get(game.ember, discos)
+		if elegido ~= nil then
+			arg = "games/".. game.ember .."/".. elegido
+			ember_disc_set(game.ember, elegido)
+			launch_step("Disc: ".. elegido)
+		end
+	end
+	-- The saves are Ember's own, MC1.vmc and MC2.vmc in this folder, and nothing is
+	-- copied in or out around a launch: POPStarter keeps its cards in POPS/<game>/ and
+	-- the two are independent. See emu/ps1_card.lua for why the sharing was dropped.
 	local reboot = IOP_REBOOT_EMBER
 	if ES_RAIZ_ATA(root) then reboot = 0 end
 	log_lanzamiento("PS1  Ember", {
@@ -234,9 +254,12 @@ function launch_ember(game, plan)
 		log_existe("ember.elf", root .."/ember.elf"),
 		log_existe("bios.bin ", root .."/bios.bin"),
 		"",
-		"card     : ".. tostring(card_dir or "none"),
+		log_existe("MC1.vmc  ", dir .."/MC1.vmc"),
+		log_existe("MC2.vmc  ", dir .."/MC2.vmc"),
 		"",
-		"argument   : ".. tostring(game.ember),
+		"discs   : ".. tostring(discos ~= nil and #discos or 0),
+		"",
+		"argument   : ".. tostring(arg),
 		"IOP reboot : ".. tostring(reboot),
 	})
 	launch_step("Launching ".. game.title, true)
@@ -252,7 +275,7 @@ function launch_ember(game, plan)
 	-- Ember's own launcher passes the name alone and works, and every other backend
 	-- here already uses the three-argument form. Ember resolves its home folder from
 	-- the path it was started with, so it never needed the directory.
-	System.loadELF(root .."/ember.elf", reboot, game.ember)
+	System.loadELF(root .."/ember.elf", reboot, arg)
 end
 
 --- Neutrino ------------------------------------------------------------------------------

@@ -164,12 +164,23 @@ local function scan_psx(sys, games, seen)
 								seen[key] = entry
 								games[#games + 1] = entry
 							end
-							entry.vcd = dir .."/".. name
-							entry.file = name
-							entry.stem = stem_of(name)
-							entry.dir = dir
-							entry.path = entry.vcd
-							entry.ata = is_ata(dir)
+							if entry.vcd ~= nil and entry.vcd ~= dir .."/".. name then
+								-- The same game, as a .VCD, on a second drive. One of
+								-- them is played and the other is not, and each has its
+								-- own memory card beside it - so the copy that is not
+								-- played collects saves nobody will ever see again.
+								-- Recorded here and shown in the game menu: the launcher
+								-- has to pick one, but it must not pick one quietly.
+								entry.dupes = entry.dupes or {}
+								entry.dupes[#entry.dupes + 1] = dir .."/".. name
+							else
+								entry.vcd = dir .."/".. name
+								entry.file = name
+								entry.stem = stem_of(name)
+								entry.dir = dir
+								entry.path = entry.vcd
+								entry.ata = is_ata(dir)
+							end
 						elseif is_ember == false and is_pops == false
 						       and e.directory == false
 						       and PSX_DISC[lower_ext(name)] == true

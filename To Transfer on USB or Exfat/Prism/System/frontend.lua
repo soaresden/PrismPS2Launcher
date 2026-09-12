@@ -62,9 +62,9 @@ end
 
 function frontend_start()
 	prefs_load()
-	-- Coming back from a game is the moment a borrowed memory card has to go home,
-	-- before anything reads the library or the player launches something else.
-	if ps1_card_return ~= nil then pcall(ps1_card_return) end
+	-- Clears the note left by the old card-lending scheme, if one survived the change.
+	-- Nothing is moved: each emulator keeps its own card now (emu/ps1_card.lua).
+	if ps1_card_tidy ~= nil then pcall(ps1_card_tidy) end
 	theme_selection(prefs_get("select_color"))
 	gfx_scroll_speed(prefs_get("scroll_speed"))
 	if sfx_volume ~= nil then pcall(sfx_volume, 65) end

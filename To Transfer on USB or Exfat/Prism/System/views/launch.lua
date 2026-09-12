@@ -29,17 +29,13 @@ function launch_plan(game)
 			p.ember_root, p.ember_dir = root, dir
 			p.file = dir or game.ember_dir or game.disc
 			p.elf = (root or "?") .."/ember.elf"
-			-- The card this game actually keeps its saves on, which is POPStarter's
-			-- folder whichever emulator is playing. Ember borrows a copy for the
-			-- session; see emu/ps1_card.lua.
-			local cdir = nil
-			if ps1_card_dir ~= nil then cdir = ps1_card_dir(game, dir) end
-			if cdir ~= nil then
-				p.card = cdir .."/SLOT0.VMC"
-				if doesFileExist(p.card) then
-					p.card_note = "lent to Ember, back here when you return"
-				else
-					p.card_note = "created on this first run, and kept"
+			-- Ember's own card, in the game's folder. POPStarter's card for the same
+			-- game, if there is one, is a separate save and is not touched here;
+			-- see emu/ps1_card.lua.
+			if dir ~= nil then
+				p.card = dir .."/MC1.vmc"
+				if doesFileExist(p.card) == false then
+					p.card_note = "created by Ember on first run"
 				end
 			end
 		end
@@ -148,6 +144,16 @@ function launch_missing(g, p)
 				if ok == false then return why end
 			end
 			return nil
+		end
+		-- POPStarter cannot read an internal exFAT disk, and no arrangement of drivers
+		-- fixes it: the replacement drivers it takes from mc0:/POPSTARTER are usbd.irx
+		-- and usbhdfsd.irx, USB and nothing else. On an internal drive it wants an APA
+		-- partition called __.POPS instead, which is a different world. Ember has no
+		-- such limit - Prism starts it without resetting the IOP, so it inherits
+		-- Enceladus's BDM stack with ata_bd in it.
+		if p.backend == "pops" and g.vcd ~= nil and ES_RAIZ_ATA ~= nil
+		   and ES_RAIZ_ATA(g.dir) == true then
+			return "POPStarter cannot read the internal exFAT disk - use Ember, or move the .VCD to USB"
 		end
 		-- POPStarter: its binaries live beside the .VCD, on that drive.
 		if g.vcd ~= nil and POPS_DE ~= nil then

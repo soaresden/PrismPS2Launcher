@@ -20,5 +20,24 @@ Ember creates MC1.vmc and MC2.vmc here on first run - one pair per game, so
 one game can never overwrite another's saves. Back a game up by copying its
 folder.
 
+Multi-disc games: ONE folder for the whole set, holding every disc.
+
+    games/
+    `- Final Fantasy VII (France)/
+       |- Final Fantasy VII (France) (Disc 1).cue   + .bin
+       |- Final Fantasy VII (France) (Disc 2).cue   + .bin
+       |- Final Fantasy VII (France) (Disc 3).cue   + .bin
+       |- MC1.vmc
+       `- MC2.vmc
+
+Ember takes one disc image per launch and has no disc swapping of its own, so
+the choice is Prism's: the game is listed once, and the triangle menu has a
+"Disc" option. Prism then hands the ELF the exact image - games/<Folder>/<the
+disc>.cue - instead of the folder name, and remembers which disc you were on.
+
+The set shares one pair of memory cards, which is the point: a save made on
+disc 1 is still there when disc 2 asks for it. When a game tells you to change
+disc, save in-game, come back to Prism, pick the next disc, carry on.
+
 A folder holding only a .chd is shown in red: Ember cannot read it. Convert on
 the PC with chdman and drop the .cue and .bin in beside it.
