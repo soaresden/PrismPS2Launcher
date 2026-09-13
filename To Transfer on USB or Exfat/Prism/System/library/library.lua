@@ -14,10 +14,23 @@ local function lower_ext(name)
 	return string.lower(string.match(name or "", "%.[^%.]+$") or "")
 end
 
+--- Is what follows the last dot an extension, or part of the name? ---------------------
+--- "Gran Turismo [SCES_009.84]" ends in ".84]" and that is not an extension: taking it
+--- off leaves "Gran Turismo [SCES_009", which is what the list used to show for every
+--- Ember folder and every game named the way Redump names them. An extension is short,
+--- is letters and digits only - so a closing bracket disqualifies it - and has at least
+--- one letter, which rules out the ".84" of a serial and the ".1" of a version.
+local function looks_like_ext(ext)
+	if ext == nil or ext == "" or string.len(ext) > 5 then return false end
+	if string.find(ext, "^[%a%d]+$") == nil then return false end
+	return string.find(ext, "%a") ~= nil
+end
+
 local function stem_of(name)
-	local s = string.match(name or "", "^(.*)%.[^%.]+$")
-	if s == nil or s == "" then return name end
-	return s
+	local head, ext = string.match(name or "", "^(.*)%.([^%.]+)$")
+	if head == nil or head == "" then return name end
+	if looks_like_ext(ext) == false then return name end
+	return head
 end
 
 local function has_ext(list, ext)
@@ -58,10 +71,40 @@ end
 --- but it is not the game's name, and leaving it in the list sorts a whole library by
 --- publisher code - every SCES together, every SLUS together, alphabetical by nothing
 --- anyone can see. The file keeps its name; the list shows the game's.
+---
+--- OPL puts the serial in front. Everything else - Redump, Batocera, the .VCD library
+--- and so every Ember folder converted from one - puts it at the END, in brackets:
+--- "Gran Turismo [SCES_009.84]". Both are the same nuisance and both come off.
+
+--- Is this bracketed group a disc code, or part of the name? --------------------------
+--- The difference has to be decided on shape alone, because the brackets are used for
+--- both: "[SCES_009.84]" is a code and "[F]" is a language and "(Disc 1)" is neither.
+--- A code has digits AND letters, and no spaces - which is exactly what a region word,
+--- a disc marker or a year does not have. Getting this wrong the other way would eat a
+--- word out of a title, so it errs towards leaving the group alone.
+local function looks_like_id(text)
+	if text == nil or text == "" then return false end
+	if string.find(text, "%s") ~= nil then return false end
+	if string.find(text, "%d") == nil then return false end
+	if string.find(text, "%a") == nil then return false end
+	return string.find(text, "^[%a%d%._%-]+$") ~= nil
+end
+
 function pretty_title(stem)
-	local cut = string.match(stem, "^%a%a%a%a[_%-]%d%d%d%.%d%d%.(.+)$")
-	if cut ~= nil and cut ~= "" then return cut end
-	return stem
+	local name = stem
+	local cut = string.match(name, "^%a%a%a%a[_%-]%d%d%d%.%d%d%.(.+)$")
+	if cut ~= nil and cut ~= "" then name = cut end
+	-- One group at a time, and only while the LAST one still looks like a code, so
+	-- "Ghost In The Shell [F] [SCES-01074] [SCES_010.74]" loses the two serials and
+	-- keeps the [F]. Four passes is more than any real name needs.
+	for _i = 1, 4 do
+		local head, tail = string.match(name, "^(.-)%s*%[([^%[%]]*)%]%s*$")
+		if head == nil or head == "" then break end
+		if looks_like_id(tail) == false then break end
+		name = head
+	end
+	if name == nil or name == "" then return stem end
+	return name
 end
 
 local function title_for(folder, name)

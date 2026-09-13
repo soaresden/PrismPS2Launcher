@@ -162,7 +162,16 @@ function gamelist_apply(folder, games)
 		end
 		if e ~= nil then
 			g.listed = true
-			if e.name ~= nil then g.title = e.name end
+			-- A <name> is supposed to be the game's name, and very often is not: a
+			-- scraper that failed to match a game writes the file name into it, serial
+			-- and all, and so did older versions of this launcher. The gamelist then
+			-- OVERRIDES pretty_title and the whole column goes back to being sorted by
+			-- publisher code. So what comes out of the file gets the same cleaning as
+			-- what comes off the disk - it can only ever remove a serial, and a name
+			-- that never had one comes back untouched.
+			if e.name ~= nil and e.name ~= "" then
+				if pretty_title ~= nil then g.title = pretty_title(e.name) else g.title = e.name end
+			end
 			g.desc, g.developer, g.publisher = e.desc, e.developer, e.publisher
 			g.genre, g.players, g.rating = e.genre, e.players, e.rating
 			if e.releasedate ~= nil then g.year = string.match(e.releasedate, "^(%d%d%d%d)") end

@@ -22,6 +22,12 @@ local MARK_TODO = "+"
 --- Everything the copier can put in Roms/<system>/media/ is offered here, not just the
 --- four that were thought of first: the folders exist, the pictures are already on the
 --- drive, and deciding what goes where is the user's business rather than ours.
+--- How long the selection has to hold still before a picture is fetched, in frames. ----
+--- Twelve is about a fifth of a second: long enough that scrolling never touches the
+--- drive, short enough that stopping on a game feels like the picture was already
+--- there. Holding a direction changes the selection every few frames, so a run down a
+--- long list loads nothing at all.
+ART_SETTLE = 12
 ART_SLOTS  = { "a", "b", "c" }
 ART_KINDS  = { "gamelogo", "cartridges", "covers", "screenshots",
                "titleshot", "boxback", "mix", "fanart", "none" }
@@ -155,7 +161,30 @@ function gamelist_input()
 		return
 	end
 	local l = GAMELIST.list
-	if list_input(l, true) then play_sfx(S_MOVER) end
+	-- Coming back from the full-screen viewer closes the pictures with it, so square
+	-- is always a step forward: logo, pictures, full screen, and back to the logo.
+	-- A control that only ever adds is a control you get stuck in.
+	if GAMELIST.viewer_was_open == true and (VIEWER == nil or VIEWER.game == nil) then
+		GAMELIST.viewer_was_open = false
+		GAMELIST.art_shown = false
+	end
+	-- Moving to another game closes the pictures again. Square is a look at THIS game,
+	-- not a mode the list stays in: leaving it on would mean scrolling a column that
+	-- reloads two images on every press of down.
+	if list_input(l, true) then
+		play_sfx(S_MOVER)
+		GAMELIST.art_shown = false
+	end
+	-- How long the selection has been still, counted against the game itself rather
+	-- than against the button. The selection also moves when a system is changed,
+	-- when a game is un-favourited out from under the bar, and when the library is
+	-- rebuilt - watching the d-pad would miss all three and load art mid-scroll.
+	local cur = list_current(l)
+	if cur ~= GAMELIST.still_game then
+		GAMELIST.still_game, GAMELIST.still = cur, 0
+	else
+		GAMELIST.still = (GAMELIST.still or 0) + 1
+	end
 	if input_pressed("l1") then
 		play_sfx(S_NETX); step_system(-1)
 	elseif input_pressed("r1") then
@@ -189,10 +218,21 @@ function gamelist_input()
 			input_flush()
 		end
 	elseif input_pressed("square") then
-		-- The pictures, full screen. The memory card kept this button for a while and
-		-- has gone back to the game menu, where the rest of a game's settings live.
+		-- Square means "show me more", and it means it twice:
+		--
+		--     logo only  --square-->  the two pictures  --square-->  full screen
+		--        ^                                                       |
+		--        +------  leaving the viewer, or moving to another game --+
+		--
+		-- The list opens on the logo beside the title and nothing else: a column of
+		-- three pictures is a lot of screen for something you are scrolling past, and
+		-- the room they take is room the description does not get.
 		local g = list_current(l)
-		if g ~= nil and viewer_open(g) then
+		if GAMELIST.art_shown ~= true then
+			GAMELIST.art_shown = true
+			play_sfx(S_NETX)
+		elseif g ~= nil and viewer_open(g) then
+			GAMELIST.viewer_was_open = true
 			play_sfx(S_EJECUTAR)
 		else
 			play_sfx(S_CANCELAR)
@@ -290,9 +330,20 @@ function gamelist_draw()
 		local function rule(ry)
 			gfx_rect(D.x, ry, D.w, 1, THEME.line)
 		end
-		local function picture(px, py, pw, ph, path, slot)
+		-- Nothing is asked of the drive while the cursor is still moving. Finding a
+		-- picture means probing several drives for several names, and then decoding a
+		-- PNG - that is the half-second the list stuttered for on every press of down.
+		-- Once the selection has held still for ART_SETTLE frames the picture is
+		-- fetched, and the cache in ui/gfx.lua keeps it for the way back up.
+		--
+		-- The panel stays empty in the meantime rather than showing the slot's label:
+		-- an empty frame for a fifth of a second reads as loading, a word that appears
+		-- and is immediately replaced reads as a fault.
+		local art_ready = (GAMELIST.still or 0) >= ART_SETTLE
+		local function picture(px, py, pw, ph, slot)
 			gfx_rect(px, py, pw, ph, THEME.panel)
-			if gfx_image_fit(path, px + 2, py + 2, pw - 4, ph - 4) == false then
+			if art_ready == false then return end
+			if gfx_image_fit(slot_art(g, slot), px + 2, py + 2, pw - 4, ph - 4) == false then
 				gfx_text(string.lower(slot_label(slot)), px, py + ph / 2 - 5, small,
 					THEME.text_dim, "center", pw)
 			end
@@ -300,7 +351,7 @@ function gamelist_draw()
 
 		-- A | the name of the game.
 		local a = THEME.art_a
-		picture(D.x, y, a, a, slot_art(g, "a"), "a")
+		picture(D.x, y, a, a, "a")
 		local nx = D.x + a + 8
 		local nw = D.w - a - 8
 		gfx_text_scroll(g.title, nx, y + 2, text, THEME.text_head, nw)
@@ -325,13 +376,16 @@ function gamelist_draw()
 		rule(y)
 		y = y + 6
 
-		-- B | C.
-		local half = (D.w - 6) / 2
-		picture(D.x, y, half, THEME.art_row, slot_art(g, "b"), "b")
-		picture(D.x + half + 6, y, half, THEME.art_row, slot_art(g, "c"), "c")
-		y = y + THEME.art_row + 6
-		rule(y)
-		y = y + 6
+		-- B | C, only once square has asked for them. Their room goes to the
+		-- description while they are away, rather than being left empty.
+		if GAMELIST.art_shown == true then
+			local half = (D.w - 6) / 2
+			picture(D.x, y, half, THEME.art_row, "b")
+			picture(D.x + half + 6, y, half, THEME.art_row, "c")
+			y = y + THEME.art_row + 6
+			rule(y)
+			y = y + 6
+		end
 
 		-- The saves band is measured from the bottom, so the description knows exactly
 		-- how much room is left and never runs into it.
@@ -357,7 +411,12 @@ function gamelist_draw()
 		gfx_text_scroll(g.file, D.x, saves_y + 31, small, THEME.text_dim, D.w)
 	end
 
-	local hints = { {"cross", "play"}, {"triangle", "game menu"}, {"square", "pictures"} }
+	-- Square says what it will do next, not what it does in general: "pictures" while
+	-- they are hidden, "full screen" once they are up. A footer that never changes is
+	-- a footer nobody reads twice.
+	local square = "pictures"
+	if GAMELIST.art_shown == true then square = "full screen" end
+	local hints = { {"cross", "play"}, {"triangle", "game menu"}, {"square", square} }
 	hints[#hints + 1] = {"select", "favourite"}
 	hints[#hints + 1] = {"l1", ""}
 	hints[#hints + 1] = {"r1", "system"}
