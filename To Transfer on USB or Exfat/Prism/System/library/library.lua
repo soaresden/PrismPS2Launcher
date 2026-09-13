@@ -328,6 +328,9 @@ function library_build(progress)
 		if #games > 0 then
 			-- gamelist.xml (EmulationStation format) overrides titles and brings the
 			-- description and artwork paths; a system without one gets a starter file.
+			-- Before the gamelist, so a file written for a system that has none is
+			-- written with real titles rather than with cut-down file names.
+			pcall(ps2_titles_apply, games)
 			if gamelist_apply(sys.folder, games) == false then
 				gamelist_write_default(sys.folder, games)
 			else
@@ -335,6 +338,9 @@ function library_build(progress)
 				-- in it. Add it, with its name, instead of leaving it undescribed.
 				gamelist_add_missing(sys.folder, games)
 			end
+			-- Last word on titles, and only where there was no real one: OPL's table
+			-- knows what the file name was cut down from.
+			pcall(ps2_titles_apply, games)
 			-- Write down what the console really sees, folder by folder, for the PC
 			-- tools: exfatdb.json is the only honest source for a disk that lives
 			-- inside the PlayStation and is never plugged into a computer. It used to
@@ -444,6 +450,64 @@ function library_art(game, kind)
 
 	game[field] = false
 	return nil
+end
+
+--- OPL's own serial-to-title table, for the games this library actually holds. ---------
+--- System/Defaults/PS2_IDs.cfg is a few thousand lines of
+--- "SLES_504.80=Aggressive Inline Skating". It came with the launcher when it was
+--- forked and nothing had ever read it.
+---
+--- It answers the question a file name cannot. OPL cuts a name down to fit its own
+--- limit, so the disk says "SLES_504.80.Aggressive Inlin.iso" and no amount of
+--- stripping will put the missing letter back. The serial will.
+---
+--- Only the serials on the drive are kept: one pass over the file and a hundred or so
+--- entries retained instead of ten thousand. The table describes the games you have,
+--- not every game ever pressed.
+function ps2_titles_apply(games)
+	local want, any = {}, false
+	for i = 1, #games do
+		local s = opl_serial(games[i].file)
+		if s ~= nil then want[s] = true; any = true end
+	end
+	if any == false then return 0 end
+
+	local path = System.currentDirectory() .."/System/Defaults/PS2_IDs.cfg"
+	if doesFileExist(path) == false then return 0 end
+	local text = nil
+	pcall(function()
+		local fd = System.openFile(path, FREAD)
+		System.seekFile(fd, 0, SET)
+		text = System.readFile(fd, System.sizeFile(fd))
+		System.closeFile(fd)
+	end)
+	if text == nil then return 0 end
+
+	local found = {}
+	for line in string.gmatch(text, "[^\r\n]+") do
+		local k, v = string.match(line, "^(%a%a%a%a[_%-]%d%d%d%.%d%d)=(.+)$")
+		-- The file lists a game once per region and repeats itself; the first spelling
+		-- wins rather than the last, so a second pass cannot change a title.
+		if k ~= nil and want[k] == true and found[k] == nil then found[k] = v end
+	end
+	text = nil
+
+	local n = 0
+	for i = 1, #games do
+		local g = games[i]
+		local s = opl_serial(g.file)
+		if s ~= nil and found[s] ~= nil then
+			-- Only when nothing better is already known. A name typed into titles.txt,
+			-- or written by a scraper that really matched the game, is a better title
+			-- than a table can be - it may be the localised one, or the one you call
+			-- it. The table is for when all we ever had was the file name.
+			if g.title == nil or g.title == pretty_title(stem_of(g.file)) then
+				g.title = found[s]
+				n = n + 1
+			end
+		end
+	end
+	return n
 end
 
 --- Short label of where a game lives, and its colour: "exFAT" yellow / "USB" cyan. ----
