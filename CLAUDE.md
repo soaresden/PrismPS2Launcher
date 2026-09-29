@@ -26,7 +26,9 @@ POPStarter, Ember or RetroArch cores. Author: Denis (soaresden).
 ## Layout and hardware
 
 - The console payload lives in `To Transfer on USB or Exfat/Prism/` and is copied by hand
-  to the drive. Git shows the folder as `Prism`, some tools as `PRISM` (Windows ignores case).
+  to the drive. On disk the folder must be spelt `Prism`, exactly as git's index has it: Windows
+  ignores case but git does not, so a new file under a `PRISM` folder gets staged as a second
+  directory `PRISM/` on GitHub. To fix the case, rename in two steps (`PRISM` → `Prism_tmp` → `Prism`).
 - `E:` = USB stick = `mass0:` on the console; the launcher runs from `E:\PRISM`.
 - `F:` = internal exFAT disk = `mass1:` (ATA, BDM). `mc0:` = memory card; `mc0:/PRISMBOOT/` holds boot.lua.
 - Nothing can be run on the console from here: every change to Lua must be tested on the real
