@@ -32,8 +32,13 @@ Multi-disc games: ONE folder for the whole set, holding every disc.
 
 Ember takes one disc image per launch and has no disc swapping of its own, so
 the choice is Prism's: the game is listed once, and the triangle menu has a
-"Disc" option. Prism then hands the ELF the exact image - games/<Folder>/<the
-disc>.cue - instead of the folder name, and remembers which disc you were on.
+"Disc" option. Prism then hands the ELF the exact image - <Folder>/<the
+disc>.cue, folder first and no "games/" in front, as Ember Beta 2 asks - instead
+of the folder name, and remembers which disc you were on.
+
+A settings.txt in a game's folder applies to that game only: "controller: d2a"
+for a digital-only game you want on the stick, "timing: ntsc" for a PAL disc
+your screen will not show. See Ember/.INFO - Ember.txt for the keys.
 
 The set shares one pair of memory cards, which is the point: a save made on
 disc 1 is still there when disc 2 asks for it. When a game tells you to change

@@ -10,25 +10,27 @@
 --- could not find the disc. The original layout is restored: "ember.elf" and
 --- "bios.bin" are placed beside the .cue files, copied from "Bios/" the first time.
 --- Two small files, and only once per folder.
---- Ember Beta 1: its own folder, one directory per game. -------------------------------
+--- Ember Beta 1 and 2: its own folder, one directory per game. -------------------------
 --- The demo version launched from the ROM folder and was handed the .cue file name.
---- Beta 1 changes both of those:
+--- From Beta 1 on, both changed:
 ---
 ---     Ember/
 ---     |- ember.elf          the emulator
 ---     |- bios.bin           supplied by the user
----     |- settings.txt       optional:  display: 480  |  display: 240
+---     |- settings.txt       optional, every game (display, timing, dither, ...)
 ---     `- games/
 ---        `- Spyro/          ONE DIRECTORY PER GAME, named whatever you like
 ---           |- Spyro.cue
 ---           |- Spyro.bin
 ---           |- MC1.vmc      Ember creates these itself, one pair per game
 ---           |- MC2.vmc
+---           |- settings.txt optional, this game only (Beta 2)
 ---           `- SharedMC.txt optional, one line: the name of another folder
 ---
---- And the argument is no longer a file but the NAME OF THE FOLDER inside "games".
---- Everything else Ember resolves relative to where its own ELF sits, so the whole
---- folder is portable: it works on USB, on the internal drive or on an MMCE.
+--- The argument is the NAME OF THE FOLDER inside "games", or "<Folder>/<file>.cue" to
+--- pick one image - folder first, no "games/" in front (Beta 2). Everything else Ember
+--- resolves relative to where its own ELF sits, so the whole folder is portable: it
+--- works on USB, on the internal drive or on an MMCE, through the launcher's drivers.
 EMBER_SUB = "/Ember"
 
 --- The "Ember" folders that really exist, in root order. ------------------------------

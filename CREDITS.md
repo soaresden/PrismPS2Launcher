@@ -19,7 +19,7 @@ made everything else here possible.
 | [RetroArch PS2 port](https://github.com/libretro/RetroArch) and the 61 cores | fjtrujy and the libretro contributors | GPL and others, per core |
 | [Neutrino](https://github.com/rickgaiser/neutrino) | Maximus32 (rickgaiser) | — |
 | POPStarter | krHACKen | — |
-| [Ember](https://github.com/Gageformer/Ember) — PS1 emulation on the PS2 itself | Gageformer | Ember Public Beta Testing Licence |
+| [Ember](https://github.com/Gageformer/Ember) — PS1 emulation on the PS2 itself. Bundled unmodified; [official releases](https://github.com/Gageformer/Ember/releases) | Gageformer | Ember Public Beta Testing Licence (`Ember/LICENSE-BETA.txt`) |
 | [Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader) | the ps2homebrew team | AFL 3.0 |
 | [wLaunchELF ISR](https://github.com/israpps/wLaunchELF_ISR) | israpps | — |
 | [ps2sdk](https://github.com/ps2dev/ps2sdk) and its `ata_bd` driver | the ps2dev community | AFL 2.0 |

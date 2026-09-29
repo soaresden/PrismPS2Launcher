@@ -230,13 +230,19 @@ function launch_ember(game, plan)
 	end
 	-- Which disc. One .cue in the folder and the folder name is argument enough; several,
 	-- and Ember has to be told exactly which image to mount, because it takes "the .cue"
-	-- and a set has more than one. Its README allows a path relative to Ember's own
-	-- folder, so "games/<Folder>/<Disc>.cue" is the whole of the disc-swapping story.
+	-- and a set has more than one.
+	--
+	-- The form is "<Folder>/<Disc>.cue", folder first, WITHOUT "games/" in front. That
+	-- is what the Beta 2 README documents: "Spyro/Spyro.cue" boots games/Spyro/Spyro.cue,
+	-- and a disc image is only accepted from inside a game folder. Beta 1's README had
+	-- offered "games/Crash/game.cue" instead; kept, it would now ask for a folder called
+	-- games/ inside games/, and a refused argument lands in the BIOS shell. Cards and the
+	-- per-game settings.txt still come from the folder, so the whole set keeps one save.
 	local arg, discos = game.ember, ember_discs(dir)
 	if discos ~= nil and #discos > 1 then
 		local elegido = game.ember_disc or ember_disc_get(game.ember, discos)
 		if elegido ~= nil then
-			arg = "games/".. game.ember .."/".. elegido
+			arg = game.ember .."/".. elegido
 			ember_disc_set(game.ember, elegido)
 			launch_step("Disc: ".. elegido)
 		end

@@ -61,8 +61,9 @@ USAGE
     python POPSVCDtoBinCue.py --match "wild arms"     one title, by part of its name
     python POPSVCDtoBinCue.py --layout=roms   loose discs in Roms/psx instead
     python POPSVCDtoBinCue.py --force         redo games already extracted
-    python POPSVCDtoBinCue.py --data-only     skip games whose music is CD audio,
-                                              which Ember Beta 1 does not play yet
+    python POPSVCDtoBinCue.py --data-only     skip games whose music is CD audio -
+                                              only useful with Ember Beta 1, which
+                                              did not play it; Beta 2 does
 
 At every question, Enter alone takes the value in brackets.
 """
@@ -216,8 +217,8 @@ def vcd_tracks(path):
 
     One track means the whole disc is data: everything the game plays is inside its
     own files, and Ember will sound exactly like the real console. More than one
-    means CD audio - the music is on the disc as AUDIO tracks - and Ember Beta 1
-    does not play those yet. Worth knowing which games you are converting.
+    means CD audio - the music is on the disc as AUDIO tracks. Ember Beta 1 did not
+    play those; Beta 2 does. Worth knowing which games carry them all the same.
     """
     try:
         with open(path, "rb") as fh:
@@ -734,18 +735,16 @@ def main():
             print("  %-58s incomplete, will be redone" % name[:58])
         todo.append((name, src, out_dir, cue, vcd))
 
-    # Ember Beta 1 does not play CD audio - the author has confirmed the path exists
-    # but was not wired up for the release (Gageformer/Ember issue 44). A disc with a
-    # single track has no CD audio to lose and will sound right; a disc with several
-    # will run in silence apart from its sound effects until the next Ember build.
-    # --data-only converts the first kind and leaves the second as .VCD, where
-    # POPStarter still plays the music today.
+    # CD audio - music stored as AUDIO tracks on the disc - did not play in Ember Beta 1:
+    # the author confirmed the path existed but was not wired up (Gageformer/Ember issue
+    # 44). Beta 2 plays it. The count is still worth printing, because these are the
+    # games whose cuesheet carries dozens of tracks and so the ones to listen to first
+    # if anything sounds wrong. --data-only stays for anyone on an older ember.elf.
     audio = sum(1 for _n, _s, _d, _c, v in todo if v and (vcd_tracks(v) or 1) > 1)
     if audio:
-        print("  %d of the %d to convert have CD audio. Ember Beta 1 plays none yet, so"
+        print("  %d of the %d to convert have CD audio tracks. Ember Beta 2 plays them;"
               % (audio, len(todo)))
-        print("  their music will be missing until it does; POPStarter still plays it.")
-        print("  --data-only converts only the games that lose nothing.\n")
+        print("  Beta 1 did not. --data-only skips them, for an older ember.elf.\n")
     if data_only:
         before = len(todo)
         # A set is held back whole or not at all. If disc 3 of four has CD audio and

@@ -1,24 +1,30 @@
 Ember - PS1 emulation on the PS2 itself
 =======================================
 
-Ember is by Gageformer.  https://github.com/Gageformer/Ember
-Beta 1, released 28 August 2026. Closed source for now, free to use and to
-build a front-end for. It ships no BIOS and never will - you supply your own.
+Ember is by Gageformer.  https://github.com/Gageformer/Ember/releases
+Beta 2, September 2026. Closed source for now, free to use and to build a
+front-end for - unmodified, credited to its author, never sold. It ships no
+BIOS and never will: you supply your own.
+
+ember.elf and launcher.elf are bundled here exactly as released, under the
+Ember Public Beta Testing Licence in LICENSE-BETA.txt beside them. That file
+has to travel with them: it is a condition of redistributing the build.
 
 
 What goes in this folder
 ------------------------
 
     Ember/
-    |- ember.elf          the emulator, from the Beta 1 release
+    |- ember.elf          the emulator, from the Beta 2 release
     |- bios.bin           a PS1 BIOS dump from your own console
-    |- settings.txt       optional, see below
+    |- settings.txt       optional, for every game - see Settings
     `- games/
        `- Spyro/          ONE FOLDER PER GAME, named however you like
           |- Spyro.cue
           |- Spyro.bin
           |- MC1.vmc      Ember creates these itself, on first run
           |- MC2.vmc
+          |- settings.txt optional, this game only - see Settings
           `- SharedMC.txt optional, one line: the name of another game folder
 
 Everything is resolved relative to ember.elf, so the whole folder is portable:
@@ -27,19 +33,33 @@ copied between them without editing anything.
 
 
 How Prism launches it
------------------------------
-Beta 1 takes the NAME OF THE GAME FOLDER as its argument, not a file:
+---------------------
+The argument is the NAME OF THE GAME FOLDER, not a path:
 
     ember.elf "Crash Bandicoot (USA)"   ->  games/Crash Bandicoot (USA)/
 
 Inside the folder Ember takes the .cue if there is one, otherwise the .bin.
-Spaces are fine and need no quoting - Ember stitches the argument back
-together itself.
+To boot one particular image, the file goes after the folder name:
 
-This is a change from the demo, which lived inside the ROM folder and took a
-.cue filename. That old layout is gone: games/<Game>/ is the only place read.
-Artwork and titles are in Roms/psx/media/ and Roms/psx/titles.txt, shared with
-the POPStarter copies of the same games.
+    ember.elf "Spyro/Spyro.cue"         ->  games/Spyro/Spyro.cue
+
+Folder first, and no "games/" in front: Beta 1 documented that longer form,
+Beta 2 does not, and an argument Ember refuses lands in the PS1 BIOS shell.
+A bare "Spyro.cue" is refused too - a disc image only counts from inside a
+game folder.
+
+Two things Prism does on purpose, because Ember depends on them:
+
+- The IOP is NOT reset before the launch. Ember reads its folder through the
+  storage drivers the launcher already has loaded - USB, MMCE, the internal
+  disk - and never loads its own. Reset the IOP and it cannot see ember.elf's
+  own folder: BIOS screen or black screen. IOP_REBOOT_EMBER is 0 for that
+  reason, see System/emu/pops.lua.
+- The full path of ember.elf goes in as argv[0]. That is how Ember finds its
+  home. System.loadELF does this by itself; a launcher that left argv[0] empty
+  would leave Ember unable to find anything.
+
+Spaces need no quoting - Ember stitches a split argument back together itself.
 
 
 .CHD does not work, and the launcher says so
@@ -54,12 +74,13 @@ Convert on the PC - about thirty seconds with chdman:
 
     chdman extractcd -i "Game.chd" -o "Game.cue" -ob "Game.bin"
 
+Or HelperScripts/POPSVCDtoBinCue.py, which also converts a .VCD back.
+
 Doing it on the console is not offered, and that is deliberate rather than
 laziness. A CHD v5 packs its sector map with Huffman and each block with zlib,
 LZMA or FLAC; writing those three decompressors in Lua, on a 300 MHz R5900,
 to then write 300-700 MB over USB, is hours per game and a half-written file
-if anything goes wrong. The .chd can stay in the folder either way - Ember
-simply ignores it.
+if anything goes wrong.
 
 
 One game, two ways to run it
@@ -100,6 +121,11 @@ create one on request, and HelperScripts/POPSVCDtoBinCue.py seeds a converted
 game's folder with a copy of its POPStarter save - once, at conversion time -
 so a library moving to Ember does not start from nothing.
 
+Two games sharing one card - a series that carries its save forward - is
+Ember's own feature: a SharedMC.txt in one game's folder, holding the name of
+the other game's folder. One hop only, and a name that points nowhere simply
+falls back to the game's own cards.
+
 See System/emu/ps1_card.lua.
 
 
@@ -107,26 +133,14 @@ Multi-disc games
 ----------------
 Every disc of a set sits in ONE folder, and Prism picks which one to boot: the
 triangle menu has a "Disc" option, and the ELF is handed the exact image,
-games/<Folder>/<disc>.cue, rather than the folder name. Ember's README allows a
-path relative to its own folder, which is what makes this work.
+<Folder>/<disc>.cue, rather than the folder name alone.
 
 It has to be done this way because Ember cannot change a disc while a game is
-running - that is an open feature request on its repository, issue 20. So when
-a game asks for the next disc: save in-game, return to Prism, change the disc,
-start again. The set shares one pair of memory cards, so the save is there.
+running - Beta 2 still has no disc swapping of its own. So when a game asks for
+the next disc: save in-game, return to Prism, change the disc, start again.
+The set shares one folder and so one pair of memory cards: the save is there.
 
 See System/emu/ember.lua - ember_discs, ember_disc_get, ember_disc_set.
-
-
-Known limits of Ember Beta 1
-----------------------------
-CD audio does not play. Games whose music sits in AUDIO tracks on the disc -
-Tomb Raider, Wild Arms, Final Fantasy VIII and a great many others - run in
-silence apart from their sound effects. This is not your cuesheet and not a
-conversion fault: the author has confirmed the CDDA path exists but was not
-wired up for Beta 1 (issue 44), and a fix is expected. POPStarter plays the
-same music today, which is a reason to keep a .VCD of a game you care about
-until the next Ember build.
 
 
 Artwork and titles
@@ -138,16 +152,50 @@ games/Spyro/ wants Roms/psx/media/covers/Spyro.png
 
 Settings
 --------
-settings.txt next to ember.elf, one key per line:
+settings.txt beside ember.elf, one "key: value" per line. Lines starting with
+# or ; are ignored, unknown keys are skipped, and deleting the file brings every
+default back.
 
-    display: 480      480i, what most TVs and capture devices expect
-    display: 240      true 240p, sharper on a CRT, refused by some scalers
+    display     480   (default) 480i - what almost every TV and capture box expects
+                240   true 240p - what a CRT wants; some scalers refuse it
+                480p  progressive - component or an HDMI adapter only,
+                      composite shows NO picture at all
+    timing      auto  (default) follows the disc: PAL at 50 Hz with the full
+                      PAL picture, everything else at 60 Hz
+                ntsc  always 60 Hz, for a set that shows nothing for PAL -
+                      PAL games then run fast
+                pal   always 50 Hz
+    dither      on    (default) the PS1's own dithering
+                off   smooth shading without the pattern
+    shading     15    (default) the PS1's native colour
+                24    smoother gradients - experimental, may cost speed
+    controller  auto  (default) like a real DualShock: ANALOG toggles, and
+                      switches itself on when a game asks for it
+                analog  starts in analog, for games that support it without
+                      asking for it
+                d2a   left stick drives the d-pad, for digital-only games -
+                      breaks real analog games
 
-Delete the file and the defaults stand.
+A settings.txt INSIDE a game's folder overrides the main one for that game,
+but only for controller, timing, dither and shading: the display mode stays
+one setting for the whole console. The author's advice is to set the
+controller per game rather than globally, since analog or d2a switched on for
+everything will break the games that do not expect it.
 
 
-Known limits in Beta 1, from the author
----------------------------------------
-Crash Team Racing and King's Field II hang - the same underlying CD command
-bug. Some FMV audio stutters. Spyro 2's dialogue stutters word by word. Most
-of the library is untested. Audio may be choppy where a game runs under speed.
+Where Beta 2 stands, from the author
+------------------------------------
+Music, sound effects, XA audio and CD AUDIO TRACKS all play now. That last one
+matters here: the 30 converted games whose music lives in audio tracks - Tomb
+Raider, Wild Arms, Resident Evil 2 and the rest - were silent under Beta 1
+and should not be any more. The tracks were in the .bin all along; only the
+player was missing.
+
+Analog sticks and rumble work, PAL games run at their own 50 Hz with the whole
+picture, and many more titles run at or near full speed. Still open: some games
+may hang, some FMVs stutter in their sound, a few sound effects are missing,
+and a few visual glitches remain. Audio stutters wherever a game runs under
+speed.
+
+The launcher that ships with Ember is USB only. Prism does not use it - it
+starts ember.elf itself - so that limit does not apply here.

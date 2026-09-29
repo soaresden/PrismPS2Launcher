@@ -59,7 +59,7 @@ The look follows EmulationStation as Batocera ships it, and borrows its language
 
 **PlayStation 2** — `DVD/` and `CD/` at the drive root, as OPL and Neutrino read them, and `Roms/ps2/` for anything dropped in the obvious place instead. A launch menu before every game: real memory card or VMC, which VMC file (cards for this game first, *See all VMC files* for the rest, create one named after the game), Neutrino or OPL.
 
-**PlayStation 1, two emulators, one list.** POPStarter takes `.VCD` from `POPS/`; Ember Beta 1 takes `.cue`/`.bin` from `Ember/games/<Game>/`. A game present in both forms is listed once, and which one will run it is written in **pink for POPStarter, orange for Ember**.
+**PlayStation 1, two emulators, one list.** POPStarter takes `.VCD` from `POPS/`; [Ember](https://github.com/Gageformer/Ember/releases) (Beta 2, by Gageformer, bundled unmodified under its beta licence) takes `.cue`/`.bin` from `Ember/games/<Game>/`, CD audio tracks included, and a multi-disc set lives in one folder with the disc chosen from the game menu. A game present in both forms is listed once, and which one will run it is written in **pink for POPStarter, orange for Ember**.
 
 A disc image left loose in `Roms/psx/` is found too — and played. Ember is handed the *name* of a folder, never a path, so the disc has to be in `Ember/games/`: Prism moves it there at launch and puts it back when you launch something else. On one drive that is a rename, which costs nothing whatever the size of the file. One parking space, and what is in it is by definition the last played. The `.vmc` cards Ember writes stay behind in the game's folder, so your saves are still there the next time.
 
